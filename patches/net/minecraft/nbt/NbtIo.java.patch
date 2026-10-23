@@ -1,16 +1,31 @@
 --- a/net/minecraft/nbt/NbtIo.java
 +++ b/net/minecraft/nbt/NbtIo.java
-@@ -1,5 +_,10 @@
+@@ -1,5 +_,11 @@
  package net.minecraft.nbt;
  
 +import ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream;
 +import ca.spottedleaf.ioutil.stream.wrapped.BufferedBufferOutputStream;
 +import ca.spottedleaf.moonrise.patches.nbt_rw.CopyingOutputStream;
++import ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTParser;
 +import ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTSerialiser;
 +import ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants;
  import com.google.common.annotations.VisibleForTesting;
  import java.io.BufferedOutputStream;
  import java.io.DataInput;
+@@ -38,11 +_,11 @@
+     }
+ 
+     private static DataInputStream createDecompressorStream(InputStream in) throws IOException {
+-        return new DataInputStream(new FastBufferedInputStream(new GZIPInputStream(in)));
++        return new FastNBTParser.NbtInputStream(new GZIPInputStream(in));
+     }
+ 
+     private static DataOutputStream createCompressorStream(OutputStream out) throws IOException {
+-        return new DataOutputStream(new BufferedOutputStream(new GZIPOutputStream(out)));
++        return new DataOutputStream(new GZIPOutputStream(out));
+     }
+ 
+     public static CompoundTag readCompressed(InputStream in, NbtAccounter accounter) throws IOException {
 @@ -108,7 +_,12 @@
          return read(input, NbtAccounter.unlimitedHeap());
      }
@@ -141,7 +156,7 @@
  
      public static void writeUnnamedTagWithFallback(Tag tag, DataOutput output) throws IOException {
          writeUnnamedTag(tag, new NbtIo.StringFallbackDataOutput(output));
-@@ -169,11 +_,13 @@
+@@ -169,16 +_,21 @@
      @VisibleForTesting
      public static Tag readUnnamedTag(DataInput input, NbtAccounter accounter) throws IOException {
          byte type = input.readByte();
@@ -156,3 +171,11 @@
          return readTagSafe(input, accounter, type);
      }
  
+     private static Tag readTagSafe(DataInput input, NbtAccounter accounter, byte type) {
+         try {
++            if (input instanceof FastNBTParser.NbtInputStream stream) {
++                return stream.readTag(type, accounter);
++            }
+             return TagTypes.getType(type).load(input, accounter);
+         } catch (IOException e) {
+             CrashReport report = CrashReport.forThrowable(e, "Loading NBT data");

@@ -401,12 +401,15 @@
          }
  
          if (this.jsonRpcServer != null) {
-@@ -417,6 +_,8 @@
+@@ -417,6 +_,11 @@
                  LOGGER.error("Interrupted while stopping the management server", e);
              }
          }
 +        this.hasFullyShutdown = true; // Paper - Improved watchdog support
-+        System.exit(this.abnormalExit ? 70 : 0); // CraftBukkit // Paper - Improved watchdog support
++        // A shutdown hook must return instead of waiting for itself in System.exit.
++        if (!(Thread.currentThread() instanceof org.bukkit.craftbukkit.util.ServerShutdownThread)) {
++            System.exit(this.abnormalExit ? 70 : 0); // CraftBukkit // Paper - Improved watchdog support
++        }
      }
  
      @Override

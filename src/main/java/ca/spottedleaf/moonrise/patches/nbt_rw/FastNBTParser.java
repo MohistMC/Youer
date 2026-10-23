@@ -2,6 +2,8 @@ package ca.spottedleaf.moonrise.patches.nbt_rw;
 
 import ca.spottedleaf.ioutil.stream.AbstractBufferInputStream;
 import ca.spottedleaf.ioutil.stream.wrapped.BufferedBufferInputStream;
+import net.minecraft.CrashReport;
+import net.minecraft.CrashReportCategory;
 import net.minecraft.nbt.ByteArrayTag;
 import net.minecraft.nbt.ByteTag;
 import net.minecraft.nbt.CompoundTag;
@@ -16,6 +18,7 @@ import net.minecraft.nbt.LongTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtFormatException;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.ReportedNbtException;
 import net.minecraft.nbt.ShortTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
@@ -32,8 +35,15 @@ import static ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.*;
 
 public final class FastNBTParser {
 
-    private static void skipUTF(final AbstractBufferInputStream in) throws IOException {
-        in.skipNBytes((long)in.readUnsignedShort());
+    // Mark standalone NBT streams without bypassing NbtIo's mixin invocation anchors.
+    public static class NbtInputStream extends DataInputStream {
+        public NbtInputStream(final InputStream in) {
+            super(in);
+        }
+
+        public Tag readTag(final byte type, final NbtAccounter ctx) throws IOException {
+            return parseVanilla(type, new BufferedBufferInputStream(BUFFER.get(), this), ctx);
+        }
     }
 
     private static String readUTF(final AbstractBufferInputStream in) throws IOException {
@@ -45,7 +55,10 @@ public final class FastNBTParser {
             // fallback to vanilla
             return NbtIo.read(dataIn);
         }
-        final NbtAccounter ctx = NbtAccounter.unlimitedHeap();
+        return nbtIoReadStream(stream, NbtAccounter.unlimitedHeap());
+    }
+
+    public static CompoundTag nbtIoReadStream(final InputStream stream, final NbtAccounter ctx) throws IOException {
         final Tag tag;
 
         final AbstractBufferInputStream toRead;
@@ -85,13 +98,26 @@ public final class FastNBTParser {
         throw new IOException("Root tag must be a named compound tag");
     }
 
+    private static Tag parseVanillaSafe(final byte id, final AbstractBufferInputStream in, final NbtAccounter ctx) {
+        try {
+            return parseVanilla(id, in, ctx);
+        } catch (final IOException ex) {
+            final CrashReport report = CrashReport.forThrowable(ex, "Loading NBT data");
+            final CrashReportCategory category = report.addCategory("NBT Tag");
+            category.setDetail("Tag type", id);
+            throw new ReportedNbtException(report);
+        }
+    }
+
     public static Tag parseNamedTagVanilla(final AbstractBufferInputStream in, final NbtAccounter ctx) throws IOException {
         final byte id = in.readByte();
+        ctx.accountBytes(1);
         if (id == NBT_TAG_END) {
             return EndTag.INSTANCE;
         }
-        skipUTF(in);
-        return parseVanilla(id, in, ctx);
+        ctx.readUTF(in.readUTF());
+        ctx.accountBytes(4);
+        return parseVanillaSafe(id, in, ctx);
     }
 
     public static Tag parseTagNoNameVanilla(final AbstractBufferInputStream in, final NbtAccounter ctx) throws IOException {
@@ -99,7 +125,7 @@ public final class FastNBTParser {
         if (id == NBT_TAG_END) {
             return EndTag.INSTANCE;
         }
-        return parseVanilla(id, in, ctx);
+        return parseVanillaSafe(id, in, ctx);
     }
 
     private static ByteTag parseByteTag(final AbstractBufferInputStream in, final NbtAccounter ctx) throws IOException {
@@ -165,7 +191,7 @@ public final class FastNBTParser {
     private static StringTag parseStringTag(final AbstractBufferInputStream in, final NbtAccounter ctx) throws IOException {
         ctx.accountBytes(StringTag.SELF_SIZE_IN_BYTES);
         final String ret = readUTF(in);
-        ctx.accountBytes(2L, (long)ret.length());
+        ctx.readUTF(ret);
         return StringTag.valueOf(ret);
     }
 
@@ -207,9 +233,6 @@ public final class FastNBTParser {
         }
     }
 
-    // why is this different from StringTag...?
-    private static final int MAP_STRING_SELF_SIZE = 28;
-
     private static final int MAP_ENTRY_SIZE = 36;
 
 
@@ -221,11 +244,14 @@ public final class FastNBTParser {
 
             final Map<String, Tag> ret = new it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap<>(8, 0.8f); // Paper - Reduce memory footprint of CompoundTag
 
-            byte type;
-            while ((type = in.readByte()) != NBT_TAG_END) {
-                final String key = readUTF(in);
-                ctx.accountBytes(MAP_STRING_SELF_SIZE);
-                ctx.accountBytes(2L, (long)key.length());
+            while (true) {
+                ctx.accountBytes(2);
+                final byte type = in.readByte();
+                if (type == NBT_TAG_END) {
+                    break;
+                }
+                final String key = ctx.readUTF(in.readUTF());
+                ctx.accountBytes(4);
 
                 final Tag value = parseVanilla(type, in, ctx);
                 if (null == ret.put(key, value)) {
@@ -282,7 +308,7 @@ public final class FastNBTParser {
             }
 
             default: {
-                throw new NbtFormatException("Invalid or unknown tag id: " + type);
+                throw new IOException("Invalid tag id: " + type);
             }
         }
     }

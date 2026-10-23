@@ -10,36 +10,10 @@
      public static final String ANVIL_EXTENSION = ".mca";
      private static final int MAX_CACHE_SIZE = 256;
      private final Long2ObjectLinkedOpenHashMap<Optional<RegionFile>> regionCache = new Long2ObjectLinkedOpenHashMap<>();
-@@ -26,67 +_,335 @@
+@@ -26,67 +_,283 @@
      private final Path folder;
      private final boolean sync;
  
-+    // Paper start - recalculate region file headers
-+    private final boolean isChunkData;
-+
-+    @Nullable
-+    public static ChunkPos getRegionFileCoordinates(Path file) {
-+        String fileName = file.getFileName().toString();
-+        if (!fileName.startsWith("r.") || !fileName.endsWith(".mca")) {
-+            return null;
-+        }
-+
-+        String[] split = fileName.split("\\.");
-+
-+        if (split.length != 4) {
-+            return null;
-+        }
-+
-+        try {
-+            int x = Integer.parseInt(split[1]);
-+            int z = Integer.parseInt(split[2]);
-+
-+            return new ChunkPos(x << 5, z << 5);
-+        } catch (NumberFormatException ex) {
-+            return null;
-+        }
-+    }
-+    // Paper end
 +    // Paper start - rewrite chunk system
 +    private static final int REGION_SHIFT = 5;
 +    private static final int MAX_NON_EXISTING_CACHE = 1024 * 4;
@@ -139,17 +113,26 @@
 +        final int chunkX, final int chunkZ
 +    ) throws IOException {
 +        final RegionFile regionFile = this.moonrise$getRegionFileIfExists(chunkX, chunkZ);
-+
-+        final DataInputStream input = regionFile == null ? null : regionFile.getChunkDataInputStream(new ChunkPos(chunkX, chunkZ));
++        final int recalculateCount;
++        final DataInputStream input;
++        if (regionFile == null) {
++            recalculateCount = 0;
++            input = null;
++        } else {
++            synchronized (regionFile) {
++                input = regionFile.getChunkDataInputStream(new ChunkPos(chunkX, chunkZ));
++                recalculateCount = regionFile.moonrise$getRecalculateCount();
++            }
++        }
 +
 +        if (input == null) {
 +            return new ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.RegionDataController.ReadData(
-+                ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.RegionDataController.ReadData.ReadResult.NO_DATA, null, null, regionFile == null ? 0 : regionFile.getRecalculateCount() // Paper - Attempt to recalculate regionfile header if it is corrupt
++                ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.RegionDataController.ReadData.ReadResult.NO_DATA, null, null, recalculateCount
 +            );
 +        }
 +
 +        final ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.RegionDataController.ReadData ret = new ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.RegionDataController.ReadData(
-+            ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.RegionDataController.ReadData.ReadResult.HAS_DATA, input, null, regionFile.getRecalculateCount() // Paper - Attempt to recalculate regionfile header if it is corrupt
++            ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.RegionDataController.ReadData.ReadResult.HAS_DATA, input, null, recalculateCount
 +        );
 +
 +        if (!(input instanceof ca.spottedleaf.moonrise.patches.chunk_system.util.stream.ExternalChunkStreamMarker)) {
@@ -165,7 +148,7 @@
 +        }
 +
 +        return new ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.RegionDataController.ReadData(
-+            ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.RegionDataController.ReadData.ReadResult.SYNC_READ, null, syncRead, regionFile.getRecalculateCount() // Paper - Attempt to recalculate regionfile header if it is corrupt
++            ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.RegionDataController.ReadData.ReadResult.SYNC_READ, null, syncRead, recalculateCount
 +        );
 +    }
 +
@@ -174,36 +157,36 @@
 +    public final CompoundTag moonrise$finishRead(
 +        final int chunkX, final int chunkZ, final ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.RegionDataController.ReadData readData
 +    ) throws IOException {
++        final CompoundTag ret;
 +        try {
-+            // Paper start - Attempt to recalculate regionfile header if it is corrupt
-+            final CompoundTag ret = ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTParser.nbtIoRead(readData.input()); // Paper - Optimize NBT reading/writing
-+            if (!this.isChunkData) {
-+                return ret;
-+            }
-+
-+            final ChunkPos pos = new ChunkPos(chunkX, chunkZ);
-+            final ChunkPos headerChunkPos = SerializableChunkData.getChunkCoordinate(ret);
-+            final RegionFile regionFile = this.getRegionFile(pos, true);
-+
-+            if (regionFile.getRecalculateCount() != readData.recalculateCount()) {
-+                return null;
-+            }
-+
-+            if (!headerChunkPos.equals(pos)) {
-+                LOGGER.error("Attempting to read chunk data at " + pos + " but got chunk data for " + headerChunkPos + " instead! Attempting regionfile recalculation " + regionFile.getPath().toAbsolutePath());
-+                if (regionFile.recalculateHeader()) {
-+                    return null;
-+                }
-+
-+                LOGGER.error(com.mojang.logging.LogUtils.FATAL_MARKER, "Can't recalculate regionfile header?");
-+                return ret;
-+            }
-+
-+            return ret;
-+            // Paper end - Attempt to recalculate regionfile header if it is corrupt
++            ret = ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTParser.nbtIoRead(readData.input());
 +        } finally {
 +            readData.input().close();
 +        }
++
++        if (!ca.spottedleaf.moonrise.patches.chunk_system.storage.RegionFileRecovery.isChunkStorage(this.info)) {
++            return ret;
++        }
++
++        final RegionFile regionFile = this.moonrise$getRegionFileIfExists(chunkX, chunkZ);
++        if (regionFile == null || regionFile.moonrise$getRecalculateCount() != readData.recalculateCount()) {
++            return null;
++        }
++
++        final ChunkPos pos = new ChunkPos(chunkX, chunkZ);
++        final ChunkPos storedPos = ca.spottedleaf.moonrise.patches.chunk_system.storage.RegionFileRecovery.getChunkCoordinate(ret);
++        if (storedPos.equals(pos)) {
++            return ret;
++        }
++
++        LOGGER.error("Attempting to read chunk data at {} but got chunk data for {} instead! Attempting regionfile recalculation for regionfile {}", pos, storedPos, regionFile.getPath().toAbsolutePath());
++        final Boolean recalc = regionFile.moonrise$tryRecalcHeader(readData.recalculateCount());
++        if (recalc == null || recalc.booleanValue()) {
++            return null;
++        }
++
++        LOGGER.error("Can't recalculate regionfile header for regionfile {}", regionFile.getPath().toAbsolutePath());
++        return ret;
 +    }
 +    // Paper end - rewrite chunk system
 +
@@ -211,8 +194,8 @@
          this.folder = folder;
          this.sync = sync;
          this.info = info;
--    }
--
+     }
+ 
 -    private Path regionPath(ChunkPos pos) {
 -        return this.folder.resolve("r." + pos.getRegionX() + "." + pos.getRegionZ() + ".mca");
 -    }
@@ -235,9 +218,6 @@
 -            this.cache(key, Optional.empty());
 -            return null;
 -        } else {
-+        this.isChunkData = info.dfuType()[0] == net.minecraft.util.datafix.DataFixTypes.CHUNK; // Paper - recalculate region file headers
-+    }
-+
 +    private @Nullable RegionFile getRegionFile(final ChunkPos pos, final boolean create) throws IOException {
 +        // Paper start - rewrite chunk system
 +        synchronized (this) {
@@ -302,78 +282,48 @@
 -            Optional<RegionFile> evicted = this.regionCache.removeLast();
 -            if (evicted.isPresent()) {
 -                evicted.get().close();
-+    // Paper start
-+    private static void printOversizedLog(String msg, Path file, int x, int z) {
-+        LOGGER.error("{} ({} - {},{}) Go clean it up to remove this message. /minecraft:tp {} 128 {} - DO NOT REPORT THIS TO PAPER - You may ask for help on Discord, but do not file an issue. These error messages can not be removed.", msg, file.toString().replaceAll(".+[\\\\/]", ""), x, z, x << 4, z << 4);
-+    }
-+
-+    private static CompoundTag readOversizedChunk(RegionFile regionfile, ChunkPos chunkCoordinate) throws IOException {
-+        synchronized (regionfile) {
-+            try (DataInputStream datainputstream = regionfile.getChunkDataInputStream(chunkCoordinate)) {
-+                CompoundTag oversizedData = regionfile.getOversizedData(chunkCoordinate.x(), chunkCoordinate.z());
-+                CompoundTag chunk = ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTParser.nbtIoRead(datainputstream); // Paper - Optimize NBT reading/writing
-+                if (oversizedData == null) {
-+                    return chunk;
-+                }
-+                CompoundTag oversizedLevel = oversizedData.getCompoundOrEmpty("Level");
-+
-+                mergeChunkList(chunk.getCompoundOrEmpty("Level"), oversizedLevel, "Entities", "Entities");
-+                mergeChunkList(chunk.getCompoundOrEmpty("Level"), oversizedLevel, "TileEntities", "TileEntities");
-+
-+                return chunk;
-+            } catch (Throwable t) {
-+                t.printStackTrace();
-+                throw t;
-             }
-         }
-     }
- 
+-            }
+-        }
+-    }
+-
 -    public @Nullable CompoundTag read(ChunkPos pos) throws IOException {
-+    private static void mergeChunkList(CompoundTag level, CompoundTag oversizedLevel, String key, String oversizedKey) {
-+        net.minecraft.nbt.ListTag levelList = level.getListOrEmpty(key);
-+        net.minecraft.nbt.ListTag oversizedList = oversizedLevel.getListOrEmpty(oversizedKey);
-+
-+        if (!oversizedList.isEmpty()) {
-+            levelList.addAll(oversizedList);
-+            level.put(key, levelList);
-+        }
-+    }
-+    // Paper end
-+
 +    public @Nullable CompoundTag read(final ChunkPos pos) throws IOException {
          RegionFile region = this.getRegionFile(pos, false);
          if (region == null) {
              return null;
          }
  
-+        // Paper start
-+        if (region.isOversized(pos.x(), pos.z())) {
-+            printOversizedLog("Loading Oversized Chunk!", region.getPath(), pos.x(), pos.z());
-+            return readOversizedChunk(region, pos);
-+        }
-+        // Paper end
-+
++        final CompoundTag serialisedChunkData;
          try (DataInputStream regionChunkInputStream = region.getChunkDataInputStream(pos)) {
 -            return regionChunkInputStream == null ? null : NbtIo.read(regionChunkInputStream);
-+            // Paper start - recover from corrupt regionfile header
 +            if (regionChunkInputStream == null) {
 +                return null;
 +            }
++            serialisedChunkData = ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTParser.nbtIoRead(regionChunkInputStream);
++        }
 +
-+            final CompoundTag serialisedChunkData = ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTParser.nbtIoRead(regionChunkInputStream); // Paper - Optimize NBT reading/writing
-+            if (this.isChunkData) {
-+                ChunkPos headerChunkPos = SerializableChunkData.getChunkCoordinate(serialisedChunkData);
-+                if (!headerChunkPos.equals(pos)) {
-+                    LOGGER.error("Attempting to read chunk data at {} but got chunk data for {} instead! Attempting regionfile recalculation for regionfile {}", pos, headerChunkPos, region.getPath().toAbsolutePath());
-+                    if (region.recalculateHeader()) {
-+                        return this.read(pos);
-+                    }
-+                    LOGGER.error("Can't recalculate regionfile header, regenerating chunk {} for {}", pos, region.getPath().toAbsolutePath());
-+                    return null;
-+                }
-+            }
++        if (!ca.spottedleaf.moonrise.patches.chunk_system.storage.RegionFileRecovery.isChunkStorage(this.info)) {
 +            return serialisedChunkData;
-+            // Paper end - recover from corrupt regionfile header
++        }
++
++        final ChunkPos storedPos = ca.spottedleaf.moonrise.patches.chunk_system.storage.RegionFileRecovery.getChunkCoordinate(serialisedChunkData);
++        if (storedPos.equals(pos)) {
++            return serialisedChunkData;
++        }
++
++        final RegionFile regionFile = this.getRegionFile(pos, false);
++        if (regionFile == null) {
++            return serialisedChunkData;
++        }
++
++        LOGGER.error("Attempting to read chunk data at {} but got chunk data for {} instead! Attempting regionfile recalculation for regionfile {}", pos, storedPos, regionFile.getPath().toAbsolutePath());
++        if (!regionFile.moonrise$recalculateHeader()) {
++            LOGGER.error("Can't recalculate regionfile header for regionfile {}", regionFile.getPath().toAbsolutePath());
++            return serialisedChunkData;
++        }
++
++        try (final DataInputStream input = regionFile.getChunkDataInputStream(pos)) {
++            return input == null ? null : ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTParser.nbtIoRead(input);
          }
      }
  
@@ -382,7 +332,7 @@
          RegionFile region = this.getRegionFile(pos, false);
          if (region != null) {
              try (DataInputStream regionChunkInputStream = region.getChunkDataInputStream(pos)) {
-@@ -97,14 +_,30 @@
+@@ -97,14 +_,29 @@
          }
      }
  
@@ -404,7 +354,6 @@
 +                DataOutputStream output = region.getChunkDataOutputStream(pos);
 +                try { // Paper - Only write if successful
                      NbtIo.write(value, output);
-+                    region.setOversized(pos.x(), pos.z(), false); // Paper - We don't do this anymore, mojang stores differently, but clear old meta flag if it exists to get rid of our own meta file once last oversized is gone
 +                    // Paper start - don't write garbage data to disk if writing serialization fails
 +                    output.close();
 +                } catch (final RegionFileSizeException ex) {

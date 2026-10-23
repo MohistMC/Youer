@@ -1,5 +1,12 @@
 --- a/net/minecraft/world/level/storage/SavedDataStorage.java
 +++ b/net/minecraft/world/level/storage/SavedDataStorage.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.level.storage;
+ 
++import ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTParser;
+ import com.google.common.collect.Iterables;
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.logging.LogUtils;
 @@ -46,13 +_,27 @@
      private final Path dataFolder;
      private CompletableFuture<?> pendingWriteFuture = CompletableFuture.completedFuture(null);
@@ -58,7 +65,14 @@
          try (
              InputStream in = Files.newInputStream(dataFile);
              PushbackInputStream inputStream = new PushbackInputStream(new FastBufferedInputStream(in), 2);
-@@ -121,7 +_,15 @@
+@@ -115,13 +_,21 @@
+             if (this.isGzip(inputStream)) {
+                 tag = NbtIo.readCompressed(inputStream, NbtAccounter.unlimitedHeap());
+             } else {
+-                try (DataInputStream dis = new DataInputStream(inputStream)) {
++                try (DataInputStream dis = new FastNBTParser.NbtInputStream(inputStream)) {
+                     tag = NbtIo.read(dis);
+                 }
              }
  
              int version = NbtUtils.getDataVersion(tag, 1343);

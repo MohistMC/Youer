@@ -187,6 +187,42 @@
                      this.broadcastChanges();
                  });
              } else {
+@@ -131,6 +_,35 @@
+         }
+     }
+ 
++    // Paper start - roll enchantment offers API
++    // Youer - Keep the native offer generation in slotsChanged intact for NeoForge hooks and mod mixins.
++    public static void fillEnchantmentOffers(final RandomSource random, final int seed, final int bookcases, final ItemStack itemStack, final RegistryAccess registryAccess, final int[] costs, final int[] enchantClue, final int[] levelClue) {
++        random.setSeed(seed);
++
++        for (int ixx = 0; ixx < costs.length; ixx++) {
++            costs[ixx] = EnchantmentHelper.getEnchantmentCost(random, ixx, bookcases, itemStack);
++            enchantClue[ixx] = -1;
++            levelClue[ixx] = -1;
++            if (costs[ixx] < ixx + 1) {
++                costs[ixx] = 0;
++            }
++        }
++
++        final IdMap<Holder<Enchantment>> holders = registryAccess.lookupOrThrow(Registries.ENCHANTMENT).asHolderIdMap();
++
++        for (int ix = 0; ix < costs.length; ix++) {
++            if (costs[ix] > 0) {
++                List<EnchantmentInstance> list = getEnchantmentList(registryAccess, itemStack, ix, costs[ix], random, seed);
++                if (!list.isEmpty()) {
++                    EnchantmentInstance ench = list.get(random.nextInt(list.size()));
++                    enchantClue[ix] = holders.getId(ench.enchantment());
++                    levelClue[ix] = ench.level();
++                }
++            }
++        }
++    }
++    // Paper end - roll enchantment offers API
++
+     @Override
+     public boolean clickMenuButton(Player player, int buttonId) {
+         if (buttonId >= 0 && buttonId < this.costs.length) {
 @@ -139,45 +_,81 @@
              int enchantmentCost = buttonId + 1;
              if ((currency.isEmpty() || currency.getCount() < enchantmentCost) && !player.hasInfiniteMaterials()) {
@@ -304,7 +340,30 @@
          } else {
              Util.logAndPauseIfInIde(player.getPlainTextName() + " pressed invalid button id: " + buttonId);
              return false;
-@@ -204,6 +_,12 @@
+@@ -199,11 +_,35 @@
+         return list;
+     }
+ 
++    // Paper start - roll enchantment offers API
++    // Youer - Deliberately duplicate the private instance method to preserve its body and native mixin call sites.
++    public static List<EnchantmentInstance> getEnchantmentList(final RegistryAccess access, final ItemStack itemStack, final int slot, final int enchantmentCost, final RandomSource random, final int seed) {
++        random.setSeed(seed + slot);
++        Optional<HolderSet.Named<Enchantment>> tag = access.lookupOrThrow(Registries.ENCHANTMENT).get(EnchantmentTags.IN_ENCHANTING_TABLE);
++        if (tag.isEmpty()) {
++            return List.of();
++        }
++
++        List<EnchantmentInstance> list = EnchantmentHelper.selectEnchantment(random, itemStack, enchantmentCost, tag.get().stream());
++        if (itemStack.is(Items.BOOK) && list.size() > 1) {
++            list.remove(random.nextInt(list.size()));
++        }
++
++        return list;
++    }
++    // Paper end - roll enchantment offers API
++
+     public int getGoldCount() {
+         ItemStack goldStack = this.enchantSlots.getItem(1);
          return goldStack.isEmpty() ? 0 : goldStack.getCount();
      }
  

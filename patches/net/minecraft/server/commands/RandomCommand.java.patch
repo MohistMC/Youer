@@ -1,0 +1,20 @@
+--- a/net/minecraft/server/commands/RandomCommand.java
++++ b/net/minecraft/server/commands/RandomCommand.java
+@@ -41,7 +_,7 @@
+                 .then(drawRandomValueTree("roll", true))
+                 .then(
+                     Commands.literal("reset")
+-                        .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
++                        .requires(stack -> stack.getBukkitSender().hasPermission("minecraft.command.random.reset"))
+                         .then(
+                             Commands.literal("*")
+                                 .executes(c -> resetAllSequences(c.getSource()))
+@@ -121,7 +_,7 @@
+                     .then(
+                         Commands.argument("sequence", IdentifierArgument.id())
+                             .suggests(RandomCommand::suggestRandomSequence)
+-                            .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
++                            .requires(stack -> stack.getBukkitSender().hasPermission("minecraft.command.random.sequence." + (announce ? "roll" : "value")))
+                             .executes(
+                                 c -> randomSample(c.getSource(), RangeArgument.Ints.getRange(c, "range"), IdentifierArgument.getId(c, "sequence"), announce)
+                             )

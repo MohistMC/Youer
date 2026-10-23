@@ -1954,6 +1954,26 @@ public final class CraftServer implements Server {
 
         return CraftItemStack.asBukkitCopy(stack);
     }
+
+    @Override
+    public ItemStack createExplorerMap(World world, Location location, org.bukkit.generator.structure.Structure structure, org.bukkit.map.MapCursor.Type mapIcon, int radius, boolean findUnexplored) {
+        Preconditions.checkArgument(world != null, "World cannot be null");
+        Preconditions.checkArgument(location != null, "Location cannot be null");
+        Preconditions.checkArgument(structure != null, "Structure cannot be null");
+        Preconditions.checkArgument(mapIcon != null, "mapIcon cannot be null");
+
+        final ServerLevel level = ((CraftWorld) world).getHandle();
+        final org.bukkit.util.StructureSearchResult structureSearchResult = world.locateNearestStructure(location, structure, radius, findUnexplored);
+        if (structureSearchResult == null) {
+            return null;
+        }
+        final BlockPos structurePos = CraftLocation.toBlockPos(structureSearchResult.getLocation());
+        final net.minecraft.world.item.ItemStack stack = MapItem.create(level, structurePos.getX(), structurePos.getZ(), MapView.Scale.NORMAL.getValue(), true, true);
+        MapItem.renderBiomePreviewMap(level, stack);
+        MapItemSavedData.addTargetDecoration(stack, structurePos, "+", CraftMapCursor.CraftType.bukkitToMinecraftHolder(mapIcon));
+
+        return CraftItemStack.asBukkitCopy(stack);
+    }
     // Paper end
 
     @Override
