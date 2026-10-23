@@ -31,6 +31,10 @@ public class YouerConfigUtil {
 
     public static void init() {
         try {
+            File parent = youer_yml.getParentFile();
+            if (parent != null && !parent.exists()) {
+                parent.mkdirs();
+            }
             if (!youer_yml.exists()) {
                 youer_yml.createNewFile();
             }
