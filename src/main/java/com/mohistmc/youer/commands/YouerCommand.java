@@ -4,7 +4,6 @@ import com.mohistmc.tools.NumberUtil;
 import com.mohistmc.tools.OSUtil;
 import com.mohistmc.tools.StatsUtils;
 import com.mohistmc.tools.StringUtil;
-import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.PlayerAPI;
 import com.mohistmc.youer.api.ServerAPI;
@@ -39,7 +38,7 @@ import org.jetbrains.annotations.NotNull;
 public class YouerCommand extends Command {
 
     private static final String[] COMMAND_LIST = {
-        "windows", "mods", "playermods", "reload", "version",
+        "windows", "mods", "playermods", "reload",
         "channels_incom", "channels_outgo", "speed", "printthreadcost",
         "packetstats", "heal", "help", "cleardropitem", "memoryfix", "showp",
         "backupworld", "migratedb"
@@ -171,12 +170,6 @@ public class YouerCommand extends Command {
 
                 console.server.reloadCount++;
                 sender.sendMessage(I18n.as("youercmd.reload.complete"));
-                return true;
-            }
-            case "version" -> {
-                sender.sendMessage("Youer: " + Youer.versionInfo.youer());
-                sender.sendMessage("NeoForge: " + Youer.versionInfo.neoforge());
-                sender.sendMessage("Paper: " + Youer.versionInfo.paper());
                 return true;
             }
             case "packetstats" -> {
@@ -531,7 +524,6 @@ public class YouerCommand extends Command {
         sender.sendMessage(I18n.as("youercmd.help.mods"));
         sender.sendMessage(I18n.as("youercmd.help.playermods"));
         sender.sendMessage(I18n.as("youercmd.help.reload"));
-        sender.sendMessage(I18n.as("youercmd.help.version"));
         sender.sendMessage(I18n.as("youercmd.help.packetstats"));
         sender.sendMessage(I18n.as("youercmd.help.heal"));
         sender.sendMessage(I18n.as("youercmd.help.speed"));

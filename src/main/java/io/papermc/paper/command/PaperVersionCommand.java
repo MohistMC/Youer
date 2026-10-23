@@ -1,13 +1,12 @@
 package io.papermc.paper.command;
 
-import com.destroystokyo.paper.util.VersionFetcher;
+import com.mohistmc.youer.util.YouerVersion;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mojang.brigadier.tree.LiteralCommandNode;
-import io.papermc.paper.InternalAPIBridge;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.plugin.configuration.PluginMeta;
@@ -20,9 +19,7 @@ import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import net.minecraft.server.MinecraftServer;
+import net.neoforged.neoforge.common.NeoForgeVersion;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.Plugin;
@@ -42,11 +39,6 @@ public class PaperVersionCommand {
         Component.text(", ", NamedTextColor.WHITE),
         Component.text(", and ", NamedTextColor.WHITE)
     );
-    private static final Component FAILED_TO_FETCH = Component.text("Could not fetch version information!", NamedTextColor.RED);
-    private static final Component FETCHING = Component.text("Checking version, please wait...", NamedTextColor.WHITE, TextDecoration.ITALIC);
-
-    private final VersionFetcher versionFetcher = InternalAPIBridge.get().getVersionFetcher();
-    private CompletableFuture<ComputedVersion> computedVersion = CompletableFuture.completedFuture(new ComputedVersion(Component.empty(), -1)); // Precompute-- someday move that stuff out of bukkit
 
     public static LiteralCommandNode<CommandSourceStack> create() {
         final PaperVersionCommand command = new PaperVersionCommand();
@@ -130,55 +122,14 @@ public class PaperVersionCommand {
     }
 
     private int serverVersion(CommandContext<CommandSourceStack> context) {
-        sendVersion(context.getSource().getSender());
+        final CommandSender sender = context.getSource().getSender();
+        // Youer start - report the loader and upstream builds instead of querying the update service
+        sender.sendMessage(Component.text(Bukkit.getVersionMessage(), NamedTextColor.WHITE));
+        sender.sendMessage("Youer: " + YouerVersion.getVersion());
+        sender.sendMessage("NeoForge: " + NeoForgeVersion.getVersion());
+        sender.sendMessage("Paper: " + YouerVersion.getPaperVersion());
+        sender.sendMessage("Purpur: " + YouerVersion.getPurpurVersion());
+        // Youer end
         return Command.SINGLE_SUCCESS;
-    }
-
-    private void sendVersion(final CommandSender sender) {
-        final CompletableFuture<ComputedVersion> version = getVersionOrFetch();
-        if (!version.isDone()) {
-            sender.sendMessage(FETCHING);
-        }
-
-        version.whenComplete((computedVersion, throwable) -> {
-            if (computedVersion != null) {
-                sender.sendMessage(computedVersion.message);
-            } else if (throwable != null) {
-                sender.sendMessage(FAILED_TO_FETCH);
-                MinecraftServer.LOGGER.warn("Could not fetch version information!", throwable);
-            }
-        });
-    }
-
-    private CompletableFuture<ComputedVersion> getVersionOrFetch() {
-        if (!this.computedVersion.isDone()) {
-            return this.computedVersion;
-        }
-
-        if (this.computedVersion.isCompletedExceptionally() || System.currentTimeMillis() - this.computedVersion.resultNow().computedTime() > this.versionFetcher.getCacheTime()) {
-            this.computedVersion = this.fetchVersionMessage();
-        }
-
-        return this.computedVersion;
-    }
-
-    private CompletableFuture<ComputedVersion> fetchVersionMessage() {
-       return CompletableFuture.supplyAsync(() -> {
-           final Component message = Component.textOfChildren(
-               Component.text(Bukkit.getVersionMessage(), NamedTextColor.WHITE),
-               Component.newline(),
-               this.versionFetcher.getVersionMessage()
-           );
-
-           return new ComputedVersion(
-               message.hoverEvent(Component.translatable("chat.copy.click", NamedTextColor.WHITE))
-                   .clickEvent(ClickEvent.copyToClipboard(PlainTextComponentSerializer.plainText().serialize(message))),
-               System.currentTimeMillis()
-           );
-       });
-    }
-
-    record ComputedVersion(Component message, long computedTime) {
-
     }
 }
