@@ -1384,7 +1384,7 @@
          this.connection.send(new ClientboundBlockUpdatePacket(this.level(), sign.getBlockPos()));
          this.connection.send(new ClientboundOpenSignEditorPacket(sign.getBlockPos(), isFrontText));
      }
-@@ -1330,29 +_,89 @@
+@@ -1330,29 +_,95 @@
          this.containerCounter = this.containerCounter % 100 + 1;
      }
  
@@ -1450,39 +1450,45 @@
 +                        },
 +                        registryAccess()
 +                );
++                // Youer start - fire InventoryOpenEvent for modded containers too, they use the advanced open screen packet
++                menu.containerOwner = this;
++                boolean cancelled = false;
++                // Paper start - Add titleOverride to InventoryOpenEvent
++                final com.mojang.datafixers.util.Pair<net.kyori.adventure.text.Component, AbstractContainerMenu> result = org.bukkit.craftbukkit.event.CraftEventFactory.callInventoryOpenEventWithTitle(this, menu, cancelled);
++                menu = result.getSecond();
++                title = io.papermc.paper.adventure.PaperAdventure.asVanilla(result.getFirst());
++                // Paper end - Add titleOverride to InventoryOpenEvent
++                boolean cancelScreen = false;
++                if (menu != null && com.mohistmc.youer.api.event.ClientboundOpenScreenEvent.getHandlerList().getRegisteredListeners().length > 0) {
++                    final com.mohistmc.youer.api.event.ClientboundOpenScreenEvent openScreenEvent = new com.mohistmc.youer.api.event.ClientboundOpenScreenEvent(this.getBukkitEntity(), menu);
++                    cancelScreen = !openScreenEvent.callEvent();
++                }
++                if ((menu == null && !cancelled) || cancelScreen) { // Let pre-cancelled events fall through
++                    // SPIGOT-5263 - close chest if cancelled
++                    if (provider instanceof Container container) {
++                        container.stopOpen(this);
++                    } else if (provider instanceof org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest.Provider doubleChestProvider) {
++                        // SPIGOT-5355 - double chests too :(
++                        doubleChestProvider.container.stopOpen(this);
++                        // Paper start - Fix InventoryOpenEvent cancellation
++                    } else if (!this.enderChestInventory.isActiveChest(null)) {
++                        this.enderChestInventory.stopOpen(this);
++                        // Paper end - Fix InventoryOpenEvent cancellation
++                    }
++                    return OptionalInt.empty();
++                }
++                // Youer end
 +                if (extraData.length != 0) {
 +                    this.connection.send(
 +                            new net.neoforged.neoforge.network.payload.AdvancedOpenScreenPayload(
 +                                    menu.containerId,
 +                                    menu.getType(),
-+                                    provider.getDisplayName(),
++                                    java.util.Objects.requireNonNullElseGet(title, menu::getTitle),
 +                                    extraData
 +                            )
 +                    );
 +                } else {
-+                    menu.setTitle(provider.getDisplayName());
-+                    menu.containerOwner = this;
-+                    boolean cancelled = false;
-+                    // Paper start - Add titleOverride to InventoryOpenEvent
-+                    final com.mojang.datafixers.util.Pair<net.kyori.adventure.text.Component, AbstractContainerMenu> result = org.bukkit.craftbukkit.event.CraftEventFactory.callInventoryOpenEventWithTitle(this, menu, cancelled);
-+                    menu = result.getSecond();
-+                    title = io.papermc.paper.adventure.PaperAdventure.asVanilla(result.getFirst());
-+                    // Paper end - Add titleOverride to InventoryOpenEvent
-+                    if (menu == null && !cancelled) { // Let pre-cancelled events fall through
-+                        // SPIGOT-5263 - close chest if cancelled
-+                        if (provider instanceof Container container) {
-+                            container.stopOpen(this);
-+                        } else if (provider instanceof org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest.Provider doubleChestProvider) {
-+                            // SPIGOT-5355 - double chests too :(
-+                            doubleChestProvider.container.stopOpen(this);
-+                            // Paper start - Fix InventoryOpenEvent cancellation
-+                        } else if (!this.enderChestInventory.isActiveChest(null)) {
-+                            this.enderChestInventory.stopOpen(this);
-+                            // Paper end - Fix InventoryOpenEvent cancellation
-+                        }
-+                        return OptionalInt.empty();
-+                    }
-+                    this.connection.send(new ClientboundOpenScreenPacket(menu.containerId, menu.getType(), java.util.Objects.requireNonNullElseGet(title, menu::getTitle))); // Paper - Add titleOverride to InventoryOpenEven
++                    this.connection.send(new ClientboundOpenScreenPacket(menu.containerId, menu.getType(), java.util.Objects.requireNonNullElseGet(title, menu::getTitle))); // Paper - Add titleOverride to InventoryOpenEvent
 +                }
 +                this.initMenu(menu);
 +                this.containerMenu = menu;

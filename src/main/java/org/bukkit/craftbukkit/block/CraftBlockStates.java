@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.block;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.bukkit.block.YouerModsBlockEntityState;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -115,6 +116,9 @@ public final class CraftBlockStates {
                 }
             }
             // Youer end
+            if (blockEntity != null) {
+                return new YouerModsBlockEntityState(world, blockEntity);
+            }
             return new CraftBlockState(world, pos, state);
         }
     };

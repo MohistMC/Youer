@@ -3,6 +3,7 @@ package org.bukkit.craftbukkit.event;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.collect.Lists;
+import com.mohistmc.youer.api.MenuAPI;
 import com.mohistmc.youer.bukkit.inventory.YouerModsInventory;
 import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Either;
@@ -232,6 +233,7 @@ import org.bukkit.event.entity.TrialSpawnerSpawnEvent;
 import org.bukkit.event.entity.VillagerCareerChangeEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.inventory.PrepareGrindstoneEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
@@ -1422,7 +1424,20 @@ public class CraftEventFactory {
         CraftPlayer craftPlayer = player.getBukkitEntity();
         player.containerMenu.transferTo(container, craftPlayer);
 
-        InventoryOpenEvent event = new InventoryOpenEvent(container.getBukkitView());
+        // Youer start - expose modded menu types through Inventory#getType()
+        InventoryView view = container.getBukkitView();
+        if (view == null) {
+            org.bukkit.inventory.Inventory inventory = new CraftInventory(new YouerModsInventory(container, player));
+            view = new CraftInventoryView<>(craftPlayer, inventory, container);
+        }
+        InventoryType menuInventoryType = MenuAPI.getInventoryType(container);
+        if (menuInventoryType != null) {
+            if (view.getTopInventory() instanceof CraftInventory craftInventory) {
+                craftInventory.setInventoryType(menuInventoryType);
+            }
+        }
+        InventoryOpenEvent event = new InventoryOpenEvent(view);
+        // Youer end
         event.setCancelled(cancelled);
         server.getPluginManager().callEvent(event);
 
@@ -1645,7 +1660,7 @@ public class CraftEventFactory {
     }
 
     public static void callRecipeBookSettingsEvent(ServerPlayer player, RecipeBookType type, boolean open, boolean filter) {
-        PlayerRecipeBookSettingsChangeEvent.RecipeBookType bukkitType = PlayerRecipeBookSettingsChangeEvent.RecipeBookType.values()[type.ordinal()];
+        PlayerRecipeBookSettingsChangeEvent.RecipeBookType bukkitType = PlayerRecipeBookSettingsChangeEvent.RecipeBookType.valueOf(type.name());
         Bukkit.getPluginManager().callEvent(new PlayerRecipeBookSettingsChangeEvent(player.getBukkitEntity(), bukkitType, open, filter));
     }
 

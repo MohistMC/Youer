@@ -1,15 +1,17 @@
 package org.bukkit.craftbukkit.util;
 
+import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import net.minecraft.world.entity.MobCategory;
 import org.bukkit.entity.SpawnCategory;
 
 public class CraftSpawnCategory {
 
     public static boolean isValidForLimits(SpawnCategory spawnCategory) {
-        return spawnCategory != null && spawnCategory != SpawnCategory.MISC;
+        return spawnCategory != null && (spawnCategory.ordinal() < SpawnCategory.MISC.ordinal()); // TODO
     }
 
     public static String getConfigNameSpawnLimit(SpawnCategory spawnCategory) {
+        if (spawnCategory.isMods) return "spawn-limits.mods." + spawnCategory.name().toLowerCase();
         return switch (spawnCategory) {
             case MONSTER -> "spawn-limits.monsters";
             case ANIMAL -> "spawn-limits.animals";
@@ -23,6 +25,7 @@ public class CraftSpawnCategory {
     }
 
     public static String getConfigNameTicksPerSpawn(SpawnCategory spawnCategory) {
+        if (spawnCategory.isMods) return "ticks-per." + spawnCategory.name().toLowerCase();
         return switch (spawnCategory) {
             case MONSTER -> "ticks-per.monster-spawns";
             case ANIMAL -> "ticks-per.animal-spawns";
@@ -53,10 +56,14 @@ public class CraftSpawnCategory {
             case WATER_AMBIENT -> SpawnCategory.WATER_AMBIENT;
             case UNDERGROUND_WATER_CREATURE -> SpawnCategory.WATER_UNDERGROUND_CREATURE;
             case MISC -> SpawnCategory.MISC;
+            default -> SpawnCategory.valueOf(category.name());
         };
     }
 
     public static MobCategory toNMS(SpawnCategory spawnCategory) {
+        if (spawnCategory.isMods) {
+            return NeoForgeInjectBukkit.CATEGORYSPAWNMAP.get(spawnCategory);
+        }
         return switch (spawnCategory) {
             case MONSTER -> MobCategory.MONSTER;
             case ANIMAL -> MobCategory.CREATURE;
@@ -66,6 +73,7 @@ public class CraftSpawnCategory {
             case WATER_AMBIENT -> MobCategory.WATER_AMBIENT;
             case WATER_UNDERGROUND_CREATURE -> MobCategory.UNDERGROUND_WATER_CREATURE;
             case MISC -> MobCategory.MISC;
+            default -> MobCategory.valueOf(spawnCategory.name());
         };
     }
 

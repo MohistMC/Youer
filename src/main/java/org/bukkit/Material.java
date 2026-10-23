@@ -4,7 +4,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.mohistmc.dynamicenum.MohistDynamEnum;
+import com.mohistmc.youer.util.DynamicEnumUtil;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.Equippable;
 import java.lang.reflect.Constructor;
@@ -3801,14 +3801,14 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
             if (material != null) {
                 material.isModBlock = true;
             } else {
-                material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, isBlock, isItem));
+                material = DynamicEnumUtil.addEnum(Material.class, materialName, List.of(Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, isBlock, isItem));
             }
             BY_NAME.put(materialName, material);
             material.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
             BY_KEY.put(resourceLocation.toString(), material);
             return material;
         } else { // Forge Items
-            Material material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, isBlock, isItem));
+            Material material = DynamicEnumUtil.addEnum(Material.class, materialName, List.of(Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, isBlock, isItem));
             BY_NAME.put(materialName, material);
             material.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
             material.isModItem = true;

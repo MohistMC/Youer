@@ -1,7 +1,6 @@
 package com.mohistmc.youer.feature;
 
 import com.mohistmc.youer.api.gui.GuiListener;
-import com.mohistmc.youer.commands.DeepseekCommand;
 import com.mohistmc.youer.commands.HatCommand;
 import com.mohistmc.youer.commands.HideAllCommand;
 import com.mohistmc.youer.commands.HideCommand;
@@ -15,6 +14,7 @@ import com.mohistmc.youer.feature.db.DatabaseManager;
 import com.mohistmc.youer.feature.entitylimits.EntityLimitsCommands;
 import com.mohistmc.youer.feature.item.ItemsConfig;
 import com.mohistmc.youer.feature.menu.MenuCommand;
+import com.mohistmc.youer.feature.menu.MenuListener;
 import com.mohistmc.youer.feature.plugin.PluginHotReloadCommand;
 import com.mohistmc.youer.feature.tpa.TpaComamands;
 import com.mohistmc.youer.feature.tpa.TpacceptCommands;
@@ -32,6 +32,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
 /**
@@ -92,9 +93,6 @@ public class YouerPlugin {
         if (CommandsConfig.INSTANCE.enable("entitylimits.enable")) {
             commands.put("entitylimits", new EntityLimitsCommands("entitylimits"));
         }
-        if (CommandsConfig.INSTANCE.enable("deepseek.enable")) {
-            commands.put("deepseek", new DeepseekCommand("deepseek"));
-        }
         commands.put("plugin", new PluginHotReloadCommand("plugin"));
 
     }
@@ -115,6 +113,11 @@ public class YouerPlugin {
         }
         if (event instanceof PlayerDeathEvent event1) {
             BackCommands.hooktDeath(event1);
+        }
+        if (event instanceof PlayerInteractEvent event1) {
+            if (CommandsConfig.INSTANCE.enable("menus.enable")) {
+                MenuListener.onPlayerInteract(event1);
+            }
         }
     }
 }

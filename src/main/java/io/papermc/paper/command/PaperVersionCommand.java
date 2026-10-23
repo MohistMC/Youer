@@ -1,6 +1,7 @@
 package io.papermc.paper.command;
 
 import com.destroystokyo.paper.util.VersionFetcher;
+import com.mohistmc.youer.util.YouerVersion;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -23,6 +24,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.minecraft.server.MinecraftServer;
+import net.neoforged.neoforge.common.NeoForgeVersion;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.Plugin;
@@ -130,7 +132,14 @@ public class PaperVersionCommand {
     }
 
     private int serverVersion(CommandContext<CommandSourceStack> context) {
-        sendVersion(context.getSource().getSender());
+        final CommandSender sender = context.getSource().getSender();
+        // Youer start - report the loader and upstream builds instead of querying the update service
+        sender.sendMessage(Component.text(Bukkit.getVersionMessage(), NamedTextColor.WHITE));
+        sender.sendMessage("Youer: " + YouerVersion.getVersion());
+        sender.sendMessage("NeoForge: " + NeoForgeVersion.getVersion());
+        sender.sendMessage("Paper: " + YouerVersion.getPaperVersion());
+        sender.sendMessage("Purpur: " + YouerVersion.getPurpurVersion());
+        // Youer end
         return Command.SINGLE_SUCCESS;
     }
 

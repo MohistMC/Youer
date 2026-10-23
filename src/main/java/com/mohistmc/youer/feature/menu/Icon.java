@@ -1,7 +1,6 @@
 package com.mohistmc.youer.feature.menu;
 
 import java.util.List;
-import java.util.Objects;
 import org.bukkit.inventory.ItemFlag;
 
 public class Icon {
@@ -165,57 +164,5 @@ public class Icon {
 
     public boolean hasUsePermission() {
         return use_permission != null;
-    }
-
-    @Override
-    public String toString() {
-        return "Icon{" +
-                "material='" + material + '\'' +
-                ", positionX=" + positionX +
-                ", positionY=" + positionY +
-                ", name='" + name + '\'' +
-                ", lore=" + lore +
-                ", actions=" + actions +
-                ", durability=" + durability +
-                ", enchantments=" + enchantments +
-                ", amount=" + amount +
-                ", requiredItems=" + requiredItems +
-                ", keepOpen=" + keepOpen +
-                ", use_permission='" + use_permission + '\'' +
-                ", display_permission='" + display_permission + '\'' +
-                ", hideTooltip=" + hideTooltip +
-                ", customModelData=" + customModelData +
-                ", itemFlags=" + itemFlags +
-                ", base64='" + base64 + '\'' +
-                '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Icon icon = (Icon) o;
-        return positionX == icon.positionX &&
-                positionY == icon.positionY &&
-                keepOpen == icon.keepOpen &&
-                hideTooltip == icon.hideTooltip &&
-                Objects.equals(material, icon.material) &&
-                Objects.equals(name, icon.name) &&
-                Objects.equals(lore, icon.lore) &&
-                Objects.equals(actions, icon.actions) &&
-                Objects.equals(durability, icon.durability) &&
-                Objects.equals(enchantments, icon.enchantments) &&
-                Objects.equals(amount, icon.amount) &&
-                Objects.equals(requiredItems, icon.requiredItems) &&
-                Objects.equals(use_permission, icon.use_permission) &&
-                Objects.equals(display_permission, icon.display_permission) &&
-                Objects.equals(customModelData, icon.customModelData) &&
-                Objects.equals(itemFlags, icon.itemFlags) &&
-                Objects.equals(base64, icon.base64);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(material, positionX, positionY, name, lore, actions, durability, enchantments, amount, requiredItems, keepOpen, use_permission, display_permission, hideTooltip, customModelData, itemFlags, base64);
     }
 }

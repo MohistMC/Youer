@@ -39,6 +39,7 @@ import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntitySpawnRequest;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.projectile.hurtingprojectile.Fireball;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.level.storage.ValueInput;
@@ -159,7 +160,13 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         CraftEntityTypes.EntityTypeData<?, T> entityTypeData = CraftEntityTypes.getEntityTypeData(CraftEntityType.minecraftToBukkit(entity.getType()));
 
         if (entityTypeData != null) {
-            return (CraftEntity) entityTypeData.convertFunction().apply(server, entity);
+            try {
+                return (CraftEntity) entityTypeData.convertFunction().apply(server, entity);
+            } catch (ClassCastException e) {
+                if (entity instanceof Fireball && entity.getType() == net.minecraft.world.entity.EntityTypes.SMALL_FIREBALL) {
+                    return new CraftFireball(server, (Fireball) entity);
+                }
+            }
         }
 
         return EntityClassLookup.getEntity(server, entity);

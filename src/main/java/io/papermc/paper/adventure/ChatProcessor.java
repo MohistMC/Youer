@@ -1,6 +1,5 @@
 package io.papermc.paper.adventure;
 
-import com.mohistmc.youer.feature.deepseek.DeepSeek;
 import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AbstractChatEvent;
 import io.papermc.paper.event.player.AsyncChatEvent;
@@ -79,9 +78,6 @@ public final class ChatProcessor {
     @SuppressWarnings("deprecated")
     public void process() {
         final CraftPlayer player = this.player.getBukkitEntity();
-        if (DeepSeek.init(player, craftbukkit$originalMessage)) {
-            return;
-        }
         final boolean listenersOnAsyncEvent = canYouHearMe(AsyncPlayerChatEvent.getHandlerList());
         final boolean listenersOnSyncEvent = canYouHearMe(PlayerChatEvent.getHandlerList());
         if (listenersOnAsyncEvent || listenersOnSyncEvent) {

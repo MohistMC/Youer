@@ -36,7 +36,7 @@ public class YouerModsInventory implements Container {
 
     @Override
     public int getContainerSize() {
-        return this.container.lastSlots.size();
+        return this.container.slots.size();
     }
 
     @Override
@@ -100,7 +100,11 @@ public class YouerModsInventory implements Container {
     @Override
     public List<ItemStack> getContents() {
         container.broadcastChanges();
-        return container.lastSlots.subList(0, getContainerSize());
+        List<ItemStack> contents = new ArrayList<>(container.slots.size());
+        for (Slot slot : container.slots) {
+            contents.add(slot.getItem());
+        }
+        return contents;
     }
 
     @Override
