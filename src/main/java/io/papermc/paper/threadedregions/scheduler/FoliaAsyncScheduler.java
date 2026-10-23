@@ -20,7 +20,7 @@ import java.util.logging.Level;
 
 public final class FoliaAsyncScheduler implements AsyncScheduler {
 
-    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mojang.logging.LogUtils.getClassLogger();
 
     private final Executor executors = new ThreadPoolExecutor(Math.max(4, Runtime.getRuntime().availableProcessors() / 2), Integer.MAX_VALUE,
         30L, TimeUnit.SECONDS, new SynchronousQueue<>(),

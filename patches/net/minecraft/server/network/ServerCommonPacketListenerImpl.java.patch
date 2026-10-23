@@ -268,10 +268,14 @@
      }
  
      @Override
-@@ -108,24 +_,69 @@
+@@ -106,26 +_,71 @@
+         PacketUtils.ensureRunningOnSameThread(packet, this, this.server.packetProcessor());
+         if (packet.action() == ServerboundResourcePackPacket.Action.DECLINED && this.server.isResourcePackRequired()) {
              LOGGER.info("Disconnecting {} due to resource pack {} rejection", this.playerProfile().name(), packet.id());
-             this.disconnect(Component.translatable("multiplayer.requiredTexturePrompt.disconnect"));
-         }
+-            this.disconnect(Component.translatable("multiplayer.requiredTexturePrompt.disconnect"));
+-        }
++            this.disconnect(Component.translatable("multiplayer.requiredTexturePrompt.disconnect"), io.papermc.paper.connection.DisconnectionReason.RESOURCE_PACK_REJECTION); // Paper - kick event cause
++        }
 +        // Paper start - adventure pack callbacks
 +        // call the callbacks before the previously-existing event so the event has final say
 +        final net.kyori.adventure.resource.ResourcePackCallback callback;

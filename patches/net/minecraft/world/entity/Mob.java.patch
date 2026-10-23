@@ -48,7 +48,7 @@
      public GoalSelector targetSelector;
      private @Nullable LivingEntity target;
      private final Sensing sensing;
-@@ -144,13 +_,21 @@
+@@ -144,13 +_,22 @@
      private Leashable.@Nullable LeashData leashData;
      private BlockPos homePosition = BlockPos.ZERO;
      private int homeRadius = -1;
@@ -60,6 +60,7 @@
 +
 +    public boolean aware = true; // CraftBukkit
 +    public int ticksSinceLastInteraction; // Purpur - Entity lifespan
++    protected boolean willHaveAnotherBaby() { return false; } protected int getBreedingMinOffspring() { return 1; } protected int getBreedingMaxOffspring() { return 1; } // Purpur - Breedable mobs can have multiple babies
  
      protected Mob(EntityType<? extends Mob> type, Level level) {
          super(type, level);
@@ -307,7 +308,7 @@
      }
  
      protected Vec3i getPickupReach() {
-@@ -520,49 +_,61 @@
+@@ -520,53 +_,65 @@
  
      protected void pickUpItem(ServerLevel level, ItemEntity entity) {
          ItemStack itemStack = entity.getItem();
@@ -392,6 +393,11 @@
      }
  
      protected boolean canShearEquipment(Player player) {
+-        return !this.isVehicle();
++        return !this.isVehicle() && !(this instanceof net.minecraft.world.entity.npc.villager.Villager); // Paper - Prevent shearing villager display items
+     }
+ 
+     protected boolean attemptToShearEquipment(Player player, InteractionHand hand, ItemStack heldItem) {
 @@ -646,6 +_,8 @@
      private double getApproximateAttributeWith(ItemStack itemStack, Holder<Attribute> attribute, EquipmentSlot slot) {
          double baseValue = this.getAttributes().hasAttribute(attribute) ? this.getAttributeBaseValue(attribute) : 0.0;

@@ -254,8 +254,12 @@
      }
  
      private static boolean containsInvalidValues(double x, double y, double z, float yRot, float xRot) {
-@@ -446,8 +_,20 @@
-             this.disconnect(Component.translatable("multiplayer.disconnect.invalid_vehicle_movement"));
+@@ -443,11 +_,23 @@
+     public void handleMoveVehicle(ServerboundMoveVehiclePacket packet) {
+         PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
+         if (containsInvalidValues(packet.position().x(), packet.position().y(), packet.position().z(), packet.yRot(), packet.xRot())) {
+-            this.disconnect(Component.translatable("multiplayer.disconnect.invalid_vehicle_movement"));
++            this.disconnect(Component.translatable("multiplayer.disconnect.invalid_vehicle_movement"), org.bukkit.event.player.PlayerKickEvent.Cause.INVALID_VEHICLE_MOVEMENT); // Paper - kick event cause
          } else if (!this.updateAwaitingTeleport() && this.hasClientLoaded()) {
              Entity vehicle = this.player.getRootVehicle();
 +            // Paper start - Don't allow vehicle movement from players while teleporting
@@ -2924,6 +2928,19 @@
          if (!this.receivedMovementThisTick) {
              this.player.setKnownMovement(Vec3.ZERO);
          }
+@@ -2218,6 +_,12 @@
+     public boolean hasInfiniteMaterials() {
+         return this.player.hasInfiniteMaterials();
+     }
++    // Paper start - check if game master
++    @Override
++    public boolean canUseCommandBlocks() {
++        return this.player.canUseGameMasterBlocks();
++    }
++    // Paper end - check if game master
+ 
+     @Override
+     public ServerPlayer getPlayer() {
 @@ -2229,12 +_,23 @@
      }
  

@@ -8,7 +8,7 @@
  import org.jspecify.annotations.Nullable;
  
  public class Pig extends Animal implements ItemSteerable {
-@@ -72,10 +_,39 @@
+@@ -72,10 +_,56 @@
          .withAttachments(EntityAttachments.builder().attach(EntityAttachment.PASSENGER, 0.0F, 0.5F, 0.0F));
      public final ItemBasedSteering steering = new ItemBasedSteering(this.entityData, DATA_BOOST_TIME);
  
@@ -44,6 +44,23 @@
 +        return this.level().purpurConfig.pigAlwaysDropExp;
 +    }
 +    // Purpur end - Mobs always drop experience
++
++    // Purpur start - Breedable mobs can have multiple babies
++    @Override
++    protected boolean willHaveAnotherBaby() {
++        return (this.level().purpurConfig.pigBreedingChance > 0.0D) && (this.level().purpurConfig.pigBreedingChance >= this.random.nextDouble());
++    }
++
++    @Override
++    protected int getBreedingMinOffspring() {
++        return this.level().purpurConfig.pigBreedingMinOffspring;
++    }
++
++    @Override
++    protected int getBreedingMaxOffspring() {
++        return this.level().purpurConfig.pigBreedingMaxOffspring;
++    }
++    // Purpur end - Breedable mobs can have multiple babies
 +
      @Override
      protected void registerGoals() {

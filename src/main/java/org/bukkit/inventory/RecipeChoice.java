@@ -274,7 +274,7 @@ public interface RecipeChoice extends Predicate<ItemStack>, Cloneable {
     final class ExactChoice implements RecipeChoice {
 
         private List<ItemStack> choices;
-        private Predicate<ItemStack> predicate; // Purpur - Add predicate to recipe's ExactChoice ingredient
+        private @org.jspecify.annotations.Nullable Predicate<ItemStack> predicate; // Purpur - Add predicate to recipe's ExactChoice ingredient
 
         public ExactChoice(ItemStack stack) {
             this(Arrays.asList(stack));
@@ -334,12 +334,20 @@ public interface RecipeChoice extends Predicate<ItemStack>, Cloneable {
         }
 
         // Purpur start - Add predicate to recipe's ExactChoice ingredient
-        @org.jetbrains.annotations.Nullable
+        /**
+         * @deprecated Use {@link RecipeChoice#predicateChoice(Predicate, ItemStack)} instead
+         */
+        @Deprecated(since = "26.2", forRemoval = true)
+        @org.jspecify.annotations.Nullable
         public Predicate<ItemStack> getPredicate() {
             return predicate;
         }
 
-        public void setPredicate(@org.jetbrains.annotations.Nullable Predicate<ItemStack> predicate) {
+        /**
+         * @deprecated Use {@link RecipeChoice#predicateChoice(Predicate, ItemStack)} instead
+         */
+        @Deprecated(since = "26.2", forRemoval = true)
+        public void setPredicate(@org.jspecify.annotations.Nullable Predicate<ItemStack> predicate) {
             this.predicate = predicate;
         }
         // Purpur end - Add predicate to recipe's ExactChoice ingredient

@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 
 public final class EntrypointUtil {
 
-    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mojang.logging.LogUtils.getClassLogger();
 
     public static <I, C> void registerProvidersFromSource(ProviderSource<I, C> source, I contextInput) {
         try {

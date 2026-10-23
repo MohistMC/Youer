@@ -153,7 +153,7 @@
              Vec3 delta = new Vec3(
                  this.followingPlayer.getX() - this.getX(),
                  this.followingPlayer.getY() + this.followingPlayer.getEyeHeight() / 2.0 - this.getY(),
-@@ -191,16 +_,27 @@
+@@ -191,23 +_,34 @@
          }
      }
  
@@ -182,7 +182,22 @@
              }
          }
      }
-@@ -230,7 +_,7 @@
+ 
+     private static boolean tryMergeToExisting(ServerLevel level, Vec3 pos, int value) {
+         AABB box = AABB.ofSize(pos, 1.0, 1.0, 1.0);
+-        int id = level.getRandom().nextInt(40);
++        int id = level.getRandom().nextInt(io.papermc.paper.configuration.GlobalConfiguration.get().misc.xpOrbGroupsPerArea.or(ORB_GROUPS_PER_AREA)); // Paper - Configure how many orb groups per area
+         List<ExperienceOrb> orbs = level.getEntities(EntityTypeTest.forClass(ExperienceOrb.class), box, orbx -> canMerge(orbx, id, value));
+         if (!orbs.isEmpty()) {
+             ExperienceOrb orb = orbs.get(0);
+@@ -224,13 +_,13 @@
+     }
+ 
+     private static boolean canMerge(ExperienceOrb orb, int id, int value) {
+-        return !orb.isRemoved() && (orb.getId() - id) % 40 == 0 && orb.getValue() == value;
++        return !orb.isRemoved() && (orb.getId() - id) % io.papermc.paper.configuration.GlobalConfiguration.get().misc.xpOrbGroupsPerArea.or(ORB_GROUPS_PER_AREA) == 0 && orb.getValue() == value; // Paper - Configure how many orbs will merge together
+     }
+ 
      private void merge(ExperienceOrb orb) {
          this.count = this.count + orb.count;
          this.age = Math.min(this.age, orb.age);

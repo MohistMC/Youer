@@ -1,5 +1,16 @@
 --- a/net/minecraft/world/level/block/FrogspawnBlock.java
 +++ b/net/minecraft/world/level/block/FrogspawnBlock.java
+@@ -29,8 +_,8 @@
+ 
+ public class FrogspawnBlock extends Block {
+     public static final MapCodec<FrogspawnBlock> CODEC = simpleCodec(FrogspawnBlock::new);
+-    private static final int MIN_TADPOLES_SPAWN = 2;
+-    private static final int MAX_TADPOLES_SPAWN = 5;
++    public static final int MIN_TADPOLES_SPAWN = 2; // Purpur - Breedable mobs can have multiple babies
++    public static final int MAX_TADPOLES_SPAWN = 5; // Purpur - Breedable mobs can have multiple babies
+     private static final int DEFAULT_MIN_HATCH_TICK_DELAY = 3600;
+     private static final int DEFAULT_MAX_HATCH_TICK_DELAY = 12000;
+     private static final VoxelShape SHAPE = Block.column(16.0, 0.0, 1.5);
 @@ -92,6 +_,7 @@
  
      @Override
@@ -20,6 +31,18 @@
          this.destroyBlock(level, pos);
          level.playSound(null, pos, SoundEvents.FROGSPAWN_HATCH, SoundSource.BLOCKS, 1.0F, 1.0F);
          this.spawnTadpoles(level, pos, random);
+@@ -114,9 +_,10 @@
+     }
+ 
+     private void spawnTadpoles(ServerLevel level, BlockPos pos, RandomSource random) {
+-        int tadpoleAmount = random.nextInt(2, 6);
++        int tadpoleAmount = random.nextInt(level.purpurConfig.frogBreedingMinOffspring, level.purpurConfig.frogBreedingMaxOffspring + 1); // Purpur - Breedable mobs can have multiple babies
+ 
+         for (int i = 1; i <= tadpoleAmount; i++) {
++            if ((level.purpurConfig.frogBreedingChance <= 0.0D) || (level.purpurConfig.frogBreedingChance < random.nextDouble())) return; // Purpur - Breedable mobs can have multiple babies
+             Tadpole tadpole = EntityTypes.TADPOLE.create(level, EntitySpawnReason.BREEDING);
+             if (tadpole != null) {
+                 double xPos = pos.getX() + this.getRandomTadpolePositionOffset(random);
 @@ -124,7 +_,7 @@
                  int yRot = random.nextInt(1, 361);
                  tadpole.snapTo(xPos, pos.getY() - 0.5, zPos, yRot, 0.0F);

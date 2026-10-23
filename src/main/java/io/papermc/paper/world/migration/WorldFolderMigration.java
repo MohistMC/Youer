@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 
 @NullMarked
 public final class WorldFolderMigration {
-    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mojang.logging.LogUtils.getClassLogger();
     private static final boolean DISABLE_MIGRATION_DELAY = true;
     public static boolean didInitialLoad;
     private static boolean startupMigrationWarningShown;

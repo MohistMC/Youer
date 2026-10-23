@@ -29,7 +29,7 @@
  public class Bee extends Animal implements NeutralMob {
      public static final float FLAP_DEGREES_PER_TICK = 120.32113F;
      public static final int TICKS_PER_FLAP = Mth.ceil(1.4959966F);
-@@ -146,18 +_,104 @@
+@@ -146,18 +_,121 @@
      private Bee.BeeGoToHiveGoal goToHiveGoal;
      private Bee.BeeGoToKnownFlowerGoal goToKnownFlowerGoal;
      private int underWaterTicks;
@@ -48,6 +48,23 @@
 +        return this.level().purpurConfig.beeAlwaysDropExp;
 +    }
 +    // Purpur end - Mobs always drop experience
++
++    // Purpur start - Breedable mobs can have multiple babies
++    @Override
++    protected boolean willHaveAnotherBaby() {
++        return (this.level().purpurConfig.beeBreedingChance > 0.0D) && (this.level().purpurConfig.beeBreedingChance >= this.random.nextDouble());
++    }
++
++    @Override
++    protected int getBreedingMinOffspring() {
++        return this.level().purpurConfig.beeBreedingMinOffspring;
++    }
++
++    @Override
++    protected int getBreedingMaxOffspring() {
++        return this.level().purpurConfig.beeBreedingMaxOffspring;
++    }
++    // Purpur end - Breedable mobs can have multiple babies
  
      public Bee(EntityType<? extends Bee> type, Level level) {
          super(type, level);
@@ -310,7 +327,7 @@
          protected void alertOther(Mob other, LivingEntity hurtByMob) {
              if (other instanceof Bee && this.mob.hasLineOfSight(hurtByMob)) {
 -                other.setTarget(hurtByMob);
-+                other.setTarget(hurtByMob, EntityTargetEvent.TargetReason.TARGET_ATTACKED_ENTITY); // CraftBukkit - reason
++                other.setTarget(hurtByMob, EntityTargetEvent.TargetReason.TARGET_ATTACKED_NEARBY_ENTITY); // CraftBukkit - reason
              }
          }
      }

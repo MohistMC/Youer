@@ -9,7 +9,18 @@
  
  public class VillagerMakeLove extends Behavior<Villager> {
      private long birthTimestamp;
-@@ -103,12 +_,19 @@
+@@ -99,17 +_,32 @@
+     }
+ 
+     private Optional<Villager> breed(ServerLevel level, Villager source, Villager target) {
++        // Purpur start - Breedable mobs can have multiple babies
++        return this.breed(level, source, target, 0);
++    }
++
++    private Optional<Villager> breed(ServerLevel level, Villager source, Villager target, int currentBabyCount) {
++        if ((currentBabyCount >= source.getBreedingMinOffspring()) && (!source.willHaveAnotherBaby() || currentBabyCount >= source.getBreedingMaxOffspring())) return Optional.empty();
++        // Purpur end - Breedable mobs can have multiple babies
+         Villager child = source.getBreedOffspring(level, target);
          if (child == null) {
              return Optional.empty();
          }
@@ -32,5 +43,7 @@
 +        // Neo: If villager is blocked from spawning (e.g., FinalizeSpawnEvent), then breed should be unsuccessful
 +        if (!child.isAddedToLevel()) return Optional.empty();
          level.broadcastEntityEvent(child, (byte)12);
++        this.breed(level, source, target, currentBabyCount + 1); // Purpur - Breedable mobs can have multiple babies
          return Optional.of(child);
      }
+ 

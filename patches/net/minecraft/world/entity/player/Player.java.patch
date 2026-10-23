@@ -376,7 +376,7 @@
      }
  
      @Override
-@@ -749,16 +_,31 @@
+@@ -749,18 +_,33 @@
      @Override
      protected void actuallyHurt(ServerLevel level, DamageSource source, float dmg) {
          if (!this.isInvulnerableTo(level, source)) {
@@ -412,8 +412,11 @@
  
 +            // Last thing here, inflict damage to the entity's health, based on how much damage is remaining after absorption has been processes.
              if (dmg != 0.0F) {
-                 this.causeFoodExhaustion(source.getFoodExhaustion());
+-                this.causeFoodExhaustion(source.getFoodExhaustion());
++                this.causeFoodExhaustion(source.getFoodExhaustion(), org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.DAMAGED); // CraftBukkit - EntityExhaustionEvent
                  this.getCombatTracker().recordDamage(source, dmg);
+                 this.setHealth(this.getHealth() - dmg);
+                 if (dmg < 3.4028235E37F) {
 @@ -769,6 +_,8 @@
  
                  this.gameEvent(GameEvent.ENTITY_DAMAGE);

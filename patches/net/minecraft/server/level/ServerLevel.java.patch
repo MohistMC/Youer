@@ -813,7 +813,7 @@
          this.handlingTick = false;
          profiler.pop();
 -        boolean isActive = this.chunkSource.hasActiveTickets();
-+        boolean isActive = this.chunkSource.hasActiveTickets() || net.neoforged.neoforge.common.world.chunk.ForcedChunkManager.hasForcedChunks(this);
++        boolean isActive = !paperConfig().unsupportedSettings.disableWorldTickingWhenEmpty || this.chunkSource.hasActiveTickets() || net.neoforged.neoforge.common.world.chunk.ForcedChunkManager.hasForcedChunks(this); // Paper - restore this; Neo: forced chunks keep the level active
          if (isActive) {
              this.resetEmptyTime();
          }
@@ -999,7 +999,7 @@
          ProfilerFiller profiler = Profiler.get();
          profiler.push("thunder");
 -        if (raining && this.isThundering() && this.random.nextInt(100000) == 0) {
-+        if (raining && this.isThundering() && this.spigotConfig.thunderChance > 0 && this.random.nextInt(this.spigotConfig.thunderChance) == 0) { // Spigot
++        if (!this.paperConfig().environment.disableThunder && raining && this.isThundering() && this.spigotConfig.thunderChance > 0 && this.random.nextInt(this.spigotConfig.thunderChance) == 0) { // Spigot // Paper - Option to disable thunder
              BlockPos pos = this.findLightningTargetAround(this.getBlockRandomPos(minX, 0, minZ, 15));
              if (this.isRainingAt(pos)) {
                  DifficultyInstance difficulty = this.getCurrentDifficultyAt(pos);
@@ -2030,7 +2030,7 @@
              this.blockEntityTickers.size(),
              getTypeCount(this.blockEntityTickers, TickingBlockEntity::getType),
              this.getBlockTicks().count(),
-@@ -1703,15 +_,25 @@
+@@ -1703,15 +_,26 @@
  
      @Override
      public LevelEntityGetter<Entity> getEntities() {
@@ -2043,6 +2043,7 @@
 -
 -    public void addWorldGenChunkEntities(Stream<Entity> loaded) {
 -        this.entityManager.addWorldGenChunkEntities(loaded);
++        org.spigotmc.AsyncCatcher.catchOp("Chunk getEntities call"); // Spigot
 +        return this.moonrise$getEntityLookup(); // Paper - rewrite chunk system
 +    }
 +

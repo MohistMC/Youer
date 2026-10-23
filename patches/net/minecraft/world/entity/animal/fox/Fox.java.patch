@@ -11,7 +11,7 @@
  public class Fox extends Animal {
      private static final EntityDataAccessor<Integer> DATA_TYPE_ID = SynchedEntityData.defineId(Fox.class, EntityDataSerializers.INT);
      private static final EntityDataAccessor<Byte> DATA_FLAGS_ID = SynchedEntityData.defineId(Fox.class, EntityDataSerializers.BYTE);
-@@ -149,6 +_,20 @@
+@@ -149,6 +_,37 @@
      private static final float MAX_CROUCH_AMOUNT = 5.0F;
      private int ticksSinceEaten;
  
@@ -28,6 +28,23 @@
 +        return this.level().purpurConfig.foxAlwaysDropExp;
 +    }
 +    // Purpur end - Mobs always drop experience
++
++    // Purpur start - Breedable mobs can have multiple babies
++    @Override
++    protected boolean willHaveAnotherBaby() {
++        return (this.level().purpurConfig.foxBreedingChance > 0.0D) && (this.level().purpurConfig.foxBreedingChance >= this.random.nextDouble());
++    }
++
++    @Override
++    protected int getBreedingMinOffspring() {
++        return this.level().purpurConfig.foxBreedingMinOffspring;
++    }
++
++    @Override
++    protected int getBreedingMaxOffspring() {
++        return this.level().purpurConfig.foxBreedingMaxOffspring;
++    }
++    // Purpur end - Breedable mobs can have multiple babies
 +
      public Fox(EntityType<? extends Fox> type, Level level) {
          super(type, level);

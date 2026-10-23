@@ -75,9 +75,17 @@
  
          this.level().broadcastEntityEvent(this, (byte)18);
      }
-@@ -208,27 +_,69 @@
+@@ -207,28 +_,78 @@
+     }
  
      public void spawnChildFromBreeding(ServerLevel level, Animal partner) {
++        // Purpur start - Breedable mobs can have multiple babies
++        this.spawnChildFromBreeding(level, partner, 0);
++    }
++
++    public void spawnChildFromBreeding(ServerLevel level, Animal partner, int currentBabyCount) {
++        if ((currentBabyCount >= getBreedingMinOffspring()) && (!willHaveAnotherBaby() || currentBabyCount >= getBreedingMaxOffspring())) return;
++        // Purpur end - Breedable mobs can have multiple babies
          AgeableMob offspring = this.getBreedOffspring(level, partner);
 +        final net.neoforged.neoforge.event.entity.living.BabyEntitySpawnEvent event = new net.neoforged.neoforge.event.entity.living.BabyEntitySpawnEvent(this, partner, offspring);
 +        final boolean cancelled = net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event).isCanceled();
@@ -115,6 +123,7 @@
              this.finalizeSpawnChildFromBreeding(level, partner, offspring);
 -            level.addFreshEntityWithPassengers(offspring);
 +            level.addFreshEntityWithPassengers(offspring, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BREEDING);
++            this.spawnChildFromBreeding(level, partner, currentBabyCount + 1); // Purpur - Breedable mobs can have multiple babies
 +            // CraftBukkit end
          }
      }

@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkState;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface MergeMap {
 
-    Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
+    Logger LOGGER = com.mojang.logging.LogUtils.getClassLogger();
     Definition<MergeMap, Map<?, ?>, Factory> DEFINITION = new Definition<>(MergeMap.class, MapSerializer.TYPE, new Factory());
 
     /**

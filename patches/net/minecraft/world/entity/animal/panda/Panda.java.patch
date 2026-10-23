@@ -22,7 +22,7 @@
      public Panda(EntityType<? extends Panda> type, Level level) {
          super(type, level);
          this.moveControl = new Panda.PandaMoveControl<>(this);
-@@ -112,6 +_,20 @@
+@@ -112,6 +_,37 @@
          }
      }
  
@@ -39,6 +39,23 @@
 +        return this.level().purpurConfig.pandaAlwaysDropExp;
 +    }
 +    // Purpur end - Mobs always drop experience
++
++    // Purpur start - Breedable mobs can have multiple babies
++    @Override
++    protected boolean willHaveAnotherBaby() {
++        return (this.level().purpurConfig.pandaBreedingChance > 0.0D) && (this.level().purpurConfig.pandaBreedingChance >= this.random.nextDouble());
++    }
++
++    @Override
++    protected int getBreedingMinOffspring() {
++        return this.level().purpurConfig.pandaBreedingMinOffspring;
++    }
++
++    @Override
++    protected int getBreedingMaxOffspring() {
++        return this.level().purpurConfig.pandaBreedingMaxOffspring;
++    }
++    // Purpur end - Breedable mobs can have multiple babies
 +
      @Override
      protected boolean canDispenserEquipIntoSlot(EquipmentSlot slot) {
@@ -120,7 +137,7 @@
          protected void alertOther(Mob other, LivingEntity hurtByMob) {
              if (other instanceof Panda && other.isAggressive()) {
 -                other.setTarget(hurtByMob);
-+                other.setTarget(hurtByMob, org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_ATTACKED_ENTITY); // CraftBukkit
++                other.setTarget(hurtByMob, org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_ATTACKED_NEARBY_ENTITY); // CraftBukkit
              }
          }
      }

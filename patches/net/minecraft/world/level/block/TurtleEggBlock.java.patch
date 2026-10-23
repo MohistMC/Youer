@@ -33,7 +33,7 @@
              this.decreaseEggs(serverLevel, pos, state);
          }
      }
-@@ -96,10 +_,20 @@
+@@ -96,22 +_,42 @@
          if (this.shouldUpdateHatchLevel(level, pos) && onSand(level, pos)) {
              int hatch = state.getValue(HATCH);
              if (hatch < 2) {
@@ -55,12 +55,26 @@
                  level.playSound(null, pos, SoundEvents.TURTLE_EGG_HATCH, SoundSource.BLOCKS, 0.7F, 0.9F + random.nextFloat() * 0.2F);
                  level.removeBlock(pos, false);
                  level.gameEvent(GameEvent.BLOCK_DESTROY, pos, GameEvent.Context.of(state));
-@@ -111,7 +_,7 @@
+ 
+                 for (int i = 0; i < state.getValue(EGGS); i++) {
++                    // Purpur start - Breedable mobs can have multiple babies
++                    int currentBabyCount = 0;
++                    while ((currentBabyCount < level.purpurConfig.turtleBreedingMinOffspring) ||
++                        ((level.purpurConfig.turtleBreedingChance > 0.0D && level.purpurConfig.turtleBreedingChance >= random.nextDouble()) &&
++                            currentBabyCount < level.purpurConfig.turtleBreedingMaxOffspring)) {
++                    // Purpur end - Breedable mobs can have multiple babies
+                     level.levelEvent(2001, pos, Block.getId(state));
+                     Turtle turtle = EntityTypes.TURTLE.create(level, EntitySpawnReason.BREEDING);
+                     if (turtle != null) {
                          turtle.setAge(-24000);
                          turtle.setHomePos(pos);
                          turtle.snapTo(pos.getX() + 0.3 + i * 0.2, pos.getY(), pos.getZ() + 0.3, 0.0F, 0.0F);
 -                        level.addFreshEntity(turtle);
 +                        level.addFreshEntity(turtle, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.EGG); // CraftBukkit
++                        // Purpur start - Breedable mobs can have multiple babies
++                            currentBabyCount++;
++                        }
++                        // Purpur end - Breedable mobs can have multiple babies
                      }
                  }
              }

@@ -8,7 +8,7 @@
      private static final EntityDataAccessor<Holder<CowVariant>> DATA_VARIANT_ID = SynchedEntityData.defineId(Cow.class, EntityDataSerializers.COW_VARIANT);
      private static final EntityDataAccessor<Holder<CowSoundVariant>> DATA_SOUND_VARIANT_ID = SynchedEntityData.defineId(
          Cow.class, EntityDataSerializers.COW_SOUND_VARIANT
-@@ -42,6 +_,60 @@
+@@ -42,6 +_,77 @@
          super(type, level);
      }
  
@@ -58,6 +58,23 @@
 +        return this.level().purpurConfig.cowAlwaysDropExp;
 +    }
 +    // Purpur end - Mobs always drop experience
++
++    // Purpur start - Breedable mobs can have multiple babies
++    @Override
++    protected boolean willHaveAnotherBaby() {
++        return (this.level().purpurConfig.cowBreedingChance > 0.0D) && (this.level().purpurConfig.cowBreedingChance >= this.random.nextDouble());
++    }
++
++    @Override
++    protected int getBreedingMinOffspring() {
++        return this.level().purpurConfig.cowBreedingMinOffspring;
++    }
++
++    @Override
++    protected int getBreedingMaxOffspring() {
++        return this.level().purpurConfig.cowBreedingMaxOffspring;
++    }
++    // Purpur end - Breedable mobs can have multiple babies
 +
 +    @Override
 +    protected void registerGoals() {
