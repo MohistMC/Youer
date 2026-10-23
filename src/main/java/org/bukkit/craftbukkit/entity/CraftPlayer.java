@@ -233,7 +233,7 @@ import org.jspecify.annotations.Nullable;
 
 @DelegateDeserialization(CraftOfflinePlayer.class)
 public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessageBridgeImpl {
-    private static final org.slf4j.Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
+    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getClassLogger();
     private static final PointersSupplier<Player> POINTERS_SUPPLIER = PointersSupplier.<Player>builder()
         .parent(CraftEntity.POINTERS_SUPPLIER)
         .resolving(Identity.NAME, Player::getName)

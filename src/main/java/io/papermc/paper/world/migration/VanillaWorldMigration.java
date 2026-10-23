@@ -30,7 +30,7 @@ import org.slf4j.Logger;
 
 @NullMarked
 final class VanillaWorldMigration {
-    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mojang.logging.LogUtils.getClassLogger();
 
     private VanillaWorldMigration() {
     }

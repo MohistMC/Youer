@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 @Deprecated
 public class HorriblePlayerLoginEventHack {
 
-    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mojang.logging.LogUtils.getClassLogger();
     private static boolean nagged = false;
 
     public static boolean warnReenterConfiguration(final Connection connection) {

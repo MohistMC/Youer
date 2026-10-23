@@ -257,6 +257,33 @@ dependencies {
     libraries 'io.sentry:sentry:8.25.0'
 }
 
+// FML resolves whole packages, so original and patched library classes must share a module.
+def librarySourceRoot = rootProject.file('src/main/java')
+[
+    brigadier: ['com/mojang/brigadier'],
+    authlib: ['com/mojang/authlib'],
+    datafixerupper: ['com/mojang/datafixers', 'com/mojang/serialization'],
+    logging: ['com/mojang/logging']
+].each { moduleName, packages ->
+    def library = configurations.compileClasspath.incoming.artifactView {
+        componentFilter { id ->
+            id instanceof org.gradle.api.artifacts.component.ModuleComponentIdentifier && id.group == 'com.mojang' && id.module == moduleName
+        }
+    }.files
+    def classesDir = layout.buildDirectory.dir("generated/${moduleName}/classes")
+    def extractClasses = tasks.register("extract${moduleName.capitalize()}Classes", Sync) {
+        inputs.files(rootProject.fileTree('src/main/java') { include packages.collect { "${it}/**/*.java" } })
+        from(zipTree(library.singleFile)) {
+            include packages.collect { "${it}/**/*.class" }
+            exclude { entry ->
+                new File(librarySourceRoot, entry.path.replaceAll(/(\$.*)?\.class$/, '.java')).isFile()
+            }
+        }
+        into classesDir
+    }
+    sourceSets.main.output.dir([builtBy: extractClasses], classesDir)
+}
+
 // Select runtimeElements rather than universalJar from the main source set
 // If you don't believe it... try to remove this block, and run the following command:
 // gradlew :neoforge:dependencyInsight --configuration clientRuntimeClasspath --dependency net.neoforged:neoforge --scan

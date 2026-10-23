@@ -1,7 +1,7 @@
 package com.mohistmc.youer.feature.plugin;
 
 import com.mohistmc.youer.util.I18n;
-import com.mohistmc.youer.util.LogUtils;
+import com.mojang.logging.LogUtils;
 import io.papermc.paper.plugin.configuration.PluginMeta;
 import io.papermc.paper.plugin.manager.PaperPluginManagerImpl;
 import io.papermc.paper.plugin.provider.type.PluginFileType;

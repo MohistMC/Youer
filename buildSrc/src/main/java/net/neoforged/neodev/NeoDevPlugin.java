@@ -749,6 +749,10 @@ public class NeoDevPlugin implements Plugin<Project> {
                 spec.exclude("alternate/current/wire/**");
                 spec.exclude("co/aikar/util/**");
                 spec.exclude("com/mojang/brigadier/**");
+                spec.exclude("com/mojang/authlib/**");
+                spec.exclude("com/mojang/datafixers/**");
+                spec.exclude("com/mojang/serialization/**");
+                spec.exclude("com/mojang/logging/**");
                 spec.exclude("gg/pufferfish/**");
             });
             if (type == BinaryPatchBaseType.CLIENT || type == BinaryPatchBaseType.JOINED) {

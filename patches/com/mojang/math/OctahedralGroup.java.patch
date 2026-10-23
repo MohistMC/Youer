@@ -1,0 +1,34 @@
+--- a/com/mojang/math/OctahedralGroup.java
++++ b/com/mojang/math/OctahedralGroup.java
+@@ -99,6 +_,12 @@
+         .map(f -> Arrays.stream(values()).filter(s -> f.compose(s) == IDENTITY).findAny().get())
+         .toArray(OctahedralGroup[]::new);
+ 
++    static {
++        for (OctahedralGroup group : values()) {
++            group.initializeRotationDirections();
++        }
++    }
++
+     OctahedralGroup(String name, SymmetricGroup3 permutation, boolean invertX, boolean invertY, boolean invertZ) {
+         this.name = name;
+         this.invertX = invertX;
+@@ -137,6 +_,18 @@
+     @Override
+     public String getSerializedName() {
+         return this.name;
++    }
++
++    public void initializeRotationDirections() {
++        if (this.rotatedDirections == null) {
++            this.rotatedDirections = Util.makeEnumMap(Direction.class, facing -> {
++                Direction.Axis oldAxis = facing.getAxis();
++                Direction.AxisDirection oldDirection = facing.getAxisDirection();
++                Direction.Axis newAxis = this.permutation.inverse().permuteAxis(oldAxis);
++                Direction.AxisDirection newDirection = this.inverts(newAxis) ? oldDirection.opposite() : oldDirection;
++                return Direction.fromAxisAndDirection(newAxis, newDirection);
++            });
++        }
+     }
+ 
+     public Direction rotate(Direction direction) {

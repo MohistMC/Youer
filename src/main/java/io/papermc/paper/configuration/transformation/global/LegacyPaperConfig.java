@@ -19,7 +19,7 @@ import org.spongepowered.configurate.transformation.TransformAction;
 import static org.spongepowered.configurate.NodePath.path;
 
 public final class LegacyPaperConfig {
-    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mojang.logging.LogUtils.getClassLogger();
 
     private LegacyPaperConfig() {
     }
