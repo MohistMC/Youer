@@ -17,8 +17,10 @@
 
 package com.mohistmc.launcher.youer.util;
 
+import com.mohistmc.launcher.youer.Main;
 import com.mohistmc.launcher.youer.feature.ModuleConflictResolver;
 import java.io.File;
+import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
@@ -28,6 +30,7 @@ import java.lang.module.ModuleFinder;
 import java.lang.module.ModuleReference;
 import java.lang.module.ResolvedModule;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -38,6 +41,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.jar.Attributes;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
@@ -51,6 +57,9 @@ public class YouerModuleManager {
 
     public static final sun.misc.Unsafe unsafe;
     private static final MethodHandles.Lookup IMPL_LOOKUP;
+    private static final String LEGACY_CLASS_PATH = "legacyClassPath";
+    private static final String BRIGADIER_STUB = "libraries/com/mohistmc/brigadierstub/1.0.0/brigadier-1.0.0.jar";
+    private static final Pattern BRIGADIER_JAR = Pattern.compile("^brigadier-.*\\.jar$", Pattern.CASE_INSENSITIVE);
     public static YouerModuleManager INSTANCE = new YouerModuleManager();
     private static volatile boolean initialized = false;
 
@@ -153,8 +162,51 @@ public class YouerModuleManager {
             }
         }
         ModuleConflictResolver.resolve(args, legacyClassPath);
+        addBrigadierModule();
         addOpens(opens);
         addExports(exports);
+    }
+
+    /**
+     * Connector moves the {@code brigadier} module of the boot layer into the game layer to
+     * make it transformable. Youer compiles the Paper patched Brigadier classes into the game
+     * jar and keeps the stock library off the legacy class path, so the module it looks for
+     * does not exist and it logs a failure on every start.
+     * <p>
+     * Publishing an empty module under that name lets the lookup succeed. There is nothing to
+     * move, the classes Connector wants to transform are already part of the game module.
+     */
+    private static void addBrigadierModule() {
+        String legacyClassPath = System.getProperty(LEGACY_CLASS_PATH);
+        if (legacyClassPath == null || legacyClassPath.isEmpty()) {
+            return;
+        }
+        List<String> entries = new ArrayList<>(Arrays.asList(legacyClassPath.split(Pattern.quote(File.pathSeparator))));
+        for (String entry : entries) {
+            Path file = Path.of(entry).getFileName();
+            if (file != null && BRIGADIER_JAR.matcher(file.toString()).matches()) {
+                return;
+            }
+        }
+        Path stub = Path.of(BRIGADIER_STUB);
+        try {
+            if (!Files.isRegularFile(stub)) {
+                Files.createDirectories(stub.getParent());
+                Manifest manifest = new Manifest();
+                manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+                manifest.getMainAttributes().putValue("Automatic-Module-Name", "brigadier");
+                try (JarOutputStream out = new JarOutputStream(Files.newOutputStream(stub), manifest)) {
+                }
+            }
+            entries.add(BRIGADIER_STUB);
+            System.setProperty(LEGACY_CLASS_PATH, String.join(File.pathSeparator, entries));
+            if (Main.DEBUG) {
+                System.out.println("[BrigadierModule] published an empty 'brigadier' module at " + BRIGADIER_STUB);
+            }
+        } catch (IOException e) {
+            // without the placeholder Connector only logs a failed move, the server still starts
+            System.err.println("[BrigadierModule] cannot create " + BRIGADIER_STUB + ": " + e);
+        }
     }
 
     public static void loadModules(String modulePath) throws Throwable {
