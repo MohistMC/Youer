@@ -3,9 +3,8 @@ package com.mohistmc.youer.feature.ban.bans;
 import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.feature.ban.BanConfig;
 import com.mohistmc.youer.feature.ban.BanType;
-import net.minecraft.world.level.block.Block;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.block.state.BlockState;
-import org.bukkit.inventory.ItemStack;
 
 /**
  * @author Mgazul by MohistMC
@@ -16,10 +15,9 @@ public class BanBlock {
     public static boolean check(BlockState p_46606_) {
         if (!YouerConfig.ban_block_enable) return false;
         if (p_46606_.isAir()) return false;
-        var list = BanConfig.getListByType(BanType.BLOCK);
-        if (list.isEmpty()) return false;
-        Block block = p_46606_.getBlock();
-        ItemStack bukkitBlock = block.asItem().getDefaultInstance().getBukkitStack();
-        return list.contains(bukkitBlock.getType().key().asString());
+        // Youer - use cached HashSet (O(1)) and registry key instead of allocating a Bukkit ItemStack per setBlock
+        var set = BanConfig.getSetByType(BanType.BLOCK);
+        if (set.isEmpty()) return false;
+        return set.contains(BuiltInRegistries.BLOCK.getKey(p_46606_.getBlock()).toString());
     }
 }

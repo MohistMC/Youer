@@ -2072,8 +2072,8 @@
  
      public void releaseUsingItem() {
          if (!this.useItem.isEmpty()) {
-+            if (this instanceof ServerPlayer) new PlayerStopUsingItemEvent((org.bukkit.entity.Player) getBukkitEntity(), useItem.asBukkitMirror(), getTicksUsingItem()).callEvent(); // Paper - Add PlayerStopUsingItemEvent
 +            if (!EventHooks.onUseItemStop(this, useItem, this.getUseItemRemainingTicks())) {
++                if (this instanceof ServerPlayer) new PlayerStopUsingItemEvent((org.bukkit.entity.Player) getBukkitEntity(), useItem.asBukkitMirror(), getTicksUsingItem()).callEvent(); // Paper - Add PlayerStopUsingItemEvent
 +                ItemStack copy = this instanceof Player ? useItem.copy() : null;
              this.useItem.releaseUsing(this.level(), this, this.getUseItemRemainingTicks());
 +              if (copy != null && useItem.isEmpty()) EventHooks.onPlayerDestroyItem((Player)this, copy, getUsedItemHand());

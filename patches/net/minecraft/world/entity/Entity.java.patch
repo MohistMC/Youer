@@ -1187,20 +1187,12 @@
          if (this.isPassenger()) {
              this.getVehicle().positionRider(this);
          }
-@@ -1982,7 +_,7 @@
-     }
- 
-     public boolean startRiding(Entity p_19966_, boolean p_19967_) {
--        if (p_19966_ == this.vehicle) {
-+        if (p_19966_ == this.vehicle || p_19966_.level != this.level) { // Paper - Ensure entity passenger world matches ridden entity (bad plugins)
-             return false;
-         } else if (!p_19966_.couldAcceptPassenger()) {
-             return false;
-@@ -1993,6 +_,7 @@
+@@ -1993,6 +_,8 @@
                  }
              }
  
 +        if (!net.neoforged.neoforge.event.EventHooks.canMountEntity(this, p_19966_, true)) return false;
++        if (p_19966_.level != this.level) return false; // Paper - passenger world must match; after Forge so EntityMountEvent still fires
              if (p_19967_ || this.canRide(p_19966_) && p_19966_.canAddPassenger(this)) {
                  if (this.isPassenger()) {
                      this.stopRiding();
