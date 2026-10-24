@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/projectile/Projectile.java
 +++ b/net/minecraft/world/entity/projectile/Projectile.java
-@@ -49,12 +_,14 @@
+@@ -49,12 +_,16 @@
      private static final String TAG_LEFT_OWNER = "LeftOwner";
      private static final String TAG_HAS_BEEN_SHOT = "HasBeenShot";
      private static final String TAG_CAN_BREAK = "can_break";
@@ -13,6 +13,8 @@
      public boolean hasBeenShot = false;
      private @Nullable Entity lastDeflectedBy;
 +    protected boolean hitCancelled = false; // CraftBukkit
++    /** Youer: one-shot gate run after the shoot function and before {@code addFreshEntity}; returning false skips the spawn. Lets callers fire events after initial motion is applied. */
++    public java.util.function.@Nullable Predicate<Projectile> preSpawnHook = null;
  
      protected Projectile(EntityType<? extends Projectile> type, Level level) {
          super(type, level);
@@ -41,7 +43,7 @@
      }
  
      @Override
-@@ -206,19 +_,38 @@
+@@ -206,19 +_,43 @@
      public boolean canBreakBlockInAdventureMode(ServerLevel level, BlockInWorld blockInWorld) {
          Entity owner = this.getOwner();
          GameType worldGameMode = level.getServer().getDefaultGameType();
@@ -55,12 +57,6 @@
  
      public static <T extends Projectile> T spawnProjectileFromRotation(
 -        Projectile.ProjectileFactory<T> creator, ServerLevel serverLevel, ItemStack itemStack, LivingEntity source, float yOffset, float pow, float uncertainty
--    ) {
--        return spawnProjectile(
--            creator.create(serverLevel, source, itemStack),
--            serverLevel,
--            itemStack,
--            projectile -> projectile.shootFromRotation(source, source.getXRot(), source.getYRot(), yOffset, pow, uncertainty)
 +            final Projectile.ProjectileFactory<T> creator,
 +            final ServerLevel serverLevel,
 +            final ItemStack itemStack,
@@ -68,10 +64,19 @@
 +            final float yOffset,
 +            final float pow,
 +            final float uncertainty
-+    ) {
-+        // Paper start - PlayerLaunchProjectileEvent
-+        return spawnProjectileFromRotationDelayed(creator, serverLevel, itemStack, source, yOffset, pow, uncertainty).spawn();
+     ) {
+         return spawnProjectile(
+-            creator.create(serverLevel, source, itemStack),
+-            serverLevel,
+-            itemStack,
+-            projectile -> projectile.shootFromRotation(source, source.getXRot(), source.getYRot(), yOffset, pow, uncertainty)
++                creator.create(serverLevel, source, itemStack),
++                serverLevel,
++                itemStack,
++                projectile -> projectile.shootFromRotation(source, source.getXRot(), source.getYRot(), yOffset, pow, uncertainty)
++        );
 +    }
++
 +    public static <T extends Projectile> Delayed<T> spawnProjectileFromRotationDelayed(
 +            final Projectile.ProjectileFactory<T> creator,
 +            final ServerLevel serverLevel,
@@ -90,16 +95,11 @@
          );
      }
  
-@@ -239,21 +_,80 @@
+@@ -239,22 +_,92 @@
      }
  
      public static <T extends Projectile> T spawnProjectileUsingShoot(
 -        T projectile, ServerLevel serverLevel, ItemStack itemStack, double targetX, double targetY, double targetZ, float pow, float uncertainty
--    ) {
--        return spawnProjectile(projectile, serverLevel, itemStack, i -> projectile.shoot(targetX, targetY, targetZ, pow, uncertainty));
--    }
--
--    public static <T extends Projectile> T spawnProjectile(T projectile, ServerLevel serverLevel, ItemStack itemStack) {
 +            final T projectile,
 +            final ServerLevel serverLevel,
 +            final ItemStack itemStack,
@@ -108,11 +108,11 @@
 +            final double targetZ,
 +            final float pow,
 +            final float uncertainty
-+    ) {
-+        // Paper start - fixes and addition to spawn reason API
-+        return spawnProjectileUsingShootDelayed(projectile, serverLevel, itemStack, targetX, targetY, targetZ, pow, uncertainty).spawn();
-+    }
-+
+     ) {
+         return spawnProjectile(projectile, serverLevel, itemStack, i -> projectile.shoot(targetX, targetY, targetZ, pow, uncertainty));
+     }
+ 
+-    public static <T extends Projectile> T spawnProjectile(T projectile, ServerLevel serverLevel, ItemStack itemStack) {
 +    public static <T extends Projectile> Delayed<T> spawnProjectileUsingShootDelayed(
 +            final T projectile,
 +            final ServerLevel serverLevel,
@@ -132,18 +132,27 @@
      }
  
 -    public static <T extends Projectile> T spawnProjectile(T projectile, ServerLevel serverLevel, ItemStack itemStack, Consumer<T> shootFunction) {
--        shootFunction.accept(projectile);
--        serverLevel.addFreshEntity(projectile);
--        projectile.applyOnProjectileSpawned(serverLevel, itemStack);
--        return projectile;
--    }
 +    public static <T extends Projectile> T spawnProjectile(
 +            final T projectile, final ServerLevel serverLevel, final ItemStack itemStack, final Consumer<T> shootFunction
 +    ) {
-+        // Paper start - delayed projectile spawning
-+        return spawnProjectileDelayed(projectile, serverLevel, itemStack, shootFunction).spawn();
-+    }
-+
+         shootFunction.accept(projectile);
+-        serverLevel.addFreshEntity(projectile);
+-        projectile.applyOnProjectileSpawned(serverLevel, itemStack);
++        // Youer start - fire events after the shot is applied but before spawning
++        java.util.function.Predicate<Projectile> hook = projectile.preSpawnHook;
++        if (hook != null) {
++            projectile.preSpawnHook = null;
++            if (!hook.test(projectile)) {
++                return projectile;
++            }
++        }
++        // Youer end
++        if (serverLevel.addFreshEntity(projectile)) {
++            projectile.applyOnProjectileSpawned(serverLevel, itemStack);
++        }
+         return projectile;
+     }
+ 
 +    public static <T extends Projectile> Delayed<T> spawnProjectileDelayed(T projectile, ServerLevel serverLevel, ItemStack itemStack, Consumer<T> adapter) {
 +        // Paper end - delayed projectile spawning
 +        adapter.accept(projectile);
@@ -180,9 +189,10 @@
 +        }
 +    }
 +    // Paper end - delayed projectile spawning
- 
++
      public void applyOnProjectileSpawned(ServerLevel serverLevel, ItemStack pickupItemStack) {
          EnchantmentHelper.onProjectileSpawned(serverLevel, pickupItemStack, this, item -> {});
+         if (this instanceof AbstractArrow arrow) {
 @@ -265,6 +_,17 @@
          }
      }

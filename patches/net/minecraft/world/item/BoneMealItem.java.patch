@@ -7,7 +7,7 @@
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
  import net.minecraft.core.Holder;
-@@ -38,9 +_,52 @@
+@@ -38,9 +_,55 @@
          BlockPos pos = context.getClickedPos();
          BlockPos relative = pos.relative(context.getClickedFace());
          ItemStack boneMealStack = context.getItemInHand();
@@ -26,6 +26,9 @@
 +
 +                capturedBlockStates = new java.util.ArrayList<>(serverLevel.capturedBlockStates.values());
 +                serverLevel.capturedBlockStates.clear();
++                if (serverLevel.captureBlockSnapshots) {
++                    serverLevel.capturedBlockSnapshots.clear(); // Youer - growth is reported through StructureGrowEvent/BlockFertilizeEvent, not as a block placement
++                }
 +
 +                treeType = net.minecraft.world.level.block.SaplingBlock.treeType;
 +                net.minecraft.world.level.block.SaplingBlock.treeType = null;
@@ -62,9 +65,13 @@
                  level.levelEvent(1505, pos, 15);
                  return InteractionResult.SUCCESS_SERVER;
              } else {
-@@ -51,7 +_,7 @@
+@@ -50,8 +_,11 @@
+             BlockState clickedState = level.getBlockState(pos);
              boolean solidBlockFace = clickedState.isFaceSturdy(level, pos, context.getClickedFace());
              if (solidBlockFace && growWaterPlant(boneMealStack, level, relative, context.getClickedFace())) {
++                if (player != null && level instanceof ServerLevel serverLevel && serverLevel.captureBlockSnapshots) {
++                    serverLevel.capturedBlockSnapshots.clear(); // Youer - water plant growth is not a block placement
++                }
                  if (!level.isClientSide()) {
 -                    boneMealStack.causeUseVibration(context.getPlayer(), GameEvent.ITEM_INTERACT_FINISH);
 +                    if (context.getPlayer() != null) boneMealStack.causeUseVibration(context.getPlayer(), GameEvent.ITEM_INTERACT_FINISH);

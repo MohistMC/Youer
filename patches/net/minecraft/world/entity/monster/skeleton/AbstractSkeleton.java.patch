@@ -64,12 +64,13 @@
                  int minAttackInterval = this.getHardAttackInterval();
                  if (this.level().getDifficulty() != Difficulty.HARD) {
                      minAttackInterval = this.getAttackInterval();
-@@ -158,17 +_,29 @@
+@@ -158,17 +_,41 @@
  
      @Override
      public void performRangedAttack(LivingEntity target, float power) {
 -        ItemStack bowItem = this.getItemInHand(ProjectileUtil.getWeaponHoldingHand(this, Items.BOW));
-+        ItemStack bowItem = this.getItemInHand(ProjectileUtil.getWeaponHoldingHand(this, item -> item instanceof net.minecraft.world.item.BowItem));
++        net.minecraft.world.InteractionHand hand = ProjectileUtil.getWeaponHoldingHand(this, item -> item instanceof net.minecraft.world.item.BowItem); // Paper - call EntityShootBowEvent
++        ItemStack bowItem = this.getItemInHand(hand); // Paper - call EntityShootBowEvent
          ItemStack projectile = this.getProjectile(bowItem);
          AbstractArrow arrow = this.getArrow(projectile, power, bowItem);
 +        if (bowItem.getItem() instanceof net.minecraft.world.item.ProjectileWeaponItem weaponItem)
@@ -83,16 +84,27 @@
 -                arrow, serverLevel, projectile, xd, yd + distanceToTarget * 0.2F, zd, 1.6F, this.rangedAttackUncertainty(serverLevel)
 -            );
 +            // CraftBukkit start
-+            org.bukkit.event.entity.EntityShootBowEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityShootBowEvent(this, this.getMainHandItem(), null, arrow, net.minecraft.world.InteractionHand.MAIN_HAND, 0.8F, true);
-+            if (event.isCancelled()) {
-+                event.getProjectile().remove();
-+                return;
-+            }
++            AbstractArrow spawnedArrow = arrow;
++            boolean[] cancelled = {false};
++            spawnedArrow.preSpawnHook = projectileEntity -> {
++                org.bukkit.event.entity.EntityShootBowEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityShootBowEvent(this, bowItem, spawnedArrow.getPickupItem(), spawnedArrow, hand, power, true);
++                if (event.isCancelled()) {
++                    event.getProjectile().remove();
++                    cancelled[0] = true;
++                    return false;
++                }
 +
-+            if (event.getProjectile() == arrow.getBukkitEntity()) {
++                return event.getProjectile() == spawnedArrow.getBukkitEntity();
++            };
++            try {
 +                Projectile.spawnProjectileUsingShoot(
-+                        arrow, serverLevel, projectile, xd, yd + distanceToTarget * 0.2F, zd, 1.6F, serverLevel.purpurConfig.skeletonBowAccuracyMap.getOrDefault(serverLevel.getDifficulty().getId(), (float) (14 - serverLevel.getDifficulty().getId() * 4))  // Purpur - skeleton bow accuracy option
++                        arrow, serverLevel, projectile, xd, yd + distanceToTarget * 0.2F, zd, 1.6F, serverLevel.purpurConfig.skeletonBowAccuracyMap.getOrDefault(serverLevel.getDifficulty().getId(), this.rangedAttackUncertainty(serverLevel))  // Purpur - skeleton bow accuracy option
 +                );
++            } finally {
++                spawnedArrow.preSpawnHook = null;
++            }
++            if (cancelled[0]) {
++                return;
 +            }
 +            // CraftBukkit end
          }
@@ -107,13 +119,10 @@
      }
  
      @Override
-@@ -194,9 +_,18 @@
+@@ -194,6 +_,13 @@
          this.reassessWeaponGoal();
      }
  
--    @Override
--    public void onEquipItem(EquipmentSlot slot, ItemStack oldStack, ItemStack stack) {
--        super.onEquipItem(slot, oldStack, stack);
 +    // Paper start - shouldBurnInDay API
 +    @Override
 +    protected void addAdditionalSaveData(final net.minecraft.world.level.storage.ValueOutput output) {
@@ -121,11 +130,23 @@
 +    }
 +    // Paper end - shouldBurnInDay API
 +
-+    @Override
-+    // CraftBukkit start
-+    public void onEquipItem(EquipmentSlot slot, ItemStack oldStack, ItemStack stack, boolean silent) {
-+        super.onEquipItem(slot, oldStack, stack, silent);
-+        // CraftBukkit end
-         if (!this.level().isClientSide()) {
+     @Override
+     public void onEquipItem(EquipmentSlot slot, ItemStack oldStack, ItemStack stack) {
+         super.onEquipItem(slot, oldStack, stack);
+@@ -201,6 +_,16 @@
              this.reassessWeaponGoal();
          }
+     }
++
++    // CraftBukkit start - silent equipping
++    @Override
++    public void onEquipItem(EquipmentSlot slot, ItemStack oldStack, ItemStack stack, boolean silent) {
++        super.onEquipItem(slot, oldStack, stack, silent);
++        if (!this.level().isClientSide()) {
++            this.reassessWeaponGoal();
++        }
++    }
++    // CraftBukkit end
+ 
+     public boolean isShaking() {
+         return this.isFullyFrozen();

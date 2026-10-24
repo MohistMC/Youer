@@ -44,7 +44,7 @@
          sign.setAllowedPlayerEditor(player.getUUID());
          player.openTextEdit(sign, slot);
      }
-@@ -172,7 +_,7 @@
+@@ -172,18 +_,19 @@
  
      @Override
      public <T extends BlockEntity> @Nullable BlockEntityTicker<T> getTicker(Level level, BlockState blockState, BlockEntityType<T> type) {
@@ -53,12 +53,16 @@
      }
  
      @Override
-@@ -183,7 +_,7 @@
+     public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity by, ItemStack itemStack) {
+         if (!level.isClientSide()
++            && !level.captureBlockStates && !level.captureBlockSnapshots // Youer - open the editor after the place event instead
+             && by instanceof ServerPlayer player
+             && state.getBlock() instanceof SignBlock sign
              && level.getBlockEntity(pos) instanceof SignBlockEntity signEntity
              && !signEntity.isWaxed()
              && signEntity.getText(SignTextSlot.FRONT).hasEditableText(player.isTextFilteringEnabled())) {
 -            sign.openTextEdit(player, signEntity, SignTextSlot.FRONT);
-+            sign.openTextEdit(player, signEntity, SignTextSlot.FRONT, io.papermc.paper.event.player.PlayerOpenSignEvent.Cause.PLACE); // Paper - Add PlayerOpenSignEvent - call later in ItemStack#useOn // TODO Fix neoforge event hook
++            sign.openTextEdit(player, signEntity, SignTextSlot.FRONT, io.papermc.paper.event.player.PlayerOpenSignEvent.Cause.PLACE); // Paper - Add PlayerOpenSignEvent // Youer - opened after the place event in BlockEventDispatcher
          }
      }
  }

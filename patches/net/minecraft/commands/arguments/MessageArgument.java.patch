@@ -40,12 +40,14 @@
      }
  
      private static CompletableFuture<FilteredText> filterPlainText(CommandSourceStack sender, PlayerChatMessage message) {
-@@ -90,7 +_,7 @@
+@@ -90,7 +_,9 @@
  
      public record Message(String text, MessageArgument.Part[] parts) {
          private Component resolveComponent(CommandSourceStack sender) throws CommandSyntaxException {
 -            return this.toComponent(sender, sender.permissions().hasPermission(Permissions.COMMANDS_ENTITY_SELECTORS));
-+            return this.toComponent(sender, net.neoforged.neoforge.common.CommonHooks.canUseEntitySelectors(sender));
++            // Youer - prefer the Bukkit permission node, then NeoForge permission nodes
++            return this.toComponent(sender, sender.hasPermission(Permissions.COMMANDS_ENTITY_SELECTORS, "minecraft.command.selector")
++                || net.neoforged.neoforge.common.CommonHooks.canUseEntitySelectors(sender));
          }
  
          public Component toComponent(CommandSourceStack sender, boolean allowSelectors) throws CommandSyntaxException {

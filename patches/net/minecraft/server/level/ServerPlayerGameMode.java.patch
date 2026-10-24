@@ -296,9 +296,14 @@
  
          BlockEntity blockEntity = this.level.getBlockEntity(pos);
          Block block = state.getBlock();
-@@ -299,28 +_,48 @@
+@@ -298,29 +_,72 @@
+             return false;
          }
  
++        // CraftBukkit start - capture all item additions to the world
++        org.bukkit.block.BlockState bState = bblock.getState();
++        this.level.captureDrops = new java.util.ArrayList<>();
++        // CraftBukkit end
          BlockState adjustedState = block.playerWillDestroy(this.level, pos, state, this.player);
 -        boolean changed = this.level.removeBlock(pos, false);
 -        if (SharedConstants.DEBUG_BLOCK_BREAK) {
@@ -308,30 +313,56 @@
 -        if (changed) {
 -            block.destroy(this.level, pos, adjustedState);
 -        }
- 
-         if (this.player.preventsBlockDrops()) {
-+            removeBlock(pos, adjustedState, false, player.getMainHandItem().copy());
-             return true;
-         }
+-
+-        if (this.player.preventsBlockDrops()) {
+-            return true;
+-        }
  
          ItemStack itemStack = this.player.getMainHandItem();
-         ItemStack destroyedWith = itemStack.copy();
+-        ItemStack destroyedWith = itemStack.copy();
 -        boolean canDestroy = this.player.hasCorrectToolForDrops(adjustedState);
-+        boolean canDestroy = adjustedState.canHarvestBlock(this.level, pos, this.player); // previously player.hasCorrectToolForDrops(blockstate)
-         itemStack.mineBlock(this.level, adjustedState, pos, this.player);
-+        boolean changed = removeBlock(pos, adjustedState, canDestroy, destroyedWith.copy());
-+
-         if (changed && canDestroy) {
+-        itemStack.mineBlock(this.level, adjustedState, pos, this.player);
+-        if (changed && canDestroy) {
 -            block.playerDestroy(this.level, this.player, pos, adjustedState, blockEntity, destroyedWith);
-+            block.playerDestroy(this.level, this.player, pos, adjustedState, blockEntity, destroyedWith, breakEvent.isDropItems(), false); // CraftBukkit - honour BlockBreakEvent#setDropItems, the event's experience is dropped below
++        ItemStack destroyedWith = null; // Paper - Trigger bee_nest_destroyed trigger in the correct place
++        boolean canDestroy = false; // Paper - Trigger bee_nest_destroyed trigger in the correct place
++        boolean changed;
++        if (this.player.preventsBlockDrops()) {
++            changed = removeBlock(pos, adjustedState, false, itemStack.copy());
++        } else {
++            destroyedWith = itemStack.copy(); // Paper
++            canDestroy = adjustedState.canHarvestBlock(this.level, pos, this.player); // previously player.hasCorrectToolForDrops(blockstate)
++            itemStack.mineBlock(this.level, adjustedState, pos, this.player);
++            changed = removeBlock(pos, adjustedState, canDestroy, destroyedWith.copy());
++
++            if (changed && canDestroy) {
++                block.playerDestroy(this.level, this.player, pos, adjustedState, blockEntity, destroyedWith, breakEvent.isDropItems(), false); // CraftBukkit - honour BlockBreakEvent#setDropItems, the event's experience is dropped below
++            }
 +        }
++
++        // CraftBukkit start - capture all item additions to the world
++        List<net.minecraft.world.entity.item.ItemEntity> itemsToDrop = this.level.captureDrops; // Paper - capture all item additions to the world
++        this.level.captureDrops = null; // Paper - capture all item additions to the world; Remove this earlier so that we can actually drop stuff
++        if (breakEvent.isDropItems()) {
++            org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockDropItemEvent(bblock, bState, this.player, itemsToDrop); // Paper - capture all item additions to the world
++        }
++        // CraftBukkit end
 +
 +        if (changed) {
 +            block.popExperience(this.level, pos, breakEvent.getExpToDrop(), this.player); // CraftBukkit - BlockBreakEvent experience
 +        }
 +
++        // Paper start - Trigger bee_nest_destroyed trigger in the correct place (check impls of block#playerDestroy)
++        if (destroyedWith != null
++            && changed && canDestroy && breakEvent.isDropItems()
++            && block instanceof net.minecraft.world.level.block.BeehiveBlock
++            && blockEntity instanceof net.minecraft.world.level.block.entity.BeehiveBlockEntity beehiveBlockEntity) {
++            net.minecraft.advancements.triggers.CriteriaTriggers.BEE_NEST_DESTROYED.trigger(this.player, state, destroyedWith, beehiveBlockEntity.getOccupantCount());
++        }
++        // Paper end - Trigger bee_nest_destroyed trigger in the correct place
++
 +        // Neo: Fire the PlayerDestroyItemEvent if the tool was broken at any point during the break process
-+        if (itemStack.isEmpty() && !destroyedWith.isEmpty()) {
++        if (itemStack.isEmpty() && destroyedWith != null && !destroyedWith.isEmpty()) {
 +            net.neoforged.neoforge.event.EventHooks.onPlayerDestroyItem(this.player, destroyedWith, InteractionHand.MAIN_HAND);
          }
  

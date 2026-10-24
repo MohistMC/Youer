@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/Services.java
 +++ b/net/minecraft/server/Services.java
-@@ -17,16 +_,42 @@
+@@ -17,16 +_,50 @@
      ServicesKeySet servicesKeySet,
      GameProfileRepository profileRepository,
      UserNameToIdResolver nameToIdCache,
@@ -27,12 +27,19 @@
 +    }
 +    // Paper end - add paper configuration files
 +
-+    public static Services create(MinecraftServicesDiscoveryService serviceAccess, File nameCacheDir, final File userCacheFile, final joptsimple.OptionSet options) throws Exception { // Paper - add options to load paper config files; add userCacheFile parameter
++    public static Services create(MinecraftServicesDiscoveryService serviceAccess, File nameCacheDir) { // Youer - keep the vanilla/NeoForge entry point for the client and mods
          SessionService sessionService = serviceAccess.createMinecraftSessionService();
          GameProfileRepository profileRepository = serviceAccess.createProfileRepository();
 -        UserNameToIdResolver profileCache = new CachedUserNameToIdResolver(profileRepository, new File(nameCacheDir, "usercache.json"));
--        ProfileResolver profileResolver = new ProfileResolver.Cached(sessionService, profileCache);
++        UserNameToIdResolver profileCache = new CachedUserNameToIdResolver(profileRepository, new File(nameCacheDir, USERID_CACHE_FILE));
+         ProfileResolver profileResolver = new ProfileResolver.Cached(sessionService, profileCache);
 -        return new Services(sessionService, serviceAccess.getServicesKeySet(), profileRepository, profileCache, profileResolver);
++        return new Services(sessionService, serviceAccess.getServicesKeySet(), profileRepository, profileCache, profileResolver, null);
++    }
++
++    public static Services create(MinecraftServicesDiscoveryService serviceAccess, File nameCacheDir, final File userCacheFile, final joptsimple.OptionSet options) throws Exception { // Paper - add options to load paper config files; add userCacheFile parameter
++        SessionService sessionService = serviceAccess.createMinecraftSessionService();
++        GameProfileRepository profileRepository = serviceAccess.createProfileRepository();
 +        UserNameToIdResolver profileCache = new CachedUserNameToIdResolver(profileRepository, userCacheFile);
 +        // Paper start - load paper config files from cli options
 +        final java.nio.file.Path legacyConfigPath = ((File) options.valueOf("paper-settings")).toPath();

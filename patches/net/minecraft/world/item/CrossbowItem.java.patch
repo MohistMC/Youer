@@ -9,20 +9,25 @@
              return InteractionResult.CONSUME;
          } else if (!player.getProjectile(itemStack).isEmpty()) {
              this.startSoundPlayed = false;
-@@ -88,8 +_,15 @@
+@@ -88,8 +_,20 @@
          return getPowerForTime(timeHeld, itemStack, entity) >= 1.0F && isCharged(itemStack);
      }
  
-+    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - Add EntityLoadCrossbowEvent
++    private static final ThreadLocal<Boolean> tryLoadProjectiles$consume = ThreadLocal.withInitial(() -> true);
++
      private static boolean tryLoadProjectiles(LivingEntity shooter, ItemStack heldItem) {
 -        List<ItemStack> drawn = draw(heldItem, shooter.getProjectile(heldItem), shooter);
-+        // Paper start - Add EntityLoadCrossbowEvent
-+        return tryLoadProjectiles(shooter, heldItem, true);
-+    }
-+
-+    private static boolean tryLoadProjectiles(final LivingEntity shooter, final ItemStack heldItem, final boolean consume) {
-+        List<ItemStack> drawn = draw(heldItem, shooter.getProjectile(heldItem), shooter, consume);
-+        // Paper end - Add EntityLoadCrossbowEvent
++        boolean consume = tryLoadProjectiles$consume.get();
++        tryLoadProjectiles$consume.remove();
++        ItemStack projectile = shooter.getProjectile(heldItem);
++        boolean previousConsume = draw$consume.get();
++        draw$consume.set(consume);
++        List<ItemStack> drawn;
++        try {
++            drawn = draw(heldItem, projectile, shooter);
++        } finally {
++            draw$consume.set(previousConsume);
++        }
          if (!drawn.isEmpty()) {
              heldItem.set(DataComponents.CHARGED_PROJECTILES, ChargedProjectiles.ofNonEmpty(drawn));
              return true;
@@ -39,7 +44,7 @@
          }
  
          Projectile projectileEntity = super.createProjectile(level, shooter, heldItem, projectile, isCrit);
-@@ -171,10 +_,13 @@
+@@ -171,10 +_,19 @@
          Level level, LivingEntity shooter, InteractionHand hand, ItemStack weapon, float power, float uncertainty, @Nullable LivingEntity targetOverride
      ) {
          if (level instanceof ServerLevel serverLevel) {
@@ -50,11 +55,17 @@
              if (charged != null && !charged.isEmpty()) {
                  List<ItemStack> projectiles = charged.itemCopies().toList();
 -                this.shoot(serverLevel, shooter, hand, weapon, projectiles, power, uncertainty, shooter instanceof Player, targetOverride);
-+                this.shoot(serverLevel, shooter, hand, weapon, projectiles, power, uncertainty, shooter instanceof Player, targetOverride, 1.0F); // Paper - Pass draw strength
++                float previousStrength = shoot$drawStrength.get();
++                shoot$drawStrength.set(1.0F);
++                try {
++                    this.shoot(serverLevel, shooter, hand, weapon, projectiles, power, uncertainty, shooter instanceof Player, targetOverride);
++                } finally {
++                    shoot$drawStrength.set(previousStrength);
++                }
                  if (shooter instanceof ServerPlayer player) {
                      CriteriaTriggers.SHOT_CROSSBOW.trigger(player, weapon);
                      player.awardStat(Stats.ITEM_USED.get(weapon.getItem()));
-@@ -214,7 +_,13 @@
+@@ -214,7 +_,22 @@
                      .ifPresent(sound -> level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), sound.value(), SoundSource.PLAYERS, 0.5F, 1.0F));
              }
  
@@ -62,8 +73,17 @@
 +            if (tickPercent >= 1.0F && !isCharged(itemStack)) {
 +                // Paper start - Add EntityLoadCrossbowEvent
 +                final io.papermc.paper.event.entity.EntityLoadCrossbowEvent event = new io.papermc.paper.event.entity.EntityLoadCrossbowEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(itemStack), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(entity.getUsedItemHand()));
-+                if (!event.callEvent() || !tryLoadProjectiles(entity, itemStack, event.shouldConsumeItem()) || !event.shouldConsumeItem()) {
++                if (!event.callEvent()) {
 +                    return;
++                }
++                boolean previousConsume = tryLoadProjectiles$consume.get();
++                tryLoadProjectiles$consume.set(event.shouldConsumeItem());
++                try {
++                    if (!tryLoadProjectiles(entity, itemStack) || !event.shouldConsumeItem()) {
++                        return;
++                    }
++                } finally {
++                    tryLoadProjectiles$consume.set(previousConsume);
 +                }
 +                // Paper end - Add EntityLoadCrossbowEvent
                  sounds.end()

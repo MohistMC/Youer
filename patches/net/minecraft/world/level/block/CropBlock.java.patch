@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/level/block/CropBlock.java
 +++ b/net/minecraft/world/level/block/CropBlock.java
-@@ -70,12 +_,30 @@
+@@ -19,7 +_,6 @@
+ import net.minecraft.world.level.block.state.StateDefinition;
+ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+ import net.minecraft.world.level.block.state.properties.IntegerProperty;
+-import net.minecraft.world.level.gamerules.GameRules;
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.VoxelShape;
+ 
+@@ -70,12 +_,31 @@
  
      @Override
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
@@ -29,8 +37,9 @@
 +                }
 +                if (net.neoforged.neoforge.common.CommonHooks.canCropGrow(level, pos, state, random.nextFloat() < (modifier / (100.0F * (Math.floor((25.0F / f) + 1)))))) { // Spigot - SPIGOT-7159: Better modifier resolution
 +                    // Spigot end
-+                    org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, pos, this.getStateForAge(age + 1), Block.UPDATE_CLIENTS); // CraftBukkit
-+                    net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(level, pos, state);
++                    if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, pos, this.getStateForAge(age + 1), Block.UPDATE_CLIENTS)) {
++                        net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(level, pos, state);
++                    }
                  }
              }
          }
@@ -74,16 +83,23 @@
          return hasSufficientLight(level, pos) && super.canSurvive(state, level, pos);
      }
  
-@@ -145,7 +_,8 @@
+@@ -145,8 +_,14 @@
  
      @Override
      protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
 -        if (level instanceof ServerLevel serverLevel && entity instanceof Ravager && serverLevel.getGameRules().get(GameRules.MOB_GRIEFING)) {
+-            serverLevel.destroyBlock(pos, true, entity);
 +        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(level, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
-+        if (level instanceof ServerLevel serverLevel && entity instanceof Ravager && serverLevel.purpurConfig.ravagerGriefableBlocks.contains(serverLevel.getBlockState(pos).getBlock()) && org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(entity, pos, Blocks.AIR.defaultBlockState(), !serverLevel.getGameRules().get(GameRules.MOB_GRIEFING, serverLevel.purpurConfig.ravagerMobGriefingOverride))) { // CraftBukkit // Purpur - Configurable ravager griefable blocks list // Purpur - Add mobGriefing override to everything affected
-             serverLevel.destroyBlock(pos, true, entity);
++        if (level instanceof ServerLevel serverLevel && entity instanceof Ravager && serverLevel.purpurConfig.ravagerGriefableBlocks.contains(serverLevel.getBlockState(pos).getBlock())) {
++            boolean canGrief = serverLevel.purpurConfig.ravagerMobGriefingOverride == null
++                ? net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverLevel, entity)
++                : org.purpurmc.purpur.PurpurWorldConfig.canEntityGrief(serverLevel, entity, serverLevel.purpurConfig.ravagerMobGriefingOverride);
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(entity, pos, Blocks.AIR.defaultBlockState(), !canGrief)) {
++                serverLevel.destroyBlock(pos, true, entity);
++            }
          }
  
+         super.entityInside(state, level, pos, entity, effectApplier, isPrecise);
 @@ -180,4 +_,15 @@
      protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
          builder.add(AGE);

@@ -757,23 +757,15 @@
          this.inventoryMenu.removed(this);
          if (this.hasContainerOpen()) {
              this.doCloseContainer();
-@@ -1301,6 +_,13 @@
+@@ -1309,7 +_,13 @@
+         return Either.right(Unit.INSTANCE);
      }
  
-     public Either<Player.BedSleepingProblem, Unit> startSleepInBed(AbstractBedBlock bedBlock, BlockState bedBlockState, BedRule rule, BlockPos pos) {
-+        // CraftBukkit start
-+        return this.startSleepInBed(bedBlock, bedBlockState, rule, pos, false);
++    // Paper - Force overload; keep the original sleep implementation in the four-argument method for mod mixins.
++    public Either<Player.BedSleepingProblem, Unit> startSleepInBed(AbstractBedBlock bedBlock, BlockState bedBlockState, BedRule rule, BlockPos pos, boolean force) {
++        return this.startSleepInBed(bedBlock, bedBlockState, rule, pos);
 +    }
 +
-+    public Either<Player.BedSleepingProblem, Unit> startSleepInBed(AbstractBedBlock bedBlock, BlockState bedBlockState, BedRule rule, BlockPos pos, boolean force // Paper - add force
-+    ) {
-+        // CraftBukkit end
-         if (!this.startSleeping(pos)) {
-             return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
-         }
-@@ -1310,6 +_,7 @@
-     }
- 
      public void stopSleepInBed(boolean forcefulWakeUp, boolean updateLevelList) {
 +        net.neoforged.neoforge.event.EventHooks.onPlayerWakeup(this, forcefulWakeUp, updateLevelList);
          super.stopSleeping();

@@ -19,12 +19,18 @@
              float pow = getPowerForTime(timeHeld);
              if (pow < 0.1) {
                  return false;
-@@ -38,7 +_,7 @@
+@@ -38,7 +_,13 @@
  
              List<ItemStack> firedProjectiles = draw(itemStack, projectile, player);
              if (level instanceof ServerLevel serverLevel && !firedProjectiles.isEmpty()) {
 -                this.shoot(serverLevel, player, player.getUsedItemHand(), itemStack, firedProjectiles, pow * 3.0F, 1.0F, pow == 1.0F, null);
-+                this.shoot(serverLevel, player, player.getUsedItemHand(), itemStack, firedProjectiles, pow * 3.0F, (float) serverLevel.purpurConfig.bowProjectileOffset, pow == 1.0F, null, pow); // Paper - Pass draw strength // Purpur - Projectile offset config
++                float previousStrength = shoot$drawStrength.get();
++                shoot$drawStrength.set(pow);
++                try {
++                    this.shoot(serverLevel, player, player.getUsedItemHand(), itemStack, firedProjectiles, pow * 3.0F, (float) serverLevel.purpurConfig.bowProjectileOffset, pow == 1.0F, null);
++                } finally {
++                    shoot$drawStrength.set(previousStrength);
++                }
              }
  
              level.playSound(

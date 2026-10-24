@@ -41,12 +41,11 @@
              if (this.isSuccess()) {
                  dispensed.hurtAndBreak(1, level, null, item -> {});
              }
-@@ -47,14 +_,27 @@
+@@ -47,14 +_,30 @@
          return false;
      }
  
 -    private static boolean tryShearEntity(ServerLevel level, BlockPos pos, ItemStack tool) {
-+    // Youer TODO - paper patches
 +    private static boolean tryShearEntity(ServerLevel level, BlockPos pos, ItemStack tool, org.bukkit.block.Block bukkitBlock, org.bukkit.inventory.ItemStack craftItem) { // CraftBukkit - add args
          for (Entity entity : level.getEntitiesOfClass(Entity.class, new AABB(pos), EntitySelector.NO_SPECTATORS)) {
              if (entity.shearOffAllLeashConnections(null)) {
@@ -65,10 +64,14 @@
 +                if (event.isCancelled()) {
 +                    continue;
 +                }
++                if (entity instanceof net.minecraft.world.entity.Shearable vanillaShearable) {
++                    vanillaShearable.shear(level, SoundSource.BLOCKS, tool, CraftItemStack.asNMSCopy(event.getDrops()));
++                } else {
++                    shearable.onSheared(null, tool, level, pos)
++                            .forEach(drop -> shearable.spawnShearedDrop(level, pos, drop));
++                }
 +                // Paper end - Add drops to shear events
 +                // CraftBukkit end
-+                shearable.onSheared(null, tool, level, pos)
-+                        .forEach(drop -> shearable.spawnShearedDrop(level, pos, drop));
                  level.gameEvent(null, GameEvent.SHEAR, pos);
                  return true;
              }

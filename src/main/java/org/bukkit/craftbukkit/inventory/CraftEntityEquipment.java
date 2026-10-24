@@ -160,7 +160,11 @@ public class CraftEntityEquipment implements EntityEquipment {
     }
 
     private void setEquipment(net.minecraft.world.entity.EquipmentSlot slot, ItemStack stack, boolean silent) {
-        this.entity.getHandle().setItemSlot(slot, CraftItemStack.asNMSCopy(stack), silent);
+        net.minecraft.world.entity.LivingEntity handle = this.entity.getHandle();
+        net.minecraft.world.item.ItemStack oldStack = handle.getItemBySlot(slot);
+        // Write inside a Neo transaction, then run the deferred equip callback with Bukkit's silent flag
+        handle.setItemSlot(slot, CraftItemStack.asNMSCopy(stack), true);
+        handle.onEquipItem(slot, oldStack, handle.getItemBySlot(slot), silent);
     }
 
     @Override

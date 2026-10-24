@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/ShearsItem.java
 +++ b/net/minecraft/world/item/ShearsItem.java
-@@ -58,20 +_,57 @@
+@@ -58,20 +_,75 @@
          return true;
      }
  
@@ -16,8 +16,26 @@
 +            boolean isClient = entity.level().isClientSide();
 +            // Check isShearable on both sides (mirrors vanilla readyForShearing())
 +            if (target.isShearable(player, stack, entity.level(), pos)) {
-+                // Call onSheared on both sides (mirrors vanilla shear())
-+                List<ItemStack> drops = target.onSheared(player, stack, entity.level(), pos);
++                List<ItemStack> drops;
++                if (entity.level() instanceof net.minecraft.server.level.ServerLevel serverLevel
++                    && entity instanceof net.minecraft.world.entity.Shearable shearable
++                    && player instanceof ServerPlayer serverPlayer) {
++                    // CraftBukkit start - call PlayerShearEntityEvent
++                    org.bukkit.event.player.PlayerShearEntityEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerShearEntityEvent(
++                        serverPlayer, entity, stack, hand, shearable.generateDefaultDrops(serverLevel, stack)
++                    );
++                    if (event.isCancelled()) {
++                        return InteractionResult.PASS;
++                    }
++                    // Paper start - custom shear drops
++                    shearable.shear(serverLevel, SoundSource.PLAYERS, stack, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getDrops()));
++                    drops = List.of();
++                    // Paper end - custom shear drops
++                    // CraftBukkit end
++                } else {
++                    // Call onSheared on both sides (mirrors vanilla shear())
++                    drops = target.onSheared(player, stack, entity.level(), pos);
++                }
 +                // Spawn drops on the server side using spawnShearedDrop to retain vanilla mob-specific behavior
 +                if (entity.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
 +                    for(ItemStack drop : drops) {

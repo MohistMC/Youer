@@ -1219,8 +1219,12 @@
      }
  
      @Override
-@@ -1231,58 +_,91 @@
+@@ -1229,59 +_,124 @@
+         this.containerMenu.broadcastChanges();
+     }
  
++    private boolean forceSleepInBed; // Youer - Scoped Paper force flag for the original four-argument method
++
      @Override
      public Either<Player.BedSleepingProblem, Unit> startSleepInBed(AbstractBedBlock bedBlock, BlockState bedBlockState, BedRule rule, BlockPos pos) {
 -        Direction direction = bedBlockState.getValue(HorizontalDirectionalBlock.FACING);
@@ -1262,11 +1266,18 @@
 -
 -            Either<Player.BedSleepingProblem, Unit> result = super.startSleepInBed(bedBlock, bedBlockState, rule, pos).ifRight(unit -> {
 -                this.awardStat(bedBlock.getSleptInBedStatType());
++        // Youer - Consume before any callbacks so reentrant unforced attempts do not inherit force.
++        boolean force = this.forceSleepInBed;
++        this.forceSleepInBed = false;
 +        // Neo: Move this earlier, because it is used later on (outside the encapsulated logic)
 +        boolean canSetSpawn = rule.canSetSpawn(this.level());
 +
 +        // Neo: Encapsulate the vanilla logic for whether the player can sleep
 +        var vanillaResult = ((java.util.function.Supplier<Either<BedSleepingProblem, Unit>>) () -> {
++            // Paper - Check exploding beds before NeoForge's no-FACING success shortcut.
++            if (rule.destroyOnUse()) {
++                return Either.left(Player.BedSleepingProblem.EXPLOSION);
++            }
 +
 +            // Neo: For bed blocks without the FACING property, assume success
 +            // Mods will have to implement their own logic using the CanPlayerSleepEvent
@@ -1297,7 +1308,6 @@
 -            return result;
 -        } else {
 -            return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
--        }
 +                    this.setRespawnPosition(
 +                        new ServerPlayer.RespawnConfig(LevelData.RespawnData.of(this.level().dimension(), pos, this.getYRot(), this.getXRot()), false), true, com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.BED // Paper - Add PlayerSetSpawnEvent
 +                    );
@@ -1329,11 +1339,22 @@
 +            return Either.right(Unit.INSTANCE); // Neo: Nothing blocks sleep
 +        }).get();
 +
-+        // Neo: Fire the CanPlayerStartSleeping event, and return the error if it exists
++        // Neo: Fire the CanPlayerStartSleeping event before Paper/Bukkit processing to preserve mod changes.
 +        vanillaResult = net.neoforged.neoforge.event.EventHooks.canPlayerStartSleeping(this, pos, vanillaResult);
++        // CraftBukkit start - PlayerBedEnterEvent
++        if (vanillaResult.left().orElse(null) == Player.BedSleepingProblem.OTHER_PROBLEM) {
++            return vanillaResult; // This result cannot be bypassed by force or plugins.
++        }
++
++        if (force) {
++            vanillaResult = Either.right(Unit.INSTANCE);
++        }
++
++        vanillaResult = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerBedEnterEvent(this, pos, rule, vanillaResult);
 +        if (vanillaResult.left().isPresent()) {
 +            return vanillaResult;
 +        }
++        // CraftBukkit end - PlayerBedEnterEvent
 +
 +        // Neo: Continue with the vanilla code to start sleeping
 +        Either<Player.BedSleepingProblem, Unit> result = super.startSleepInBed(bedBlock, bedBlockState, rule, pos).ifRight(unit -> {
@@ -1359,9 +1380,20 @@
 +        this.level().updateSleepingPlayerList();
 +        return result;
 +        // Neo: The 'else' clause here attached to the first 'if'-expression is moved earlier
++    }
++
++    // Youer - Keep server checks and the original super call in the four-argument method for mod mixins.
++    @Override
++    public Either<Player.BedSleepingProblem, Unit> startSleepInBed(AbstractBedBlock bedBlock, BlockState bedBlockState, BedRule rule, BlockPos pos, boolean force) {
++        boolean previousForce = this.forceSleepInBed;
++        this.forceSleepInBed = force;
++        try {
++            return this.startSleepInBed(bedBlock, bedBlockState, rule, pos);
++        } finally {
++            this.forceSleepInBed = previousForce;
+         }
      }
  
-     @Override
 @@ -1300,6 +_,7 @@
      }
  

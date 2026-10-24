@@ -106,11 +106,14 @@
      }
  
      private void playAngerSound() {
-@@ -153,23 +_,43 @@
-     }
+@@ -154,22 +_,47 @@
  
      @Override
--    public void setTarget(@Nullable LivingEntity target) {
+     public void setTarget(@Nullable LivingEntity target) {
++        this.setTarget(target, this.getTargetReason()); // Youer - keep the vanilla/NeoForge override entry point for mods
++    }
++
++    @Override
 +    public boolean setTarget(final @Nullable LivingEntity target, org.bukkit.event.entity.EntityTargetEvent.@Nullable TargetReason reason) { // CraftBukkit - signature
          if (this.getTarget() == null && target != null) {
              this.playFirstAngerSoundIn = FIRST_ANGER_SOUND_DELAY.sample(this.random);
@@ -143,7 +146,8 @@
      }
  
      public static boolean checkZombifiedPiglinSpawnRules(
-         EntityType<ZombifiedPiglin> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random
+-        EntityType<ZombifiedPiglin> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random
++        EntityType<? extends ZombifiedPiglin> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random
      ) {
 +        // Purpur start - Config to disable hostile mob spawn on ice
 +        if (canSpawnInBlueAndPackedIce(level, pos)) {

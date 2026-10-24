@@ -8,7 +8,7 @@
  
  public record RemoveStatusEffectsConsumeEffect(HolderSet<MobEffect> effects) implements ConsumeEffect {
      public static final MapCodec<RemoveStatusEffectsConsumeEffect> CODEC = RecordCodecBuilder.mapCodec(
-@@ -33,10 +_,11 @@
+@@ -33,12 +_,17 @@
      }
  
      @Override
@@ -17,7 +17,15 @@
          boolean hasRemovedAny = false;
  
          for (Holder<MobEffect> effect : this.effects) {
-+            user.removeAllEffects$cause(cause);
-             if (user.removeEffect(effect)) {
-                 hasRemovedAny = true;
+-            if (user.removeEffect(effect)) {
+-                hasRemovedAny = true;
++            EntityPotionEffectEvent.Cause previousCause = user.removeEffect$cause(cause);
++            try {
++                if (user.removeEffect(effect)) {
++                    hasRemovedAny = true;
++                }
++            } finally {
++                user.removeEffect$cause(previousCause);
              }
+         }
+ 

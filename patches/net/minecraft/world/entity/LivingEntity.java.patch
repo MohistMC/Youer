@@ -275,25 +275,41 @@
      }
  
      public void setDiscardFriction(boolean discardFriction) {
-@@ -691,10 +_,16 @@
+@@ -716,17 +_,52 @@
+         }
      }
  
-     public void onEquipItem(EquipmentSlot slot, ItemStack oldStack, ItemStack stack) {
-+        // CraftBukkit start
-+        onEquipItem(slot, oldStack, stack, false);
-+    }
-+
++    // CraftBukkit start - silent equipping
 +    public void onEquipItem(EquipmentSlot slot, ItemStack oldStack, ItemStack stack, boolean silent) {
-+        // CraftBukkit end
-         if (!this.level().isClientSide() && !this.isSpectator()) {
-             if (!ItemStack.isSameItemSameComponents(oldStack, stack) && !this.firstTick) {
-                 Equippable equippable = stack.get(DataComponents.EQUIPPABLE);
--                if (!this.isSilent() && equippable != null && slot == equippable.slot()) {
-+                if (!this.isSilent() && equippable != null && slot == equippable.slot() && !silent) { // CraftBukkit
-                     this.level()
-                         .playSeededSound(
-                             null,
-@@ -722,11 +_,18 @@
++        if (!this.level().isClientSide() && !this.isSpectator()) {
++            if (!ItemStack.isSameItemSameComponents(oldStack, stack) && !this.firstTick) {
++                Equippable equippable = stack.get(DataComponents.EQUIPPABLE);
++                if (!this.isSilent() && equippable != null && slot == equippable.slot() && !silent) {
++                    this.level()
++                        .playSeededSound(
++                            null,
++                            this.getX(),
++                            this.getY(),
++                            this.getZ(),
++                            this.getEquipSound(slot, stack, equippable),
++                            this.getSoundSource(),
++                            1.0F,
++                            1.0F,
++                            this.random.nextLong()
++                        );
++                }
++
++                if (this.doesEmitEquipEvent(slot)) {
++                    this.gameEvent(equippable != null ? GameEvent.EQUIP : GameEvent.UNEQUIP);
++                }
++            }
++        }
++    }
++    // CraftBukkit end
++
+     protected Holder<SoundEvent> getEquipSound(EquipmentSlot slot, ItemStack stack, Equippable equippable) {
+         return equippable.equipSound();
+     }
  
      @Override
      public void remove(Entity.RemovalReason reason) {
@@ -545,7 +561,7 @@
          return Mth.clamp(visibilityPercent, 0.0, 10.0);
      }
  
-@@ -971,6 +_,10 @@
+@@ -971,7 +_,12 @@
          this.entityData.set(DATA_EFFECT_PARTICLES, List.of());
      }
  
@@ -554,32 +570,39 @@
 +        removeAllEffects$cause.set(cause);
 +    }
      public boolean removeAllEffects() {
++        EntityPotionEffectEvent.Cause cause = this.removeAllEffects$cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN);
          if (this.level().isClientSide()) {
              return false;
-@@ -980,10 +_,23 @@
+         }
+@@ -980,10 +_,27 @@
              return false;
          }
  
 -        Map<Holder<MobEffect>, MobEffectInstance> copy = Maps.newHashMap(this.activeEffects);
 -        this.activeEffects.clear();
 -        this.onEffectsRemoved(copy.values());
+-        return true;
 +        Map<Holder<MobEffect>, MobEffectInstance> map = new java.util.HashMap<>(this.activeEffects.size());
 +        for (Map.Entry<Holder<MobEffect>, MobEffectInstance> entry : this.activeEffects.entrySet()) {
-+            if (removeAllEffects$cause.get() == EntityPotionEffectEvent.Cause.MILK && !this.level().purpurConfig.milkClearsBeneficialEffects && entry.getValue().getEffect().value().isBeneficial())
++            if (cause == EntityPotionEffectEvent.Cause.MILK && !this.level().purpurConfig.milkClearsBeneficialEffects && entry.getValue().getEffect().value().isBeneficial())
 +                continue; // Purpur - Milk Keeps Beneficial Effects
-+            EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, entry.getValue(), null, removeAllEffects$cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN), EntityPotionEffectEvent.Action.CLEARED);
++            EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, entry.getValue(), null, cause, EntityPotionEffectEvent.Action.CLEARED);
 +            if (!event.isCancelled() && !net.neoforged.neoforge.event.EventHooks.onEffectRemoved(this, entry.getValue())) {
 +                map.put(entry.getKey(), entry.getValue());
 +            }
 +        }
 +        map.keySet().forEach(this.activeEffects::remove);
 +        this.onEffectsRemoved(map.values());
-         return true;
++        return !map.isEmpty();
 +    }
 +
 +    public boolean removeAllEffects(EntityPotionEffectEvent.Cause cause) {
-+        removeAllEffects$cause(cause);
-+        return removeAllEffects();
++        EntityPotionEffectEvent.Cause previousCause = this.removeAllEffects$cause.getAndSet(cause);
++        try {
++            return this.removeAllEffects();
++        } finally {
++            this.removeAllEffects$cause.set(previousCause);
++        }
      }
  
      public Collection<MobEffectInstance> getActiveEffects() {
@@ -702,14 +725,16 @@
              MobEffectInstance previousEffect = this.activeEffects.put(newEffect.getEffect(), newEffect);
              if (previousEffect == null) {
                  this.onEffectAdded(newEffect, source);
-@@ -1059,11 +_,35 @@
+@@ -1058,12 +_,55 @@
+         return this.is(EntityTypeTags.INVERTED_HEALING_AND_HARM);
      }
  
-     public final @Nullable MobEffectInstance removeEffectNoUpdate(Holder<MobEffect> effect) {
-+        return removeEffectNoUpdate(effect, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.UNKNOWN);
-+    }
++    // Keep removal bodies in their original signatures for mod Mixin targets.
++    private final AtomicReference<EntityPotionEffectEvent.Cause> removeEffectNoUpdate$cause = new AtomicReference<>(EntityPotionEffectEvent.Cause.UNKNOWN);
++    private final AtomicReference<EntityPotionEffectEvent.Cause> removeEffect$cause = new AtomicReference<>(EntityPotionEffectEvent.Cause.UNKNOWN);
 +
-+    public final @Nullable MobEffectInstance removeEffectNoUpdate(Holder<MobEffect> effect, EntityPotionEffectEvent.Cause cause) {
+     public final @Nullable MobEffectInstance removeEffectNoUpdate(Holder<MobEffect> effect) {
++        EntityPotionEffectEvent.Cause cause = this.removeEffectNoUpdate$cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN);
 +        if (this.tickingEffects) {
 +            this.deferredEffectUpdates.offer(() -> this.removeEffectNoUpdate(effect, cause));
 +            return null;
@@ -728,25 +753,56 @@
          return this.activeEffects.remove(effect);
      }
  
-     public boolean removeEffect(Holder<MobEffect> effect) {
--        MobEffectInstance effectInstance = this.removeEffectNoUpdate(effect);
-+        return removeEffect(effect, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.UNKNOWN);
++    public final @Nullable MobEffectInstance removeEffectNoUpdate(Holder<MobEffect> effect, EntityPotionEffectEvent.Cause cause) {
++        EntityPotionEffectEvent.Cause previousCause = this.removeEffectNoUpdate$cause.getAndSet(cause);
++        try {
++            return this.removeEffectNoUpdate(effect);
++        } finally {
++            this.removeEffectNoUpdate$cause.set(previousCause);
++        }
 +    }
 +
-+    public boolean removeEffect(Holder<MobEffect> holder, EntityPotionEffectEvent.Cause cause) {
-+        if (net.neoforged.neoforge.event.EventHooks.onEffectRemoved(this, holder)) return false;
-+        MobEffectInstance effectInstance = this.removeEffectNoUpdate(holder, cause);
+     public boolean removeEffect(Holder<MobEffect> effect) {
+-        MobEffectInstance effectInstance = this.removeEffectNoUpdate(effect);
++        EntityPotionEffectEvent.Cause cause = this.removeEffect$cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN);
++        if (this.tickingEffects) {
++            this.deferredEffectUpdates.offer(() -> this.removeEffect(effect, cause));
++            return true;
++        }
++
++        if (net.neoforged.neoforge.event.EventHooks.onEffectRemoved(this, effect)) return false;
++        MobEffectInstance effectInstance;
++        // Preserve the original one-argument INVOKE anchor without exposing the cause to NeoForge callbacks.
++        EntityPotionEffectEvent.Cause previousCause = this.removeEffectNoUpdate$cause.getAndSet(cause);
++        try {
++            effectInstance = this.removeEffectNoUpdate(effect);
++        } finally {
++            this.removeEffectNoUpdate$cause.set(previousCause);
++        }
          if (effectInstance != null) {
              this.onEffectsRemoved(List.of(effectInstance));
              return true;
-@@ -1071,6 +_,7 @@
-             return false;
+@@ -1072,6 +_,20 @@
          }
      }
-+    // Youer end
  
++    public EntityPotionEffectEvent.Cause removeEffect$cause(EntityPotionEffectEvent.Cause cause) {
++        return this.removeEffect$cause.getAndSet(cause);
++    }
++
++    public boolean removeEffect(Holder<MobEffect> holder, EntityPotionEffectEvent.Cause cause) {
++        EntityPotionEffectEvent.Cause previousCause = this.removeEffect$cause(cause);
++        try {
++            return this.removeEffect(holder);
++        } finally {
++            this.removeEffect$cause.set(previousCause);
++        }
++    }
++    // Youer end
++
      protected void onEffectAdded(MobEffectInstance effect, @Nullable Entity source) {
          if (!this.level().isClientSide()) {
+             this.effectsDirty = true;
 @@ -1153,18 +_,65 @@
          }
      }
@@ -1658,21 +1714,19 @@
      }
  
      @Override
-@@ -2263,7 +_,13 @@
-     }
- 
+@@ -2265,6 +_,12 @@
      public void setItemSlot(EquipmentSlot slot, ItemStack itemStack) {
--        this.onEquipItem(slot, this.equipment.set(slot, itemStack), itemStack);
-+        setItemSlot(slot, itemStack, false);
-+    }
+         this.onEquipItem(slot, this.equipment.set(slot, itemStack), itemStack);
+     }
 +    /** Neo: Passing {@code true} for {@code insideTransaction} sets the item without side-effects (calling {@link #onEquipItem}).
 +     * Callers are responsible for performing the deferred side-effects, when the active transaction commits. */
 +    public void setItemSlot(EquipmentSlot slot, ItemStack itemStack, boolean insideTransaction) {
 +        var oldStack = this.equipment.set(slot, itemStack);
 +        if (!insideTransaction) this.onEquipItem(slot, oldStack, itemStack);
-     }
++    }
  
      public float getArmorCoverPercentage() {
+         int total = 0;
 @@ -2356,27 +_,43 @@
          return this.hasEffect(MobEffects.JUMP_BOOST) ? 0.1F * (this.getEffect(MobEffects.JUMP_BOOST).getAmplifier() + 1.0F) : 0.0F;
      }

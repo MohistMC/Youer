@@ -131,6 +131,13 @@ public class YouerConfig {
         CONFIG_FILE = configFile;
         config = new YamlConfiguration();
         try {
+            if (!CONFIG_FILE.exists()) {
+                File parent = CONFIG_FILE.getParentFile();
+                if (parent != null) {
+                    parent.mkdirs();
+                }
+                CONFIG_FILE.createNewFile();
+            }
             config.load(CONFIG_FILE);
         } catch (IOException | InvalidConfigurationException ex) {
             Bukkit.getLogger().log(Level.SEVERE, "Could not load youer.yml, please correct your syntax errors", ex);
