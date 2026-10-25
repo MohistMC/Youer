@@ -1,24 +1,6 @@
 <div align="center">
   <h1 align="center">Roast 26.3</h1>
-  <h3 align="center">Minecraft Multi-Loader Hybrid server implementing the Paper/Purpur API</h3>
-
-  <p align="center">
-    <a href="https://github.com/MohistMC/Youer/stargazers">
-      <img alt="GitHub Stars" src="https://img.shields.io/github/stars/alamien060512-alt/roastmc?logo=github">
-    </a>
-    <a href="https://neoforged.net/">
-      <img alt="NeoForge" src="https://img.shields.io/badge/NeoForge-26.3.0.99-FF8B00">
-    </a>
-    <a href="https://www.azul.com/downloads/?version=java-25-lts#zulu">
-      <img alt="JDK" src="https://img.shields.io/badge/JDK-25.0.4.1+1-007396?logo=java&logoColor=white">
-    </a>
-    <a href="https://docs.gradle.org/9.8.1/release-notes.html">
-      <img alt="Gradle" src="https://img.shields.io/badge/Gradle-9.8.1-02303A?logo=gradle&logoColor=white">
-    </a>
-    <a href="https://discord.gg/mohistmc">
-      <img alt="Discord" src="https://img.shields.io/discord/311256119005937665?color=5865F2&logo=discord&logoColor=white">
-    </a>
-  </p>
+  <h3 align="center">An attempt to make a Minecraft Multi-Loader Hybrid server implementing the Paper/Purpur API</h3>
 </div>
 
 ## 🚀 Features
@@ -30,14 +12,10 @@
 ## 📊 Progress Status
 
 ✅ **Core Integration**
+- [ ] Fabric 
 - [x] NeoForge ([3bb720446](https://github.com/neoforged/NeoForge/commit/3bb720446))
 - [x] Paper ([a90108f43c](https://github.com/PaperMC/Paper/commit/a90108f43c))
 - [x] Purpur ([5cd359666](https://github.com/PurpurMC/Purpur/commit/5cd359666))
-
-## 📚 Documentation
-
-- [English Documentation](https://mohistmc.com/youer/docs)
-- [中文文档](https://www.mohistmc.cn/docs/youer)
 
 ## ⚙️ Technical Stack
 
