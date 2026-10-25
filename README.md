@@ -7,7 +7,7 @@
       <img alt="GitHub Stars" src="https://img.shields.io/github/stars/MohistMC/Youer?logo=github">
     </a>
     <a href="https://neoforged.net/">
-      <img alt="NeoForge" src="https://img.shields.io/badge/NeoForge-26.3.0.95-FF8B00">
+      <img alt="NeoForge" src="https://img.shields.io/badge/NeoForge-26.3.0.99-FF8B00">
     </a>
     <a href="https://www.azul.com/downloads/?version=java-25-lts#zulu">
       <img alt="JDK" src="https://img.shields.io/badge/JDK-25.0.4.1+1-007396?logo=java&logoColor=white">
@@ -30,7 +30,7 @@
 ## 📊 Progress Status
 
 ✅ **Core Integration**
-- [x] NeoForge ([090aba227](https://github.com/neoforged/NeoForge/commit/090aba227))
+- [x] NeoForge ([3bb720446](https://github.com/neoforged/NeoForge/commit/3bb720446))
 - [x] Paper ([a90108f43c](https://github.com/PaperMC/Paper/commit/a90108f43c))
 - [x] Purpur ([5cd359666](https://github.com/PurpurMC/Purpur/commit/5cd359666))
 
