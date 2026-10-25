@@ -1,10 +1,10 @@
 <div align="center">
-  <h1 align="center">Youer 26.3</h1>
-  <h3 align="center">Minecraft NeoForge Hybrid server implementing the Paper/Purpur API</h3>
+  <h1 align="center">Roast 26.3</h1>
+  <h3 align="center">Minecraft Multi-Loader Hybrid server implementing the Paper/Purpur API</h3>
 
   <p align="center">
     <a href="https://github.com/MohistMC/Youer/stargazers">
-      <img alt="GitHub Stars" src="https://img.shields.io/github/stars/MohistMC/Youer?logo=github">
+      <img alt="GitHub Stars" src="https://img.shields.io/github/stars/alamien060512-alt/roastmc?logo=github">
     </a>
     <a href="https://neoforged.net/">
       <img alt="NeoForge" src="https://img.shields.io/badge/NeoForge-26.3.0.99-FF8B00">
