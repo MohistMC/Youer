@@ -28,26 +28,35 @@ import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 
 public class EntityEventDispatcher {
 
+    // Youer - guard against re-entrant setTarget from mods/plugins while bridging the target event
+    private static final ThreadLocal<Boolean> DISPATCHING = ThreadLocal.withInitial(() -> false);
+
     @SubscribeEvent(receiveCanceled = true)
     public void changeTargetEvent(LivingChangeTargetEvent event) {
         if (event.getTargetType() != LivingChangeTargetEvent.LivingTargetType.MOB_TARGET) return; // Youer - BEHAVIOR_TARGET is bridged inline in StartAttacking
-        EntityTargetEvent.TargetReason reason = event.getReason();
-        LivingEntity entityliving = event.getNewAboutToBeSetTarget();
+        if (DISPATCHING.get()) return; // Youer - skip re-entrant dispatch to avoid StackOverflowError
+        DISPATCHING.set(true);
+        try {
+            EntityTargetEvent.TargetReason reason = event.getReason();
+            LivingEntity entityliving = event.getNewAboutToBeSetTarget();
 
-        if (event.getEntity() instanceof Mob mob) {
-            if (event.isFireCBEvent()) {
-                if (reason == EntityTargetEvent.TargetReason.UNKNOWN && mob.getTarget() != null) {
-                    reason = mob.getTarget().isAlive() ? EntityTargetEvent.TargetReason.FORGOT_TARGET : EntityTargetEvent.TargetReason.TARGET_DIED;
-                }
-                CraftLivingEntity ctarget = entityliving == null ? null : (CraftLivingEntity) entityliving.getBukkitEntity();
-                EntityTargetLivingEntityEvent CBevent = new EntityTargetLivingEntityEvent(event.getEntity().getBukkitEntity(), ctarget, reason);
-                Bukkit.getPluginManager().callEvent(CBevent);
-                if (CBevent.isCancelled()) {
-                    event.setCanceled(true);
-                } else {
-                    event.setNewAboutToBeSetTarget(CBevent.getTarget() == null ? null : ((CraftLivingEntity) CBevent.getTarget()).getHandle());
+            if (event.getEntity() instanceof Mob mob) {
+                if (event.isFireCBEvent()) {
+                    if (reason == EntityTargetEvent.TargetReason.UNKNOWN && mob.getTarget() != null) {
+                        reason = mob.getTarget().isAlive() ? EntityTargetEvent.TargetReason.FORGOT_TARGET : EntityTargetEvent.TargetReason.TARGET_DIED;
+                    }
+                    CraftLivingEntity ctarget = entityliving == null ? null : (CraftLivingEntity) entityliving.getBukkitEntity();
+                    EntityTargetLivingEntityEvent CBevent = new EntityTargetLivingEntityEvent(event.getEntity().getBukkitEntity(), ctarget, reason);
+                    Bukkit.getPluginManager().callEvent(CBevent);
+                    if (CBevent.isCancelled()) {
+                        event.setCanceled(true);
+                    } else {
+                        event.setNewAboutToBeSetTarget(CBevent.getTarget() == null ? null : ((CraftLivingEntity) CBevent.getTarget()).getHandle());
+                    }
                 }
             }
+        } finally {
+            DISPATCHING.set(false);
         }
     }
 }
