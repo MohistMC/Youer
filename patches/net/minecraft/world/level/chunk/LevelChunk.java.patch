@@ -272,6 +272,22 @@
          }
  
          return blockentity;
+@@ -585,10 +_,13 @@
+         p_187959_.getFluidTicks().addContainer(this.chunkPos, this.fluidTicks);
+     }
+ 
+     public void unregisterTickContainerFromLevel(ServerLevel p_187980_) {
+-        p_187980_.getBlockTicks().removeContainer(this.chunkPos);
+-        p_187980_.getFluidTicks().removeContainer(this.chunkPos);
++        // Youer start - only unregister the containers owned by this chunk. A plugin may have reloaded this
++        // chunk from ChunkUnloadEvent, registering new containers at the same position.
++        p_187980_.getBlockTicks().removeContainer(this.chunkPos, this.blockTicks);
++        p_187980_.getFluidTicks().removeContainer(this.chunkPos, this.fluidTicks);
++        // Youer end
+     }
+ 
+     @Override
+     public ChunkStatus getPersistedStatus() {
 @@ -604,6 +_,7 @@
      }
  

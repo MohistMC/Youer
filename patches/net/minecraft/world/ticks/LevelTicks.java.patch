@@ -1,0 +1,22 @@
+--- a/net/minecraft/world/ticks/LevelTicks.java
++++ b/net/minecraft/world/ticks/LevelTicks.java
+@@ -64,8 +_,19 @@
+     public void removeContainer(ChunkPos p_193230_) {
+         long i = p_193230_.toLong();
+         LevelChunkTicks<T> levelchunkticks = this.allContainers.remove(i);
+         this.nextTickForContainer.remove(i);
+         if (levelchunkticks != null) {
+             levelchunkticks.setOnTickAdded(null);
+         }
+     }
++
++    // Youer start - a plugin may have reloaded the chunk, registering a new container at the same
++    // position while the old one is still being unloaded. Only remove the container we own.
++    public void removeContainer(ChunkPos p_193230_, LevelChunkTicks<T> p_193231_) {
++        if (this.allContainers.get(p_193230_.toLong()) == p_193231_) {
++            this.removeContainer(p_193230_);
++        } else {
++            p_193231_.setOnTickAdded(null);
++        }
++    }
++    // Youer end
