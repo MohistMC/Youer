@@ -1,15 +1,9 @@
 --- a/net/minecraft/world/ticks/LevelTicks.java
 +++ b/net/minecraft/world/ticks/LevelTicks.java
-@@ -64,8 +_,19 @@
-     public void removeContainer(ChunkPos p_193230_) {
-         long i = p_193230_.toLong();
-         LevelChunkTicks<T> levelchunkticks = this.allContainers.remove(i);
-         this.nextTickForContainer.remove(i);
-         if (levelchunkticks != null) {
-             levelchunkticks.setOnTickAdded(null);
+@@ -70,6 +_,17 @@
          }
      }
-+
+ 
 +    // Youer start - a plugin may have reloaded the chunk, registering a new container at the same
 +    // position while the old one is still being unloaded. Only remove the container we own.
 +    public void removeContainer(ChunkPos p_193230_, LevelChunkTicks<T> p_193231_) {
@@ -20,3 +14,7 @@
 +        }
 +    }
 +    // Youer end
++
+     @Override
+     public void schedule(ScheduledTick<T> p_193252_) {
+         long i = ChunkPos.asLong(p_193252_.pos());
