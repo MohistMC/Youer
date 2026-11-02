@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/state/properties/Property.java
 +++ b/net/minecraft/world/level/block/state/properties/Property.java
-@@ -10,29 +_,58 @@
+@@ -10,29 +_,86 @@
  import net.minecraft.world.level.block.state.StateHolder;
  import org.jspecify.annotations.Nullable;
  
@@ -29,6 +29,7 @@
 +    private static final java.util.concurrent.atomic.AtomicInteger ID_GENERATOR = new java.util.concurrent.atomic.AtomicInteger();
 +    private final int id;
 +    private T[] byId;
++    private volatile boolean byIdInitialised;
 +
 +    @Override
 +    public final int moonrise$getId() {
@@ -47,10 +48,37 @@
 +            throw new IllegalStateException();
 +        }
 +        this.byId = byId;
++        this.byIdInitialised = true;
 +    }
 +
 +    @Override
-+    public abstract int moonrise$getIdFor(final T value);
++    public final void moonrise$ensureById() {
++        if (this.byIdInitialised) {
++            return;
++        }
++        // properties without a specialised implementation (i.e. custom Property subclasses) build their table here,
++        // as subclass fields are not yet initialised when the Property constructor returns
++        synchronized (this) {
++            if (this.byIdInitialised) {
++                return;
++            }
++            final List<T> values = this.getPossibleValues();
++            final T[] byId = (T[])values.toArray(new Comparable[0]);
++            for (int i = 0; i < byId.length; ++i) {
++                final int id = this.moonrise$getIdFor(byId[i]);
++                if (id != i) {
++                    throw new IllegalStateException("Property " + this + " returned internal index " + id + " for value " + byId[i] + ", expected " + i);
++                }
++            }
++            this.moonrise$setById(byId);
++        }
++    }
++
++    @Override
++    public int moonrise$getIdFor(final T value) {
++        // fallback for properties without a specialised implementation (i.e. custom Property subclasses)
++        return this.getInternalIndex(value);
++    }
 +    // Paper end - optimise blockstate property access
 +
 +    protected Property(final String name, final Class<T> clazz) {

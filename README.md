@@ -32,7 +32,7 @@
 ✅ **Core Integration**
 - [x] NeoForge ([b45f8c9d0](https://github.com/neoforged/NeoForge/commit/b45f8c9d0))
 - [x] Paper ([a90108f43c](https://github.com/PaperMC/Paper/commit/a90108f43c))
-- [x] Purpur ([5cd359666](https://github.com/PurpurMC/Purpur/commit/5cd359666))
+- [x] Purpur ([5b4c7f048](https://github.com/PurpurMC/Purpur/commit/5b4c7f048))
 
 ## 📚 Documentation
 

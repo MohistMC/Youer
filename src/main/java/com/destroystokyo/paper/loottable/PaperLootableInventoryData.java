@@ -3,7 +3,7 @@ package com.destroystokyo.paper.loottable;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.papermc.paper.configuration.WorldConfiguration;
-import io.papermc.paper.configuration.type.DurationOrDisabled;
+import io.papermc.paper.configuration.type.time.DurationOrDisabled;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;

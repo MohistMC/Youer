@@ -16,7 +16,7 @@
  
  public abstract class AbstractThrownPotion extends ThrowableItemProjectile {
      public static final double SPLASH_RANGE = 4.0;
-@@ -40,7 +_,7 @@
+@@ -40,13 +_,11 @@
      }
  
      @Override
@@ -25,7 +25,14 @@
          return 0.05;
      }
  
-@@ -67,68 +_,116 @@
+-    @Override
+-    protected void onHitBlock(BlockHitResult hitResult) {
+-        super.onHitBlock(hitResult);
++    protected void extinguishFires(final BlockHitResult hitResult) { // Paper - move after PotionSplashEvent call to prevent putting out fires for cancelled events
+         if (!this.level().isClientSide()) {
+             ItemStack potionItemStack = this.getItem();
+             Direction hitDirection = hitResult.getDirection();
+@@ -67,68 +_,120 @@
      @Override
      protected void onHit(HitResult hitResult) {
          super.onHit(hitResult);
@@ -125,6 +132,10 @@
 +            this, hitResult, affected, rehydrate, extinguish
 +        );
 +        if (!event.isCancelled()) {
++            if (hitResult != null && hitResult.getType() == HitResult.Type.BLOCK) {
++                this.extinguishFires((BlockHitResult) hitResult);
++            }
++
 +            for (org.bukkit.entity.LivingEntity affectedEntity : event.getToDamage()) {
 +                ((org.bukkit.craftbukkit.entity.CraftLivingEntity) affectedEntity).getHandle().hurtServer(level, this.damageSources().indirectMagic(this, this.getOwner()), 1.0F);
 +            }

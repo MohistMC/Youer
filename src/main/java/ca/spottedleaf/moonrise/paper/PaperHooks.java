@@ -11,6 +11,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.server.level.ChunkHolder;
+import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.server.level.GenerationChunkHolder;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -100,6 +101,11 @@ public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHo
     }
 
     @Override
+    public void onFullChunkStatusChange(final LevelChunk chunk, final FullChunkStatus from, final FullChunkStatus to) {
+        // NeoForge fires ChunkEvent.Load / ChunkEvent.Unload from the chunk system hooks above
+    }
+
+    @Override
     public void chunkSyncSave(final ServerLevel world, final ChunkAccess chunk, final SerializableChunkData data) {
         NeoForge.EVENT_BUS.post(new ChunkDataEvent.Save(chunk, world, data));
     }
@@ -182,6 +188,11 @@ public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHo
     @Override
     public boolean configFixMC224294() {
         return true;
+    }
+
+    @Override
+    public boolean configFixMC119599(final ServerLevel world) {
+        return world.paperConfig().environment.fixMissingTreeSnow;
     }
 
     @Override

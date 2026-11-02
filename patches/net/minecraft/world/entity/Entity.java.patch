@@ -515,12 +515,13 @@
      }
  
      protected abstract void defineSynchedData(SynchedEntityData.Builder entityData);
-@@ -425,6 +_,48 @@
+@@ -425,6 +_,49 @@
          return this.entityData;
      }
  
 +    // CraftBukkit start
 +    public void refreshEntityData(ServerPlayer to) {
++        if (this.isRemoved()) return; // Paper - Don't send entity data for removed entities
 +        List<SynchedEntityData.DataValue<?>> values = this.entityData.packAll(); // Paper - Update EVERYTHING not just not default
 +
 +        if (to.getBukkitEntity().canSee(this.getBukkitEntity())) { // Paper
@@ -1059,7 +1060,7 @@
 +
 +        final double stepHeight;
 +
-+        if ((!collidedDownwards && !this.onGround) || (!collidedX && !collidedZ) || (stepHeight = (double)this.maxUpStep()) <= 0.0) {
++        if ((!collidedDownwards && !this.onGround()) || (!collidedX && !collidedZ) || (stepHeight = (double)this.maxUpStep()) <= 0.0) {
 +            return collided;
 +        }
 +
@@ -1176,6 +1177,27 @@
          return 0.98F;
      }
  
+@@ -1582,7 +_,11 @@
+ 
+         if (onGround) {
+             if (this.fallDistance > 0.0) {
+-                onState.getBlock().fallOn(this.level(), onState, pos, this, this.fallDistance);
++                // Paper start - Add EntityLandEvent
++                double distance = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityLandEvent(this.level(), pos, this, this.fallDistance);
++                if (distance > 0) {
++                    onState.getBlock().fallOn(this.level(), onState, pos, this, distance);
++                // Paper end - Add EntityLandEvent
+                 this.level()
+                     .gameEvent(
+                         GameEvent.HIT_GROUND,
+@@ -1591,6 +_,7 @@
+                             this, this.mainSupportingBlockPos.<BlockState>map(blockPos -> this.level().getBlockState(blockPos)).orElse(onState)
+                         )
+                     );
++                } // Paper - Add EntityLandEvent
+             }
+ 
+             this.resetFallDistance();
 @@ -1598,7 +_,7 @@
      }
  

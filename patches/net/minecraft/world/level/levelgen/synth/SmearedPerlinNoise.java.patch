@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/levelgen/synth/SmearedPerlinNoise.java
 +++ b/net/minecraft/world/level/levelgen/synth/SmearedPerlinNoise.java
-@@ -1,11 +_,16 @@
+@@ -1,11 +_,17 @@
  package net.minecraft.world.level.levelgen.synth;
  
 +import ca.spottedleaf.moonrise.patches.chunk_gen.noise.NoiseGradients;
@@ -11,13 +11,14 @@
  import net.minecraft.world.level.levelgen.densityfunction.DensityVolume;
  
 +import static ca.spottedleaf.moonrise.patches.chunk_gen.noise.NoiseGradients.DEBUG_NOISE;
++import static ca.spottedleaf.moonrise.patches.chunk_gen.noise.NoiseGradients.USE_FMA;
 +import static ca.spottedleaf.moonrise.patches.chunk_gen.noise.NoiseGradients.PERM_MASK;
 +import static ca.spottedleaf.moonrise.patches.chunk_gen.noise.NoiseGradients.PERM_SHIFT;
 +
  @Deprecated
  public class SmearedPerlinNoise extends PerlinNoise {
      private static final float SHIFT_UP_EPSILON = 1.0E-7F;
-@@ -51,8 +_,175 @@
+@@ -51,8 +_,189 @@
          return Mth.floor(fudgeLimit / this.fudgeYScale + 1.0E-7F) * this.fudgeYScale;
      }
  
@@ -67,7 +68,7 @@
 +        for (int x = 0; x < sX; ++x, xv += xi) {
 +            final double val = wrap(xv * xzScale) + this.offsetX;
 +            final double floorD = Math.floor(val);
-+            final int floor = (int)floorD;
++            final int floor = (int)(long)floorD;
 +            final float relative = (float)(val - floorD);
 +            final float alpha = Mth.smoothstep(relative);
 +
@@ -82,7 +83,7 @@
 +            final double original = yv * yScale;
 +            final double val = wrap(original) + this.offsetY;
 +            final double floorD = Math.floor(val);
-+            final int floor = (int)floorD;
++            final int floor = (int)(long)floorD;
 +            final double relative = val - floorD;
 +            final float fudgedRelative = (float)(relative - this.computeFudgeY(original, relative));
 +            final float alpha = Mth.smoothstep((float)relative);
@@ -97,7 +98,7 @@
 +        for (int z = 0; z < sZ; ++z, zv += zi) {
 +            final double val = wrap(zv * xzScale) + this.offsetZ;
 +            final double floorD = Math.floor(val);
-+            final int floor = (int)floorD;
++            final int floor = (int)(long)floorD;
 +            final float relative = (float)(val - floorD);
 +            final float alpha = Mth.smoothstep(relative);
 +
@@ -177,7 +178,21 @@
 +                        g111y = NoiseGradients.gradY(g111);
 +                    }
 +
-+                    buffer.values[index++] += (amplitude * Mth.lerp3(alphaX, alphaY, alphaZ, d000xz + g000y * relativeY, d100xz + g100y * relativeY, d010xz + g010y * (relativeY - 1.0F), d110xz + g110y * (relativeY - 1.0F), d001xz + g001y * relativeY, d101xz + g101y * relativeY, d011xz + g011y * (relativeY - 1.0F), d111xz + g111y * (relativeY - 1.0F)));
++                    if (USE_FMA) {
++                        buffer.values[index++] += amplitude * Mth.lerp3(
++                            alphaX, alphaY, alphaZ,
++                            Math.fma(g000y, relativeY, d000xz), Math.fma(g100y, relativeY, d100xz), Math.fma(g010y, (relativeY - 1.0F), d010xz),
++                            Math.fma(g110y, (relativeY - 1.0F), d110xz), Math.fma(g001y, relativeY, d001xz), Math.fma(g101y, relativeY, d101xz),
++                            Math.fma(g011y, (relativeY - 1.0F), d011xz), Math.fma(g111y, (relativeY - 1.0F), d111xz)
++                        );
++                    } else {
++                        buffer.values[index++] += amplitude * Mth.lerp3(
++                            alphaX, alphaY, alphaZ,
++                            d000xz + g000y * relativeY, d100xz + g100y * relativeY, d010xz + g010y * (relativeY - 1.0F),
++                            d110xz + g110y * (relativeY - 1.0F), d001xz + g001y * relativeY, d101xz + g101y * relativeY,
++                            d011xz + g011y * (relativeY - 1.0F), d111xz + g111y * (relativeY - 1.0F)
++                        );
++                    }
 +                }
 +            }
 +        }
