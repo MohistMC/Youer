@@ -472,19 +472,19 @@
      }
  
      public boolean isColliding(BlockPos pos, BlockState state) {
-@@ -341,6 +_,12 @@
-         Team team = this.getTeam();
+@@ -342,6 +_,12 @@
          return team != null && team.getColor().isPresent() ? team.getColor().get().rgb() : 16777215;
      }
-+
+ 
 +    // CraftBukkit start - SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
 +    public int getDefaultMaxAirSupply() {
 +        return Entity.TOTAL_AIR_SUPPLY;
 +    }
 +    // CraftBukkit end
- 
++
      public boolean isSpectator() {
          return false;
+     }
 @@ -403,7 +_,7 @@
      }
  
@@ -515,11 +515,10 @@
      }
  
      protected abstract void defineSynchedData(SynchedEntityData.Builder entityData);
-@@ -424,6 +_,48 @@
-     public SynchedEntityData getEntityData() {
+@@ -425,6 +_,48 @@
          return this.entityData;
      }
-+
+ 
 +    // CraftBukkit start
 +    public void refreshEntityData(ServerPlayer to) {
 +        List<SynchedEntityData.DataValue<?>> values = this.entityData.packAll(); // Paper - Update EVERYTHING not just not default
@@ -561,9 +560,10 @@
 +        to.connection.send(new net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket(this.id, values));
 +    }
 +    // Paper end
- 
++
      @Override
      public boolean equals(Object obj) {
+         return obj instanceof Entity entity ? entity.getId() == this.getId() : false;
 @@ -436,7 +_,13 @@
      }
  
@@ -882,8 +882,9 @@
              } else {
                  if (this.canSimulateMovement() && (movedVertically && this.verticalCollision || this.horizontalCollision)) {
 -                    this.restituteMovementAfterCollisions(effectState, xCollision, zCollision, movement);
+-                }
 +                    this.restituteMovementAfterCollisions(effectPos, effectState, xCollision, zCollision, movement); // NeoForge: Pass down the bounce position to our extensions
-                 }
++                }
 +
 +                // CraftBukkit start
 +                if (this.horizontalCollision && this.getBukkitEntity() instanceof org.bukkit.entity.Vehicle) {
@@ -913,13 +914,12 @@
                  this.setDeltaMovement(this.getDeltaMovement().multiply(blockSpeedFactor, 1.0, blockSpeedFactor));
                  profiler.pop();
              }
--        }
 +        }        // Paper start - detailed watchdog information
 +        } finally {
 +            synchronized (this.posLock) { // Paper
 +                this.moveVector = null;
 +            } // Paper
-+        }
+         }
 +        // Paper end - detailed watchdog information
      }
  
@@ -1089,11 +1089,10 @@
      }
  
      private static float[] collectCandidateStepUpHeights(AABB boundingBox, List<VoxelShape> colliders, float maxStepHeight, float stepHeightToSkip) {
-@@ -1303,6 +_,20 @@
-     public SoundEvent getSwimHighSpeedSplashSound() {
+@@ -1304,6 +_,20 @@
          return SoundEvents.GENERIC_SPLASH;
      }
-+
+ 
 +    // CraftBukkit start - Add delegate methods
 +    public SoundEvent getSwimSound0() {
 +        return getSwimSound();
@@ -1107,9 +1106,10 @@
 +        return getSwimHighSpeedSplashSound();
 +    }
 +    // CraftBukkit end
- 
++
      private void checkInsideBlocks(List<Entity.Movement> movements, InsideBlockEffectApplier.StepBasedCollector effectCollector) {
          if (this.isAffectedByBlocks()) {
+             LongSet visitedBlocks = this.visitedBlocks;
 @@ -1372,7 +_,7 @@
                          if (insideBlock) {
                              try {
@@ -1136,17 +1136,15 @@
 -        SoundType primaryStepSoundType = primaryStepSound.getSoundType();
 -        this.playSound(primaryStepSoundType.getStepSound(), primaryStepSoundType.getVolume() * 0.15F, primaryStepSoundType.getPitch());
 -        this.playMuffledStepSound(secondaryStepSound);
--    }
--
--    protected void playMuffledStepSound(BlockState blockState) {
--        SoundType secondaryStepSoundType = blockState.getSoundType();
--        this.playSound(secondaryStepSoundType.getStepSound(), secondaryStepSoundType.getVolume() * 0.05F, secondaryStepSoundType.getPitch() * 0.8F);
 +    protected void playCombinationStepSounds(BlockState primaryStepSound, BlockState secondaryStepSound, BlockPos primaryPos, BlockPos secondaryPos) {
 +        // Neo: Allow the blockstate full control over step sounds
 +        primaryStepSound.playStepSound(this.level, primaryPos, this, .15F, 1F);
 +        this.playMuffledStepSound(secondaryStepSound, secondaryPos);
-+    }
-+
+     }
+ 
+-    protected void playMuffledStepSound(BlockState blockState) {
+-        SoundType secondaryStepSoundType = blockState.getSoundType();
+-        this.playSound(secondaryStepSoundType.getStepSound(), secondaryStepSoundType.getVolume() * 0.05F, secondaryStepSoundType.getPitch() * 0.8F);
 +    protected void playMuffledStepSound(BlockState blockState, BlockPos pos) {
 +        // Neo: Allow the blockstate full control over step sounds
 +        blockState.playStepSound(this.level, pos, this, .05F, .8F);
@@ -1255,13 +1253,10 @@
  
              this.level()
 -                .addParticle(new BlockParticleOption(ParticleTypes.BLOCK, blockState), x, this.getY() + 0.1, z, movement.x * -4.0, 1.5, movement.z * -4.0);
--        }
--    }
--
 +                .addParticle(new BlockParticleOption(ParticleTypes.BLOCK, blockState, pos), x, this.getY() + 0.1, z, movement.x * -4.0, 1.5, movement.z * -4.0);
-+        }
-+    }
-+
+         }
+     }
+ 
 +    /// @deprecated Neo: use [#isEyeInFluid(net.neoforged.neoforge.fluids.FluidType)] instead
 +    @Deprecated
      public boolean isEyeInFluid(TagKey<Fluid> type) {
@@ -1392,7 +1387,6 @@
 -                output.store("Pos", Vec3.CODEC, new Vec3(this.vehicle.getX(), this.getY(), this.vehicle.getZ()));
 -            } else {
 -                output.store("Pos", Vec3.CODEC, this.position());
--            }
 +            // CraftBukkit start - selectively save position
 +            if (includeAll) {
 +                if (this.vehicle != null) {
@@ -1400,7 +1394,7 @@
 +                } else {
 +                    output.store("Pos", Vec3.CODEC, this.position());
 +                }
-+            }
+             }
 +            // CraftBukkit end
  
              output.store("Motion", Vec3.CODEC, this.getDeltaMovement());
@@ -1868,6 +1862,7 @@
                      if (leashable.canHaveALeashAttachedTo(player)) {
                          if (leashable.isLeashed()) {
 -                            leashable.dropLeash();
+-                        }
 +                            // Paper start - EntityUnleashEvent
 +                            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerUnleashEntityEvent(
 +                                leashable, player, hand, true, true
@@ -1876,7 +1871,7 @@
 +                            }
 +                            // Paper end - EntityUnleashEvent
 +                            // leashable.dropLeash(); // Paper - EntityUnleashEvent - moved into handlePlayerUnleashEntityEvent
-                         }
++                        }
 +
 +                        // Paper start - EntityLeashEvent
 +                        if (org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerLeashEntityEvent(this, player, player, hand).isCancelled()) {
@@ -2286,19 +2281,19 @@
      }
  
      public void onAboveBubbleColumn(boolean dragDown, BlockPos pos) {
-@@ -2977,6 +_,12 @@
- 
+@@ -2978,6 +_,12 @@
          entity.resetFallDistance();
      }
-+
+ 
 +    // Paper start
 +    public boolean killedEntityPreEvent(final ServerLevel level, final LivingEntity entity, final DamageSource source) {
 +        return true;
 +    }
 +    // Paper end
- 
++
      public boolean killedEntity(ServerLevel level, LivingEntity entity, DamageSource source) {
          return true;
+     }
 @@ -3049,7 +_,7 @@
      }
  
@@ -2667,20 +2662,23 @@
      public boolean touchingUnloadedChunk() {
          AABB box = this.getBoundingBox().inflate(1.0);
          int x0 = Mth.floor(box.minX);
-@@ -3786,7 +_,13 @@
+@@ -3786,10 +_,16 @@
          return !this.level().hasChunksAt(x0, z0, x1, z1);
      }
  
 +    /// @deprecated Neo: use [#getFluidHeight(net.neoforged.neoforge.fluids.FluidType)] instead
 +    @Deprecated
      public double getFluidHeight(TagKey<Fluid> type) {
-+        return this.fluidInteraction.getFluidHeight(type);
-+    }
-+
-+    public double getFluidHeight(net.neoforged.neoforge.fluids.FluidType type) {
          return this.fluidInteraction.getFluidHeight(type);
      }
  
++    public double getFluidHeight(net.neoforged.neoforge.fluids.FluidType type) {
++        return this.fluidInteraction.getFluidHeight(type);
++    }
++
+     public double getFluidJumpThreshold() {
+         return this.getEyeHeight() < 0.4 ? 0.0 : 0.4;
+     }
 @@ -3846,7 +_,9 @@
  
      public void setDeltaMovement(Vec3 deltaMovement) {
@@ -2859,12 +2857,10 @@
      }
  
      @Override
-@@ -4094,6 +_,93 @@
- 
-     public boolean mayInteract(ServerLevel level, BlockPos pos) {
+@@ -4096,6 +_,93 @@
          return true;
-+    }
-+
+     }
+ 
 +    /**
 +     * Neo: Short-lived holder of dropped item entities. Used mainly for Neo hooks and event logic.
 +     * <p>
@@ -2950,9 +2946,11 @@
 +    @Nullable
 +    public final <T> T getCapability(net.neoforged.neoforge.capabilities.EntityCapability<T, @org.jspecify.annotations.Nullable Void> capability) {
 +        return capability.getCapability(this, null);
-     }
- 
++    }
++
      public boolean isFlyingVehicle() {
+         return false;
+     }
 @@ -4221,6 +_,11 @@
          return this.invulnerableTime;
      }

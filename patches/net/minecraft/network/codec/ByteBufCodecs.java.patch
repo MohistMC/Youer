@@ -81,6 +81,16 @@
      static <B extends ByteBuf, V> StreamCodec<B, Optional<V>> optional(StreamCodec<? super B, V> original) {
          return new StreamCodec<B, Optional<V>>() {
              public Optional<V> decode(B input) {
+@@ -613,7 +_,8 @@
+     }
+ 
+     static <V> StreamCodec.CodecOperation<RegistryFriendlyByteBuf, V, V> registryFriendlyLengthPrefixed(int maxSize) {
+-        return lengthPrefixed(maxSize, (parent, child) -> new RegistryFriendlyByteBuf(child, parent.registryAccess()));
++        // Neo: Forward parent's connection type to the newly-created buffer. Failing to do so results in packets getting filtered. See NeoForge#3711
++        return lengthPrefixed(maxSize, (parent, child) -> new RegistryFriendlyByteBuf(child, parent.registryAccess(), parent.getConnectionType()));
+     }
+ 
+     static <T> StreamCodec<ByteBuf, T> idMapper(IntFunction<T> byId, ToIntFunction<T> toId) {
 @@ -639,7 +_,7 @@
      ) {
          return new StreamCodec<RegistryFriendlyByteBuf, R>() {
