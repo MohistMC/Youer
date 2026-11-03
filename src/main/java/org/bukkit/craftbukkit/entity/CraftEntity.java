@@ -1091,18 +1091,46 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         location.checkFinite();
         Location locationClone = location.clone(); // clone so we don't need to worry about mutations after this call.
 
+        net.minecraft.server.level.ServerLevel world = ((CraftWorld)locationClone.getWorld()).getHandle();
         java.util.concurrent.CompletableFuture<Boolean> ret = new java.util.concurrent.CompletableFuture<>();
-        net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> {
-            try {
-                ret.complete(CraftEntity.this.teleport(locationClone, cause, teleportFlags) ? Boolean.TRUE : Boolean.FALSE);
-            } catch (Throwable throwable) {
-                if (throwable instanceof ThreadDeath) {
-                    throw (ThreadDeath)throwable;
-                }
-                net.minecraft.server.MinecraftServer.LOGGER.error("Failed to teleport entity " + CraftEntity.this, throwable);
-                ret.completeExceptionally(throwable);
+
+        // Youer start - Paper loads the destination chunks here with moonrise's loadChunksForMoveAsync,
+        // which this fork's vanilla chunk system does not have; request them the same way CraftWorld does.
+        net.minecraft.world.phys.AABB boundingBox = getHandle().getBoundingBoxAt(locationClone.getX(), locationClone.getY(), locationClone.getZ());
+        int minChunkX = (net.minecraft.util.Mth.floor(boundingBox.minX - 1.0E-7D) - 3) >> 4;
+        int maxChunkX = (net.minecraft.util.Mth.floor(boundingBox.maxX + 1.0E-7D) + 3) >> 4;
+        int minChunkZ = (net.minecraft.util.Mth.floor(boundingBox.minZ - 1.0E-7D) - 3) >> 4;
+        int maxChunkZ = (net.minecraft.util.Mth.floor(boundingBox.maxZ + 1.0E-7D) + 3) >> 4;
+
+        java.util.List<java.util.concurrent.CompletableFuture<Void>> loading = new java.util.ArrayList<>();
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; ++chunkX) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; ++chunkZ) {
+                loading.add(io.papermc.paper.util.MCUtil.scheduleChunkLoad(world, chunkX, chunkZ, (chunk) -> {
+                    if (chunk != null) {
+                        world.getChunkSource().addRegionTicket(net.minecraft.server.level.TicketType.POST_TELEPORT, chunk.getPos(), 0, CraftEntity.this.getEntityId());
+                    }
+                }));
             }
-        });
+        }
+
+        java.util.concurrent.CompletableFuture.allOf(loading.toArray(new java.util.concurrent.CompletableFuture[0]))
+            .whenCompleteAsync((ignored, throwable) -> {
+                if (throwable != null) {
+                    ret.completeExceptionally(throwable);
+                    return;
+                }
+                try {
+                    ret.complete(CraftEntity.this.teleport(locationClone, cause, teleportFlags) ? Boolean.TRUE : Boolean.FALSE);
+                } catch (Throwable thr) {
+                    if (thr instanceof ThreadDeath) {
+                        throw (ThreadDeath)thr;
+                    }
+                    net.minecraft.server.MinecraftServer.LOGGER.error("Failed to teleport entity " + CraftEntity.this, thr);
+                    ret.completeExceptionally(thr);
+                }
+            }, io.papermc.paper.util.MCUtil.MAIN_EXECUTOR);
+        // Youer end
+
         return ret;
     }
     // Paper end - more teleport API / async chunk API

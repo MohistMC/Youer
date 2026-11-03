@@ -2404,21 +2404,51 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     public java.util.concurrent.CompletableFuture<Chunk> getChunkAtAsync(int x, int z, boolean gen, boolean urgent) {
         warnUnsafeChunk("getting a faraway chunk async", x, z); // Paper
+        net.minecraft.server.level.ServerChunkCache chunkSource = this.world.getChunkSource();
         if (Bukkit.isPrimaryThread()) {
-            net.minecraft.world.level.chunk.LevelChunk immediate = this.world.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
+            net.minecraft.world.level.chunk.LevelChunk immediate = chunkSource.getChunkAtIfLoadedImmediately(x, z);
             if (immediate != null) {
                 return java.util.concurrent.CompletableFuture.completedFuture(new CraftChunk(immediate));
             }
         }
 
         java.util.concurrent.CompletableFuture<Chunk> ret = new java.util.concurrent.CompletableFuture<>();
-        net.minecraft.server.MinecraftServer.getServer().scheduleOnMain(() -> {
-            net.minecraft.world.level.chunk.LevelChunk chunk = this.world.getChunkSource().getChunkAtIfLoadedImmediately(x, z);
-            if (chunk != null) this.addTicket(x, z); // Paper
-            ret.complete(chunk == null ? null : new CraftChunk(chunk));
-        });
+        net.minecraft.server.MinecraftServer server = net.minecraft.server.MinecraftServer.getServer();
+        if (gen) {
+            server.scheduleOnMain(() -> this.loadChunkAtAsync(x, z, ret));
+        } else {
+            // The vanilla pipeline only knows "load or generate", so ask the region files first and
+            // skip the request for a chunk that was never written, which would create it instead.
+            net.minecraft.nbt.visitors.CollectFields fields = new net.minecraft.nbt.visitors.CollectFields(
+                    new net.minecraft.nbt.visitors.FieldSelector(net.minecraft.nbt.StringTag.TYPE, "Status"));
+            chunkSource.chunkMap.chunkScanner().scanChunk(new ChunkPos(x, z), fields)
+                    .whenComplete((ignored, scanError) -> server.scheduleOnMain(() -> {
+                        boolean saved = scanError == null
+                                && fields.getResult() instanceof CompoundTag tag
+                                && tag.contains("Status", Tag.TAG_STRING);
+                        // A chunk that is loaded in memory but not saved yet is still a valid result.
+                        if (saved || chunkSource.getChunkAtIfLoadedImmediately(x, z) != null) {
+                            this.loadChunkAtAsync(x, z, ret);
+                        } else {
+                            ret.complete(null);
+                        }
+                    }));
+        }
         return ret;
     }
+
+    // Youer start - request a chunk through the vanilla chunk system instead of only peeking at loaded ones
+    private void loadChunkAtAsync(int x, int z, java.util.concurrent.CompletableFuture<Chunk> ret) {
+        io.papermc.paper.util.MCUtil.scheduleChunkLoad(this.world, x, z, chunk -> {
+            if (chunk instanceof net.minecraft.world.level.chunk.LevelChunk levelChunk) {
+                this.addTicket(x, z); // Paper keeps the chunk loaded after a successful async request
+                ret.complete(new CraftChunk(levelChunk));
+            } else {
+                ret.complete(null);
+            }
+        });
+    }
+    // Youer end
 
     @Override
     public void setViewDistance(final int viewDistance) {

@@ -185,4 +185,50 @@ public final class MCUtil {
     public static void scheduleAsyncTask(Runnable run) {
         asyncExecutor.execute(run);
     }
+
+    // Youer start - async chunk requests for the vanilla chunk system
+    private static final java.util.concurrent.atomic.AtomicLong FUTURE_AWAIT_ID = new java.util.concurrent.atomic.AtomicLong();
+
+    public static CompletableFuture<Void> scheduleChunkLoad(final net.minecraft.server.level.ServerLevel level,
+                                                            final int chunkX, final int chunkZ,
+                                                            final Consumer<net.minecraft.world.level.chunk.ChunkAccess> onLoad) {
+        final CompletableFuture<Void> ret = new CompletableFuture<>();
+        final long holderId = FUTURE_AWAIT_ID.incrementAndGet();
+        final ChunkPos pos = new ChunkPos(chunkX, chunkZ);
+
+        MAIN_EXECUTOR.execute(() -> {
+            final net.minecraft.server.level.ServerChunkCache chunkSource = level.getChunkSource();
+            final net.minecraft.server.level.ChunkMap chunkMap = chunkSource.chunkMap;
+            // distance 0 is ticket level 33, the lowest level that allows the FULL status. FUTURE_AWAIT
+            // never times out, unlike the ticket the vanilla request path would add.
+            chunkSource.addRegionTicket(net.minecraft.server.level.TicketType.FUTURE_AWAIT, pos, 0, holderId);
+            chunkSource.pollTask(); // flush the ticket, without it there is no chunk holder to wait on
+
+            final net.minecraft.server.level.ChunkHolder holder = chunkMap.getVisibleChunkIfPresent(pos.toLong());
+            if (holder == null) {
+                try {
+                    onLoad.accept(null);
+                } finally {
+                    chunkSource.removeRegionTicket(net.minecraft.server.level.TicketType.FUTURE_AWAIT, pos, 0, holderId);
+                    ret.complete(null);
+                }
+                return;
+            }
+
+            holder.scheduleChunkGenerationTask(net.minecraft.world.level.chunk.status.ChunkStatus.FULL, chunkMap)
+                .whenComplete((result, throwable) -> MAIN_EXECUTOR.execute(() -> {
+                    net.minecraft.world.level.chunk.ChunkAccess chunk = throwable == null && result.isSuccess()
+                            ? result.orElse(null) : null;
+                    try {
+                        onLoad.accept(chunk);
+                    } finally {
+                        chunkSource.removeRegionTicket(net.minecraft.server.level.TicketType.FUTURE_AWAIT, pos, 0, holderId);
+                        ret.complete(null);
+                    }
+                }));
+        });
+
+        return ret;
+    }
+    // Youer end
 }
