@@ -189,46 +189,71 @@ public final class MCUtil {
     // Youer start - async chunk requests for the vanilla chunk system
     private static final java.util.concurrent.atomic.AtomicLong FUTURE_AWAIT_ID = new java.util.concurrent.atomic.AtomicLong();
 
-    public static CompletableFuture<Void> scheduleChunkLoad(final net.minecraft.server.level.ServerLevel level,
-                                                            final int chunkX, final int chunkZ,
+    /**
+     * Requests a batch of chunks through the vanilla ticket pipeline. The distance manager is flushed at most
+     * once per call: ServerChunkCache#pollTask runs the whole per-tick chunk system update
+     * (runDistanceManagerUpdates), so flushing per chunk multiplies unrelated load and generate work into this
+     * one API call.
+     */
+    public static CompletableFuture<Void> scheduleChunkLoads(final net.minecraft.server.level.ServerLevel level,
+                                                            final List<ChunkPos> positions,
                                                             final Consumer<net.minecraft.world.level.chunk.ChunkAccess> onLoad) {
+        if (positions.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
         final CompletableFuture<Void> ret = new CompletableFuture<>();
-        final long holderId = FUTURE_AWAIT_ID.incrementAndGet();
-        final ChunkPos pos = new ChunkPos(chunkX, chunkZ);
+        final int size = positions.size();
+        final java.util.concurrent.atomic.AtomicInteger pending = new java.util.concurrent.atomic.AtomicInteger(size);
 
         MAIN_EXECUTOR.execute(() -> {
             final net.minecraft.server.level.ServerChunkCache chunkSource = level.getChunkSource();
             final net.minecraft.server.level.ChunkMap chunkMap = chunkSource.chunkMap;
             // distance 0 is ticket level 33, the lowest level that allows the FULL status. FUTURE_AWAIT
             // never times out, unlike the ticket the vanilla request path would add.
-            chunkSource.addRegionTicket(net.minecraft.server.level.TicketType.FUTURE_AWAIT, pos, 0, holderId);
-            chunkSource.pollTask(); // flush the ticket, without it there is no chunk holder to wait on
-
-            final net.minecraft.server.level.ChunkHolder holder = chunkMap.getVisibleChunkIfPresent(pos.toLong());
-            if (holder == null) {
-                try {
-                    onLoad.accept(null);
-                } finally {
-                    chunkSource.removeRegionTicket(net.minecraft.server.level.TicketType.FUTURE_AWAIT, pos, 0, holderId);
-                    ret.complete(null);
-                }
-                return;
+            final long[] holderIds = new long[size];
+            for (int index = 0; index < size; ++index) {
+                holderIds[index] = FUTURE_AWAIT_ID.incrementAndGet();
+                chunkSource.addRegionTicket(net.minecraft.server.level.TicketType.FUTURE_AWAIT, positions.get(index), 0, holderIds[index]);
             }
 
-            holder.scheduleChunkGenerationTask(net.minecraft.world.level.chunk.status.ChunkStatus.FULL, chunkMap)
-                .whenComplete((result, throwable) -> MAIN_EXECUTOR.execute(() -> {
-                    net.minecraft.world.level.chunk.ChunkAccess chunk = throwable == null && result.isSuccess()
-                            ? result.orElse(null) : null;
-                    try {
-                        onLoad.accept(chunk);
-                    } finally {
-                        chunkSource.removeRegionTicket(net.minecraft.server.level.TicketType.FUTURE_AWAIT, pos, 0, holderId);
-                        ret.complete(null);
-                    }
-                }));
+            boolean flushed = false;
+            for (int index = 0; index < size; ++index) {
+                final ChunkPos pos = positions.get(index);
+                final long holderId = holderIds[index];
+                net.minecraft.server.level.ChunkHolder holder = chunkMap.getVisibleChunkIfPresent(pos.toLong());
+                if (holder == null && !flushed) {
+                    chunkSource.pollTask(); // without it there is no chunk holder to wait on
+                    flushed = true;
+                    holder = chunkMap.getVisibleChunkIfPresent(pos.toLong());
+                }
+                if (holder == null) {
+                    finishChunkLoad(chunkSource, pos, holderId, null, onLoad, pending, ret);
+                    continue;
+                }
+                holder.scheduleChunkGenerationTask(net.minecraft.world.level.chunk.status.ChunkStatus.FULL, chunkMap)
+                    .whenComplete((result, throwable) -> MAIN_EXECUTOR.execute(() -> {
+                        net.minecraft.world.level.chunk.ChunkAccess chunk = throwable == null && result.isSuccess()
+                                ? result.orElse(null) : null;
+                        finishChunkLoad(chunkSource, pos, holderId, chunk, onLoad, pending, ret);
+                    }));
+            }
         });
 
         return ret;
+    }
+
+    private static void finishChunkLoad(final net.minecraft.server.level.ServerChunkCache chunkSource, final ChunkPos pos,
+                                        final long holderId, final net.minecraft.world.level.chunk.ChunkAccess chunk,
+                                        final Consumer<net.minecraft.world.level.chunk.ChunkAccess> onLoad,
+                                        final java.util.concurrent.atomic.AtomicInteger pending, final CompletableFuture<Void> ret) {
+        try {
+            onLoad.accept(chunk);
+        } finally {
+            chunkSource.removeRegionTicket(net.minecraft.server.level.TicketType.FUTURE_AWAIT, pos, 0, holderId);
+            if (pending.decrementAndGet() == 0) {
+                ret.complete(null);
+            }
+        }
     }
     // Youer end
 }

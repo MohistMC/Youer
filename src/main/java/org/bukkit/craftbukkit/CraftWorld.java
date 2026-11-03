@@ -2439,7 +2439,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     // Youer start - request a chunk through the vanilla chunk system instead of only peeking at loaded ones
     private void loadChunkAtAsync(int x, int z, java.util.concurrent.CompletableFuture<Chunk> ret) {
-        io.papermc.paper.util.MCUtil.scheduleChunkLoad(this.world, x, z, chunk -> {
+        io.papermc.paper.util.MCUtil.scheduleChunkLoads(this.world, java.util.List.of(new ChunkPos(x, z)), chunk -> {
             if (chunk instanceof net.minecraft.world.level.chunk.LevelChunk levelChunk) {
                 this.addTicket(x, z); // Paper keeps the chunk loaded after a successful async request
                 ret.complete(new CraftChunk(levelChunk));

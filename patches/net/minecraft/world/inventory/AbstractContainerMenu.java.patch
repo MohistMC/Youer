@@ -127,10 +127,16 @@
  
      protected AbstractContainerMenu(@Nullable MenuType<?> p_38851_, int p_38852_) {
          this.menuType = p_38851_;
-@@ -150,6 +_,15 @@
-         }
-     }
+@@ -147,8 +_,18 @@
  
+         if (this.synchronizer != null) {
+             this.synchronizer.sendInitialData(this, this.remoteSlots, this.remoteCarried, this.remoteDataSlots.toIntArray());
+-        }
+-    }
++            this.synchronizer.sendOffHandSlotChange(); // Paper - Sync offhand slot in menus; the offhand slot is not part of a menu's slots but can be changed by swapping from a menu slot
++        }
++    }
++
 +    // CraftBukkit start
 +    public void broadcastCarriedItem() {
 +        this.remoteCarried = this.getCarried().copy();
@@ -139,10 +145,9 @@
 +        }
 +    }
 +    // CraftBukkit end
-+
+ 
      public void removeSlotListener(ContainerListener p_38944_) {
          this.containerListeners.remove(p_38944_);
-     }
 @@ -214,7 +_,7 @@
              this.lastSlots.set(p_150408_, itemstack1);
  
@@ -161,7 +166,7 @@
 +            boolean flag;
 +            if (this.synchronizer != null && this.synchronizer.player() != null && this.synchronizer.player().getBukkitEntity().simplifyContainerDesyncCheck()) {
 +                // Only check the item type and count
-+                flag =  (p_150437_ == p_150437_ || (p_150437_.getCount() == p_150437_.getCount() && ItemStack.isSameItem(p_150437_, p_150437_)));
++                flag =  (itemstack == p_150437_ || (p_150437_.getCount() == itemstack.getCount() && ItemStack.isSameItem(p_150437_, itemstack)));
 +            } else {
 +                flag = ItemStack.matches(itemstack, p_150437_);
 +            }

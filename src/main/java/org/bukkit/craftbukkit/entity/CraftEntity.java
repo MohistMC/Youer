@@ -1102,33 +1102,32 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         int minChunkZ = (net.minecraft.util.Mth.floor(boundingBox.minZ - 1.0E-7D) - 3) >> 4;
         int maxChunkZ = (net.minecraft.util.Mth.floor(boundingBox.maxZ + 1.0E-7D) + 3) >> 4;
 
-        java.util.List<java.util.concurrent.CompletableFuture<Void>> loading = new java.util.ArrayList<>();
+        java.util.List<net.minecraft.world.level.ChunkPos> positions = new java.util.ArrayList<>();
         for (int chunkX = minChunkX; chunkX <= maxChunkX; ++chunkX) {
             for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; ++chunkZ) {
-                loading.add(io.papermc.paper.util.MCUtil.scheduleChunkLoad(world, chunkX, chunkZ, (chunk) -> {
-                    if (chunk != null) {
-                        world.getChunkSource().addRegionTicket(net.minecraft.server.level.TicketType.POST_TELEPORT, chunk.getPos(), 0, CraftEntity.this.getEntityId());
-                    }
-                }));
+                positions.add(new net.minecraft.world.level.ChunkPos(chunkX, chunkZ));
             }
         }
 
-        java.util.concurrent.CompletableFuture.allOf(loading.toArray(new java.util.concurrent.CompletableFuture[0]))
-            .whenCompleteAsync((ignored, throwable) -> {
-                if (throwable != null) {
-                    ret.completeExceptionally(throwable);
-                    return;
+        io.papermc.paper.util.MCUtil.scheduleChunkLoads(world, positions, (chunk) -> {
+            if (chunk != null) {
+                world.getChunkSource().addRegionTicket(net.minecraft.server.level.TicketType.POST_TELEPORT, chunk.getPos(), 0, CraftEntity.this.getEntityId());
+            }
+        }).whenCompleteAsync((ignored, throwable) -> {
+            if (throwable != null) {
+                ret.completeExceptionally(throwable);
+                return;
+            }
+            try {
+                ret.complete(CraftEntity.this.teleport(locationClone, cause, teleportFlags) ? Boolean.TRUE : Boolean.FALSE);
+            } catch (Throwable thr) {
+                if (thr instanceof ThreadDeath) {
+                    throw (ThreadDeath)thr;
                 }
-                try {
-                    ret.complete(CraftEntity.this.teleport(locationClone, cause, teleportFlags) ? Boolean.TRUE : Boolean.FALSE);
-                } catch (Throwable thr) {
-                    if (thr instanceof ThreadDeath) {
-                        throw (ThreadDeath)thr;
-                    }
-                    net.minecraft.server.MinecraftServer.LOGGER.error("Failed to teleport entity " + CraftEntity.this, thr);
-                    ret.completeExceptionally(thr);
-                }
-            }, io.papermc.paper.util.MCUtil.MAIN_EXECUTOR);
+                net.minecraft.server.MinecraftServer.LOGGER.error("Failed to teleport entity " + CraftEntity.this, thr);
+                ret.completeExceptionally(thr);
+            }
+        }, io.papermc.paper.util.MCUtil.MAIN_EXECUTOR);
         // Youer end
 
         return ret;
