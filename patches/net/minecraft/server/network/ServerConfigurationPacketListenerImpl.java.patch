@@ -19,7 +19,7 @@
  import org.slf4j.Logger;
  
  public class ServerConfigurationPacketListenerImpl extends ServerCommonPacketListenerImpl implements ServerConfigurationPacketListener, TickablePacketListener {
-@@ -72,15 +_,33 @@
+@@ -72,15 +_,32 @@
      }
  
      public void startConfiguration() {
@@ -36,17 +36,15 @@
          ServerLinks serverlinks = this.server.serverLinks();
 -        if (!serverlinks.isEmpty()) {
 -            this.send(new ClientboundServerLinksPacket(serverlinks.untrust()));
--        }
-+        // Youer Fix NeoForge's `SERVER_EVENT_GROUP` causing Bukkit events to be perceived as occurring outside the main thread.
-+        ThreadUtils.executeOnMainThread(() -> {
-+            // CraftBukkit start
-+            CraftServerLinks links = new CraftServerLinks(serverlinks);
-+            new org.bukkit.event.player.PlayerLinksSendEvent(player.getBukkitEntity(), links).callEvent();
-+            if (!links.getServerLinks().isEmpty()) {
-+                this.send(new ClientboundServerLinksPacket(links.getServerLinks().untrust()));
-+            }
-+            // CraftBukkit end
-+        });
++        // Youer start - this runs on the server thread, so the event completes before the tasks below
++        // CraftBukkit start
++        CraftServerLinks links = new CraftServerLinks(serverlinks);
++        new org.bukkit.event.player.PlayerLinksSendEvent(player.getBukkitEntity(), links).callEvent();
++        if (!links.getServerLinks().isEmpty()) {
++            this.send(new ClientboundServerLinksPacket(links.getServerLinks().untrust()));
+         }
++        // CraftBukkit end
++        // Youer end
  
          LayeredRegistryAccess<RegistryLayer> layeredregistryaccess = this.server.registries();
          List<KnownPack> list = this.server.getResourceManager().listPacks().flatMap(p_325637_ -> p_325637_.location().knownPackInfo().stream()).toList();
@@ -56,7 +54,7 @@
          this.synchronizeRegistriesTask = new SynchronizeRegistriesTask(list, layeredregistryaccess);
          this.configurationTasks.add(this.synchronizeRegistriesTask);
          this.addOptionalTasks();
-@@ -95,11 +_,38 @@
+@@ -95,11 +_,41 @@
  
      private void addOptionalTasks() {
          this.server.getServerResourcePack().ifPresent(p_296496_ -> this.configurationTasks.add(new ServerResourcePackConfigurationTask(p_296496_)));
@@ -84,7 +82,10 @@
 +            if (!this.connectionType.isNeoForge() && !net.neoforged.neoforge.network.registration.NetworkRegistry.initializeOtherConnection(this)) {
 +                return;
 +            }
-+            this.runConfiguration();
++            // Youer start - handlePong() runs on the Netty event loop, move the configuration
++            // to the server thread without blocking Netty
++            ThreadUtils.executeOnMainThread(this::runConfiguration);
++            // Youer end
 +        }
      }
  

@@ -231,6 +231,14 @@
              this.packetListener = p_320940_;
              this.disconnectListener = null;
              UnconfiguredPipelineHandler.InboundConfigurationTask unconfiguredpipelinehandler$inboundconfigurationtask = UnconfiguredPipelineHandler.setupInboundProtocol(
+@@ -240,6 +_,7 @@
+             }
+ 
+             syncAfterConfigurationChange(this.channel.writeAndFlush(unconfiguredpipelinehandler$inboundconfigurationtask));
++            this.flushPendingProtocolPackets(); // Youer - the inbound protocol switch is done
+         }
+     }
+ 
 @@ -254,7 +_,12 @@
              if (bundlerinfo != null) {
                  PacketBundleUnpacker packetbundleunpacker = new PacketBundleUnpacker(bundlerinfo);
@@ -245,7 +253,7 @@
                  );
              }
  
-@@ -262,8 +_,27 @@
+@@ -262,8 +_,61 @@
              syncAfterConfigurationChange(
                  this.channel.writeAndFlush(unconfiguredpipelinehandler$outboundconfigurationtask.andThen(p_319527_ -> this.sendLoginDisconnect = flag))
              );
@@ -261,6 +269,10 @@
 +            return;
 +        }
 +        this.channel.eventLoop().execute(() -> {
++            if (this.isProtocolTransitionPending()) {
++                // another protocol switch is running, it flushes again when it completes
++                return;
++            }
 +            int size = this.pendingProtocolPackets.size();
 +            for (int i = 0; i < size; i++) {
 +                Runnable runnable = this.pendingProtocolPackets.poll();
@@ -269,23 +281,68 @@
 +                }
 +                runnable.run();
 +            }
++            // Paper's explicit flush optimization can leave a flush=false packet buffered
++            this.channel.flush();
 +        });
++    }
++
++    // Youer start - write the packets that were deferred during a protocol switch
++    private void releasePendingProtocolPackets() {
++        if (this.channel == null) {
++            this.pendingProtocolPackets.clear();
++            return;
++        }
++        Runnable runnable;
++        while ((runnable = this.pendingProtocolPackets.poll()) != null) {
++            try {
++                runnable.run();
++            } catch (Exception ignored) {
++                // the connection is going away, a failed write does not matter
++            }
++        }
++        this.channel.flush();
++    }
++    // Youer end
++
++    // Youer start - detect a protocol switch that has not been applied to the pipeline yet
++    private boolean isProtocolTransitionPending() {
++        if (this.channel == null) {
++            return false;
++        }
++        final ChannelPipeline pipeline = this.channel.pipeline();
++        // "inbound_config"/"outbound_config" exist only while a protocol switch is pending
++        return pipeline.get("inbound_config") != null || pipeline.get("outbound_config") != null;
 +    }
 +    // Youer end
  
      public void setListenerForServerboundHandshake(PacketListener p_294829_) {
          if (this.packetListener != null) {
-@@ -344,6 +_,10 @@
-     }
- 
-     private void doSendPacket(Packet<?> p_243260_, @Nullable PacketSendListener p_243290_, boolean p_294125_) {
-+        if (this.channel.pipeline().get("outbound_config") != null) { // Youer - defer until the next protocol is set up
-+            this.pendingProtocolPackets.add(() -> this.doSendPacket(p_243260_, p_243290_, p_294125_));
+@@ -337,11 +_,21 @@
+     private void sendPacket(Packet<?> p_129521_, @Nullable PacketSendListener p_243246_, boolean p_294510_) {
+         this.sentPackets++;
+         if (this.channel.eventLoop().inEventLoop()) {
+-            this.doSendPacket(p_129521_, p_243246_, p_294510_);
++            this.sendOrDefer(p_129521_, p_243246_, p_294510_);
+         } else {
+-            this.channel.eventLoop().execute(() -> this.doSendPacket(p_129521_, p_243246_, p_294510_));
+-        }
+-    }
++            this.channel.eventLoop().execute(() -> this.sendOrDefer(p_129521_, p_243246_, p_294510_));
++        }
++    }
++
++    // Youer start - defer the packet while a protocol switch runs, so the packets keep their order
++    private void sendOrDefer(Packet<?> p_129521_, @Nullable PacketSendListener p_243246_, boolean p_294510_) {
++        if (this.isProtocolTransitionPending() || !this.pendingProtocolPackets.isEmpty()) {
++            this.pendingProtocolPackets.add(() -> this.doSendPacket(p_129521_, p_243246_, p_294510_));
 +            return;
 +        }
++        this.doSendPacket(p_129521_, p_243246_, p_294510_);
++    }
++    // Youer end
+ 
+     private void doSendPacket(Packet<?> p_243260_, @Nullable PacketSendListener p_243290_, boolean p_294125_) {
          ChannelFuture channelfuture = p_294125_ ? this.channel.writeAndFlush(p_243260_) : this.channel.write(p_243260_);
-         if (p_243290_ != null) {
-             channelfuture.addListener(p_243167_ -> {
 @@ -389,10 +_,26 @@
          }
      }
@@ -333,13 +390,16 @@
          }
      }
  
-@@ -436,12 +_,15 @@
+@@ -436,12 +_,18 @@
      }
  
      public void disconnect(DisconnectionDetails p_350867_) {
 +        // Spigot Start
 +        this.preparing = false;
 +        // Spigot End
++        // Youer start - release deferred packets so a pending disconnect message is not swallowed
++        this.releasePendingProtocolPackets();
++        // Youer end
          if (this.channel == null) {
              this.delayedDisconnect = p_350867_;
          }

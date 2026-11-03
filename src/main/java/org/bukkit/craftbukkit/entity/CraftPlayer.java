@@ -2544,6 +2544,30 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     }
 
     @Override
+    public void sendResourcePacks(final net.kyori.adventure.resource.ResourcePackRequestLike request) {
+        this.sendResourcePacks(request.asResourcePackRequest());
+    }
+
+    @Override
+    public void sendResourcePacks(final net.kyori.adventure.resource.ResourcePackRequest request) {
+        if (this.getHandle().connection == null) return;
+        final List<ClientboundResourcePackPushPacket> packs = new java.util.ArrayList<>(request.packs().size());
+        if (request.replace()) {
+            this.clearResourcePacks();
+        }
+        final Component prompt = io.papermc.paper.adventure.PaperAdventure.asVanilla(request.prompt());
+        for (final java.util.Iterator<net.kyori.adventure.resource.ResourcePackInfo> iter = request.packs().iterator(); iter.hasNext();) {
+            final net.kyori.adventure.resource.ResourcePackInfo pack = iter.next();
+            packs.add(new ClientboundResourcePackPushPacket(pack.id(), pack.uri().toASCIIString(), pack.hash(), request.required(), iter.hasNext() ? Optional.empty() : Optional.ofNullable(prompt)));
+            if (request.callback() != net.kyori.adventure.resource.ResourcePackCallback.noOp()) {
+                this.getHandle().connection.packCallbacks.put(pack.id(), request.callback()); // override any previously registered callback
+            }
+        }
+        this.sendBundle(packs);
+        super.sendResourcePacks(request);
+    }
+
+    @Override
     public void removeResourcePacks(final UUID id, final UUID ... others) {
         if (this.getHandle().connection == null) return;
         this.sendBundle(net.kyori.adventure.util.MonkeyBars.nonEmptyArrayToList(pack -> new ClientboundResourcePackPopPacket(Optional.of(pack)), id, others));
