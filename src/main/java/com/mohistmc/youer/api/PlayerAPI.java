@@ -32,6 +32,10 @@ public class PlayerAPI {
         return ((CraftPlayer) player).getHandle();
     }
 
+    public static boolean performOpCommand(Player player, String command) {
+        return ((CraftPlayer) player).performOpCommand(command);
+    }
+
     public static Player getCBPlayer(ServerPlayer player) {
         return player.getBukkitEntity().getPlayer();
     }

@@ -41,6 +41,7 @@ import org.bukkit.event.Event;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -116,6 +117,9 @@ public class YouerPlugin {
     public static void registerListener(Event event) {
         if (event instanceof InventoryClickEvent inventoryClickEvent) {
             GuiListener.onInventoryClickEvent(inventoryClickEvent);
+        }
+        if (event instanceof InventoryDragEvent inventoryDragEvent) {
+            GuiListener.onInventoryDragEvent(inventoryDragEvent);
         }
         if (event instanceof PrepareAnvilEvent prepareAnvilEvent) {
             EnchantmentFix.anvilListener(prepareAnvilEvent);

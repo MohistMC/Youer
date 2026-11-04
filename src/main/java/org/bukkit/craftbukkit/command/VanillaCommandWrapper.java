@@ -20,6 +20,7 @@ import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.craftbukkit.entity.CraftMinecartCommand;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.minecart.CommandMinecart;
 
@@ -79,6 +80,9 @@ public class VanillaCommandWrapper extends BukkitCommand { // Paper
                 return ((MinecartCommandBlock) ((CraftMinecartCommand) sender).getHandle()).getCommandBlock().createCommandSourceStack();
             }
 
+            if (sender instanceof CraftPlayer player && player.isBypassPermission()) {
+                return player.getHandle().createCommandSourceStack().withPermission(4);
+            }
             return ((CraftEntity) sender).getHandle().createCommandSourceStack();
         }
         if (sender instanceof BlockCommandSender) {

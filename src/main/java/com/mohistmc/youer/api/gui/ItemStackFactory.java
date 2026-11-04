@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemRarity;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
@@ -57,13 +58,7 @@ public class ItemStackFactory {
     }
 
     public ItemStackFactory setEnchantment(Enchantment enchantment) {
-        ItemMeta im = this.item.getItemMeta();
-        if (im == null || enchantment == null) {
-            return this;
-        }
-        im.addEnchant(enchantment, 1, false);
-        this.item.setItemMeta(im);
-        return this;
+        return setEnchantment(enchantment, 1);
     }
 
     public ItemStackFactory setEnchantment(Enchantment enchantment, int level) {
@@ -71,7 +66,12 @@ public class ItemStackFactory {
         if (im == null || enchantment == null) {
             return this;
         }
-        im.addEnchant(enchantment, level, false);
+        // Enchanted books render the stored-enchant component, not the regular one
+        if (im instanceof EnchantmentStorageMeta storage) {
+            storage.addStoredEnchant(enchantment, level, false);
+        } else {
+            im.addEnchant(enchantment, level, false);
+        }
         this.item.setItemMeta(im);
         return this;
     }

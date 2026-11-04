@@ -5,6 +5,7 @@ import java.util.Map;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 
 public class GuiListener {
 
@@ -14,20 +15,30 @@ public class GuiListener {
         if (!(event.getWhoClicked() instanceof Player p)) {
             return;
         }
+        GUI gui = openGUI.get(p);
+        if (gui == null) {
+            return;
+        }
+        event.setCancelled(true);
         if (event.getCurrentItem() == null) {
             return;
         }
-        if (openGUI.containsKey(p)) {
-            GUI gui = openGUI.get(p);
-            event.setCancelled(true);
-            if (event.getInventory() == gui.inv) {
-                int index = event.getRawSlot();
-                if (index < gui.items.length) {
-                    if (gui.items[index] != null) {
-                        gui.items[index].ClickAction(event.getClick(), p, gui.items[index].display);
-                    }
+        if (event.getInventory() == gui.inv) {
+            int index = event.getRawSlot();
+            if (index < gui.items.length) {
+                if (gui.items[index] != null) {
+                    gui.items[index].ClickAction(event.getClick(), p, gui.items[index].display);
                 }
             }
+        }
+    }
+
+    public static void onInventoryDragEvent(InventoryDragEvent event) {
+        if (!(event.getWhoClicked() instanceof Player p)) {
+            return;
+        }
+        if (openGUI.containsKey(p)) {
+            event.setCancelled(true);
         }
     }
 

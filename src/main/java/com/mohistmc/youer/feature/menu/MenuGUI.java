@@ -1,6 +1,6 @@
-// MenuGUI.java
 package com.mohistmc.youer.feature.menu;
 
+import com.mohistmc.youer.api.PlayerAPI;
 import com.mohistmc.youer.api.gui.DefaultGUI;
 import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.GUIType;
@@ -129,15 +129,7 @@ public class MenuGUI {
             Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), GlobalVariableSystem.as(player, cmd));
         } else if (action.startsWith("op:")) {
             String cmd = stripLeadingSlash(action.substring(3).trim());
-            boolean op = player.isOp();
-            try {
-                if (!op) {
-                    player.setOp(true);
-                }
-                player.performCommand(GlobalVariableSystem.as(player, cmd));
-            } finally {
-                player.setOp(op);
-            }
+            PlayerAPI.performOpCommand(player, GlobalVariableSystem.as(player, cmd));
         }
     }
 

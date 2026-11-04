@@ -184,6 +184,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapView;
 import org.bukkit.metadata.MetadataValue;
+import org.bukkit.permissions.Permission;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.messaging.StandardMessenger;
 import org.bukkit.potion.PotionEffect;
@@ -247,6 +248,39 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
         }
 
         this.perm.recalculatePermissions();
+    }
+
+    // Scoped per player and per thread so unrelated async code cannot inherit the elevated check.
+    private final ThreadLocal<Integer> bypassDepth = new ThreadLocal<>();
+
+    public boolean isBypassPermission() {
+        if (!Bukkit.isPrimaryThread()) return false;
+        Integer depth = this.bypassDepth.get();
+        return depth != null && depth > 0;
+    }
+
+    public boolean performOpCommand(String command) {
+        Integer previous = this.bypassDepth.get();
+        this.bypassDepth.set(previous == null ? 1 : previous + 1);
+        try {
+            return this.performCommand(command);
+        } finally {
+            if (previous == null) {
+                this.bypassDepth.remove();
+            } else {
+                this.bypassDepth.set(previous);
+            }
+        }
+    }
+
+    @Override
+    public boolean hasPermission(String name) {
+        return this.isBypassPermission() || super.hasPermission(name);
+    }
+
+    @Override
+    public boolean hasPermission(Permission perm) {
+        return this.isBypassPermission() || super.hasPermission(perm);
     }
 
     @Override
