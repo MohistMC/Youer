@@ -145,6 +145,10 @@ public class YouerConfig {
     public static boolean custom_entity_tp_end;
     public static boolean custom_entity_tp_nether;
     public static boolean custom_raid_no_emerald;
+    /** Feed entity type ids packetevents cannot resolve out of its vanilla table, so modded spawns stop dropping connections. */
+    public static boolean compat_packetevents_entity_types;
+    /** Log one line per entity type seen in a spawn packet, with the registry id third-party packet libraries read. */
+    public static boolean compat_log_entity_type_ids;
     public static int custom_lava_speed_normal;
     public static int custom_lava_speed_nether;
     public static boolean custom_fix_flat;
@@ -387,6 +391,8 @@ public class YouerConfig {
         custom_entity_tp_end = getBoolean("custom.entity_tp_end", true);
         custom_entity_tp_nether = getBoolean("custom.entity_tp_nether", true);
         custom_raid_no_emerald = getBoolean("custom.raid_no_emerald", false);
+        compat_packetevents_entity_types = getBoolean("compat.packetevents_entity_types", true);
+        compat_log_entity_type_ids = getBoolean("compat.log_entity_type_ids", false);
         custom_lava_speed_normal = getInt("custom.lava_speed.normal", 30);
         custom_lava_speed_nether = getInt("custom.lava_speed.nether", 10);
         custom_fix_flat = getBoolean("custom.fix_flat", false);

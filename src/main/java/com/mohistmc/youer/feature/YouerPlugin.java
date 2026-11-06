@@ -1,6 +1,7 @@
 package com.mohistmc.youer.feature;
 
 import com.mohistmc.youer.api.gui.GuiListener;
+import com.mohistmc.youer.compat.PacketEventsCompat;
 import com.mohistmc.youer.commands.DeepseekCommand;
 import com.mohistmc.youer.commands.HatCommand;
 import com.mohistmc.youer.commands.HideAllCommand;
@@ -46,6 +47,8 @@ import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.server.PluginEnableEvent;
+import org.bukkit.event.server.ServerLoadEvent;
 
 /**
  * @author Mgazul by MohistMC
@@ -171,6 +174,13 @@ public class YouerPlugin {
                     WorldConfig.saveGameRule(event1.getWorld(), gameRule.getName(), event1.getValue());
                 }
             }
+        }
+        // packetevents only knows vanilla entity type ids, so modded spawn packets need registering once it is up
+        if (event instanceof PluginEnableEvent pluginEnableEvent) {
+            PacketEventsCompat.onPluginEnabled(pluginEnableEvent.getPlugin());
+        }
+        if (event instanceof ServerLoadEvent) {
+            PacketEventsCompat.onServerLoad();
         }
     }
 }

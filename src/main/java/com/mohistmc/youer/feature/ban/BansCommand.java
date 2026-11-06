@@ -443,9 +443,6 @@ public class BansCommand extends Command {
     }
 
     private void openTypeGUI(Player player) {
-        if (!testPermission(player)) {
-            return;
-        }
         boolean showAll = player.isOp();
         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.type"));
         for (String banType : params1) {
@@ -475,9 +472,6 @@ public class BansCommand extends Command {
     }
 
     private void openShowGUI(Player player, String banType) {
-        if (!testPermission(player)) {
-            return;
-        }
         boolean canDelete = player.isOp();
         switch (banType) {
             case "effect" -> {
@@ -497,7 +491,6 @@ public class BansCommand extends Command {
                     });
                 }
                 prepareShow(wh, player, canDelete);
-                return;
             }
             case "eat" -> {
                 DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.eat"));
@@ -520,7 +513,6 @@ public class BansCommand extends Command {
                     });
                 }
                 prepareShow(wh, player, canDelete);
-                return;
             }
             case "item" -> {
                 DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.item"));
@@ -541,7 +533,6 @@ public class BansCommand extends Command {
                     }
                 }
                 prepareShow(wh, player, canDelete);
-                return;
             }
             case "item-moshou" -> {
                 DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.item-moshou"));
@@ -562,7 +553,6 @@ public class BansCommand extends Command {
                     }
                 }
                 prepareShow(wh, player, canDelete);
-                return;
             }
             case "entity" -> {
                 DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.entity"));
@@ -586,7 +576,6 @@ public class BansCommand extends Command {
                     });
                 }
                 prepareShow(wh, player, canDelete);
-                return;
             }
             case "enchantment" -> {
                 DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.enchantment"));
@@ -606,7 +595,6 @@ public class BansCommand extends Command {
                     });
                 }
                 prepareShow(wh, player, canDelete);
-                return;
             }
             case "recipe" -> {
                 DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.recipe"));
@@ -625,7 +613,6 @@ public class BansCommand extends Command {
                     });
                 }
                 prepareShow(wh, player, canDelete);
-                return;
             }
             case "block" -> {
                 DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.block"));
@@ -647,7 +634,6 @@ public class BansCommand extends Command {
                     }
                 }
                 prepareShow(wh, player, canDelete);
-                return;
             }
             case "nbt" -> {
                 DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.nbt"));
@@ -668,7 +654,6 @@ public class BansCommand extends Command {
                     }
                 }
                 prepareShow(wh, player, canDelete);
-                return;
             }
             case "world" -> {
                 DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.world"));
@@ -687,7 +672,6 @@ public class BansCommand extends Command {
                     });
                 }
                 prepareShow(wh, player, canDelete);
-                return;
             }
             case "structure" -> {
                 DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.structure"));
@@ -706,7 +690,6 @@ public class BansCommand extends Command {
                     });
                 }
                 prepareShow(wh, player, canDelete);
-                return;
             }
             case "command" -> {
                 DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.command"));
@@ -725,11 +708,9 @@ public class BansCommand extends Command {
                     });
                 }
                 prepareShow(wh, player, canDelete);
-                return;
             }
             default -> {
                 player.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
-                return;
             }
         }
     }

@@ -6,7 +6,6 @@ import com.mohistmc.youer.api.gui.GUI;
 import com.mohistmc.youer.api.gui.GuiListener;
 import com.mohistmc.youer.feature.ban.BanConfig;
 import com.mohistmc.youer.feature.ban.BanType;
-import com.mohistmc.youer.util.I18n;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
@@ -118,19 +117,13 @@ public class BanItem {
         return checkMoShou(itemStack) && !bukkitPlayer.hasPermission(permission);
     }
 
-    /**
-     * Checks an item that was clicked in a container slot, moshou first. The
-     * bans show item-moshou GUI is exempt, otherwise the admin could not remove
-     * entries from the list.
-     */
-    public static boolean checkClickedItem(net.minecraft.server.level.ServerPlayer player, ItemStack clicked) {
+    // Top-inventory slots of a Youer GUI are display items, not the player's own items
+    public static boolean checkClickedItem(net.minecraft.server.level.ServerPlayer player, int slot, ItemStack clicked) {
         if (clicked == null || clicked.isEmpty()) return false;
         if (player instanceof FakePlayer) return false;
         if (player.getBukkitEntity().isOp()) return false;
         GUI gui = GuiListener.openGUI.get(player.getBukkitEntity());
-        if (gui != null && I18n.as("banscmd.show.item-moshou").equals(gui.tempName)) {
-            return false;
-        }
+        if (gui != null && gui.inv != null && slot < gui.inv.getSize()) return false;
         return checkMoShou(player, clicked);
     }
 }
