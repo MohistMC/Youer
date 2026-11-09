@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.TimeZone;
 import lombok.SneakyThrows;
 
 public class Action {
@@ -195,10 +196,16 @@ public class Action {
     }
 
     protected void run(String mainClass, String... args) throws Exception {
+        TimeZone original = TimeZone.getDefault();
         List<URL> classPath = installerTourls;
         System.out.println("[Youer] Loading " + classPath);
         URLClassLoader loader = URLClassLoader.newInstance(classPath.toArray(new URL[0]));
-        Class.forName(mainClass, true, loader).getDeclaredMethod("main", String[].class).invoke(null, new Object[]{args});
+        try {
+            Class.forName(mainClass, true, loader).getDeclaredMethod("main", String[].class).invoke(null, new Object[]{args});
+        } finally {
+            // NeoForge installer tools force GMT for reproducible archives.
+            TimeZone.setDefault(original);
+        }
         loader.clearAssertionStatus();
         loader.close();
     }
