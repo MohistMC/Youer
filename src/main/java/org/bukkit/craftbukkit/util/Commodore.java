@@ -88,6 +88,30 @@ public class Commodore {
             "org/bukkit/block/banner/PatternType", "NOP"
     );
 
+    // Youer start - These types are interfaces in the 1.21.3+ API, but enums in 1.21.1
+    private static final Set<String> ENUM_TYPES = buildEnumTypes();
+
+    private static Set<String> buildEnumTypes() {
+        final Set<String> types = new HashSet<>(Arrays.asList(
+                "org/bukkit/Art",
+                "org/bukkit/attribute/Attribute",
+                "org/bukkit/block/Biome",
+                "org/bukkit/Fluid",
+                "org/bukkit/Sound"
+        ));
+        types.removeIf(Commodore::isInterface);
+        return Collections.unmodifiableSet(types);
+    }
+
+    private static boolean isInterface(final String internalName) {
+        try {
+            return Class.forName(internalName.replace('/', '.'), false, Commodore.class.getClassLoader()).isInterface();
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
+    }
+    // Youer end
+
     private final List<Reroute> reroutes = new ArrayList<>(); // only for testing
     private Reroute materialReroute;
     private Reroute reroute;
@@ -400,6 +424,17 @@ public class Commodore {
                     }
 
                     private void handleMethod(MethodPrinter visitor, int opcode, String owner, String name, String desc, boolean itf, Type samMethodType, Type instantiatedMethodType) {
+                        // Youer start - Rewrite plugins compiled against the 1.21.3+ API
+                        if (itf && ENUM_TYPES.contains(owner)) {
+                            // the runtime type is a class, so the constant pool entry has to be a Methodref
+                            if (opcode == Opcodes.INVOKEINTERFACE) {
+                                opcode = Opcodes.INVOKEVIRTUAL;
+                            } else if (opcode == Opcodes.H_INVOKEINTERFACE) {
+                                opcode = Opcodes.H_INVOKEVIRTUAL;
+                            }
+                            itf = false;
+                        }
+                        // Youer end
                         if (checkReroute(visitor, reroute, opcode, owner, name, desc, samMethodType, instantiatedMethodType)) {
                             return;
                         }
