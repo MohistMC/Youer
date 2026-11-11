@@ -58,13 +58,13 @@
              if (!player.hasInfiniteMaterials() && state.is(BlockTags.ANVIL) && player.getRandom().nextFloat() < 0.12F) {
                  BlockState newBlockState = AnvilBlock.damage(state);
 +                // Paper start - AnvilDamageEvent
-+                com.destroystokyo.paper.event.block.AnvilDamagedEvent event = new com.destroystokyo.paper.event.block.AnvilDamagedEvent(getBukkitView(), newBlockState != null ? newBlockState.asBlockData() : null);
-+                if (!event.callEvent()) {
++                com.destroystokyo.paper.event.block.AnvilDamagedEvent anvilDamagedEvent = new com.destroystokyo.paper.event.block.AnvilDamagedEvent(getBukkitView(), newBlockState != null ? newBlockState.asBlockData() : null); // CraftBukkit - rename to avoid clash with Neo AnvilCraftEvent.Pre variable
++                if (!anvilDamagedEvent.callEvent()) {
 +                    return;
-+                } else if (event.getDamageState() == com.destroystokyo.paper.event.block.AnvilDamagedEvent.DamageState.BROKEN) {
++                } else if (anvilDamagedEvent.getDamageState() == com.destroystokyo.paper.event.block.AnvilDamagedEvent.DamageState.BROKEN) {
 +                    newBlockState = null;
 +                } else {
-+                    newBlockState = ((org.bukkit.craftbukkit.block.data.CraftBlockData) event.getDamageState().getMaterial().createBlockData()).getState().setValue(AnvilBlock.FACING, state.getValue(AnvilBlock.FACING));
++                    newBlockState = ((org.bukkit.craftbukkit.block.data.CraftBlockData) anvilDamagedEvent.getDamageState().getMaterial().createBlockData()).getState().setValue(AnvilBlock.FACING, state.getValue(AnvilBlock.FACING));
 +                }
 +                // Paper end - AnvilDamageEvent
                  if (newBlockState == null) {

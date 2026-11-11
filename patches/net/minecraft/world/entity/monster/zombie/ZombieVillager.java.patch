@@ -41,19 +41,30 @@
      }
  
      @Override
-@@ -201,8 +_,10 @@
+@@ -198,12 +_,20 @@
+     }
+ 
+     public void startConverting(@Nullable UUID player, int time) {
++        // Paper start - missing entity behaviour api - converting without entity event
++        this.startConverting(player, time, true);
++    }
++
++    public void startConverting(@Nullable UUID player, int time, boolean broadcastEntityEvent) {
++        // Paper end - missing entity behaviour api - converting without entity event
          this.conversionStarter = player;
          this.villagerConversionTime = time;
          this.getEntityData().set(DATA_CONVERTING_ID, true);
 -        this.removeEffect(MobEffects.WEAKNESS);
 -        this.addEffect(new MobEffectInstance(MobEffects.STRENGTH, time, Math.min(this.level().getDifficulty().getId() - 1, 0)));
+-        this.level().broadcastEntityEvent(this, (byte)16);
 +        // CraftBukkit start
 +        this.removeEffect(MobEffects.WEAKNESS, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONVERSION);
 +        this.addEffect(new MobEffectInstance(MobEffects.STRENGTH, time, Math.min(this.level().getDifficulty().getId() - 1, 0)), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONVERSION);
 +        // CraftBukkit end
-         this.level().broadcastEntityEvent(this, (byte)16);
++        if (broadcastEntityEvent) this.level().broadcastEntityEvent(this, (byte)16); // Paper - missing entity behaviour api - converting without entity event
      }
  
+     @Override
 @@ -233,10 +_,12 @@
      }
  

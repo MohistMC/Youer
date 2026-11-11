@@ -11,15 +11,16 @@
  
  public abstract class VehicleEntity extends Entity {
      protected static final EntityDataAccessor<Integer> DATA_ID_HURT = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.INT);
-@@ -43,12 +_,42 @@
+@@ -43,12 +_,43 @@
              this.markHurt();
              this.setDamage(this.getDamage() + damage * 10.0F);
              this.gameEvent(GameEvent.ENTITY_DAMAGE, source.getEntity());
 +            // CraftBukkit start
 +            Vehicle vehicle = (Vehicle) this.getBukkitEntity();
++            org.bukkit.damage.DamageSource damageSourceBukkit = new org.bukkit.craftbukkit.damage.CraftDamageSource(source);
 +            org.bukkit.entity.Entity attacker = (source.getEntity() == null) ? null : source.getEntity().getBukkitEntity();
 +
-+            VehicleDamageEvent event = new VehicleDamageEvent(vehicle, attacker, (double) damage);
++            VehicleDamageEvent event = new VehicleDamageEvent(vehicle, damageSourceBukkit, attacker, (double) damage);
 +            this.level().getCraftServer().getPluginManager().callEvent(event);
 +
 +            if (event.isCancelled()) {
@@ -32,7 +33,7 @@
                  if (creativePlayer) {
 -                    this.discard();
 +                    // CraftBukkit start
-+                    VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, attacker);
++                    VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, damageSourceBukkit, attacker);
 +                    this.level().getCraftServer().getPluginManager().callEvent(destroyEvent);
 +
 +                    if (destroyEvent.isCancelled()) {
@@ -44,7 +45,7 @@
                  }
              } else {
 +                // CraftBukkit start
-+                VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, attacker);
++                VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, damageSourceBukkit, attacker);
 +                this.level().getCraftServer().getPluginManager().callEvent(destroyEvent);
 +
 +                if (destroyEvent.isCancelled()) {

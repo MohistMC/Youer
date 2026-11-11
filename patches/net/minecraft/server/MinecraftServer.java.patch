@@ -135,7 +135,27 @@
      private MetricsRecorder metricsRecorder = InactiveMetricsRecorder.INSTANCE;
      private Consumer<ProfileResults> onMetricsRecordingStopped = results -> this.stopRecordingMetrics();
      private Consumer<Path> onMetricsRecordingFinished = ignored -> {};
-@@ -254,6 +_,7 @@
+@@ -239,6 +_,7 @@
+     private PlayerList playerList;
+     private volatile boolean running = true;
+     private boolean stopped;
++    private volatile boolean isRestarting = false; // Spigot - flag to signify we're attempting to restart
+     private int tickCount;
+     private int ticksUntilAutosave = 6000;
+     protected final Proxy proxy;
+@@ -248,12 +_,19 @@
+     private int playerIdleTimeout;
+     private final long[] tickTimesNanos = new long[100];
+     private long aggregatedTickTimesNanos = 0L;
++    // Paper start - Moonrise MSPT tracking
++    public final ca.spottedleaf.moonrise.common.time.TickData tickTimes5s = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(5L));
++    public final ca.spottedleaf.moonrise.common.time.TickData tickTimes10s = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(10L));
++    public final ca.spottedleaf.moonrise.common.time.TickData tickTimes1m = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.MINUTES.toNanos(1L));
++    private long previousTickStartNanos = ca.spottedleaf.concurrentutil.util.TimeUtil.DEADLINE_NOT_SET;
++    // Paper end - Moonrise MSPT tracking
+     private @Nullable KeyPair keyPair;
+     private @Nullable GameProfile singleplayerProfile;
+     private boolean isDemo;
      private volatile boolean isReady;
      private long lastOverloadWarningNanos;
      protected final Services services;
@@ -161,7 +181,19 @@
      private final ServerFunctionManager functionManager;
      private boolean enforceWhitelist;
      private boolean usingWhitelist;
-@@ -292,12 +_,121 @@
+@@ -288,16 +_,133 @@
+     public PotionBrewing potionBrewing;
+     private FuelValues fuelValues;
+     private int emptyTicks;
++    // Paper start
++    public boolean isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
++    private final java.util.Set<String> pluginsBlockingSleep = new java.util.HashSet<>(); // Paper - API to allow/disallow tick sleeping
++    private static final long[] TPS_WINDOW_NANOS = {60L * 1_000_000_000L, 5L * 60L * 1_000_000_000L, 15L * 60L * 1_000_000_000L};
++    private final long[] tpsWindowStartNanos = new long[TPS_WINDOW_NANOS.length];
++    private final int[] tpsWindowTicks = new int[TPS_WINDOW_NANOS.length];
++    private final double[] tps = new double[TPS_WINDOW_NANOS.length];
++    // Paper end
+     private volatile boolean isSaving;
      private final SuppressedExceptionCollector suppressedExceptions = new SuppressedExceptionCollector();
      private final DiscontinuousFrame tickFrame;
      private final PacketProcessor packetProcessor;
@@ -180,7 +212,7 @@
 +    public java.util.Queue<Runnable> processQueue = new java.util.concurrent.ConcurrentLinkedQueue<Runnable>();
 +    public int autosavePeriod;
 +    public Commands vanillaCommandDispatcher;
-+    private boolean forceTicks;
++    public boolean forceTicks; // Paper - public for CraftBukkit
 +    // CraftBukkit end
 +    // Spigot start
 +
@@ -582,7 +614,7 @@
 +            List<CustomSpawner> list = ImmutableList.of(new PhantomSpawner(), new PatrolSpawner(), new CatSpawner(), new VillageSiege(), new WanderingTraderSpawner(dimensiondatastorage));
 +            LevelStem levelstem = (LevelStem) dimensions.getValue(dimensionKey);
 +
-+            org.bukkit.generator.WorldInfo worldInfo = new org.bukkit.craftbukkit.generator.CraftWorldInfo(serverleveldata, worldoptions, worldSession, org.bukkit.World.Environment.getEnvironment(dimension), levelstem.type().value());
++            org.bukkit.generator.WorldInfo worldInfo = new org.bukkit.craftbukkit.generator.CraftWorldInfo(name, org.bukkit.craftbukkit.util.CraftNamespacedKey.fromMinecraft(dimensionKey.identifier()), worldoptions.seed(), worlddata.enabledFeatures(), org.bukkit.World.Environment.getEnvironment(dimension), levelstem.type().value(), levelstem.generator(), registryaccess_frozen, org.bukkit.craftbukkit.util.WorldUUID.getUUID(worldSession.levelDirectory.path().toFile()));
 +            if (biomeProvider == null && gen != null) {
 +                biomeProvider = gen.getDefaultBiomeProvider(worldInfo);
 +            }
@@ -836,7 +868,8 @@
          if (this.playerList != null) {
              LOGGER.info("Saving players");
              this.playerList.saveAll();
-             this.playerList.removeAll();
+-            this.playerList.removeAll();
++            this.playerList.removeAll(this.isRestarting); // Spigot - pass restart intent
 +            try { Thread.sleep(100); } catch (InterruptedException ex) {} // CraftBukkit - SPIGOT-625 - give server at least a chance to send packets
          }
  
@@ -879,10 +912,24 @@
      }
  
      public String getLocalIp() {
-@@ -725,16 +_,28 @@
+@@ -725,16 +_,42 @@
          }
      }
  
++    // Spigot start
++    public void safeShutdown(boolean wait, boolean restart) {
++        this.isRestarting = restart;
++        this.running = false;
++        if (wait) {
++            try {
++                this.serverThread.join();
++            } catch (InterruptedException ex) {
++                LOGGER.error("Error while shutting down", (Throwable)ex);
++            }
++        }
++    }
++    // Spigot end
++
 +    // Spigot Start
 +    private static double calcTps(double avg, double exp, double tps)
 +    {
@@ -1000,10 +1047,11 @@
          long nano = Util.getNanos();
          int emptyTickThreshold = this.pauseWhenEmptySeconds() * 20;
          if (emptyTickThreshold > 0) {
-@@ -987,17 +_,36 @@
+@@ -987,17 +_,37 @@
          }
  
          this.tickCount++;
++        this.updateTickTimeStatistics(); // Paper - TPS tracking
 +        net.neoforged.neoforge.event.EventHooks.fireServerTickPre(haveTime, this);
          this.tickRateManager.tick();
          this.tickChildren(haveTime);
@@ -1040,7 +1088,18 @@
  
          ProfilerFiller profiler = Profiler.get();
          profiler.push("tallying");
-@@ -1009,6 +_,7 @@
+@@ -1006,9 +_,18 @@
+         this.aggregatedTickTimesNanos = this.aggregatedTickTimesNanos - this.tickTimesNanos[tickIndex];
+         this.aggregatedTickTimesNanos += tickTime;
+         this.tickTimesNanos[tickIndex] = tickTime;
++        // Paper start - Moonrise MSPT tracking
++        final ca.spottedleaf.moonrise.common.time.TickTime tickTimeData = new ca.spottedleaf.moonrise.common.time.TickTime(
++            this.previousTickStartNanos, nano, nano, 0L, nano + tickTime, 0L, 0L, 0L, false);
++        this.previousTickStartNanos = nano;
++        this.tickTimes5s.addDataFrom(tickTimeData);
++        this.tickTimes10s.addDataFrom(tickTimeData);
++        this.tickTimes1m.addDataFrom(tickTimeData);
++        // Paper end - Moonrise MSPT tracking
          this.smoothedTickTimeMillis = this.smoothedTickTimeMillis * 0.8F + (float)tickTime / (float)TimeUtil.NANOSECONDS_PER_MILLISECOND * 0.19999999F;
          this.logTickMethodTime(nano);
          profiler.pop();
@@ -1138,6 +1197,15 @@
              GameTestTicker.SINGLETON.tick();
          }
  
+@@ -1159,7 +_,7 @@
+         this.serverActivityMonitor.tick();
+     }
+ 
+-    protected void updateEffectiveRespawnData() {
++    public void updateEffectiveRespawnData() { // Paper - public for CraftBukkit
+         LevelData.RespawnData respawnData = this.worldData.overworldData().getRespawnData();
+         ServerLevel respawnLevel = this.findRespawnDimension();
+         this.effectiveRespawnData = respawnLevel.getWorldBorderAdjustedRespawnData(respawnData);
 @@ -1170,6 +_,9 @@
      }
  
@@ -1199,7 +1267,7 @@
      }
  
 +    // Paper start - per level difficulty
-+    public void setDifficulty(ServerLevel level, Difficulty difficulty, org.jspecify.annotations.@Nullable net.minecraft.commands.CommandSourceStack source, boolean ignoreLock) {
++    public void setDifficulty(ServerLevel level, Difficulty difficulty, net.minecraft.commands.@org.jspecify.annotations.Nullable CommandSourceStack source, boolean ignoreLock) {
 +        if (ignoreLock || !level.serverLevelData.isDifficultyLocked()) {
 +            level.serverLevelData.setDifficulty(level.serverLevelData.isHardcore() ? Difficulty.HARD : difficulty);
 +            level.setSpawnSettings(level.isSpawningMonsters());
@@ -1210,6 +1278,58 @@
 +
      public int getScaledTrackingDistance(int baseRange) {
          return baseRange;
+     }
+@@ -1382,6 +_,51 @@
+         this.motd = motd;
+     }
+ 
++    // Paper start
++    public net.kyori.adventure.text.Component motd() {
++        if (this.motd == null) {
++            return net.kyori.adventure.text.Component.empty();
++        }
++        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(this.motd);
++    }
++
++    public void motd(final net.kyori.adventure.text.Component motd) {
++        this.motd = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(motd);
++    }
++
++    public boolean isTickPaused() {
++        return this.emptyTicks > 0 && this.emptyTicks >= this.pauseWhenEmptySeconds() * 20;
++    }
++
++    public void addPluginAllowingSleep(final String pluginName, final boolean value) {
++        if (!value) {
++            this.pluginsBlockingSleep.add(pluginName);
++        } else {
++            this.pluginsBlockingSleep.remove(pluginName);
++        }
++    }
++
++    public double[] getTPS() {
++        return this.tps.clone();
++    }
++
++    private void updateTickTimeStatistics() {
++        final long now = Util.getNanos();
++        for (int i = 0; i < TPS_WINDOW_NANOS.length; i++) {
++            if (this.tpsWindowStartNanos[i] == 0L) {
++                this.tpsWindowStartNanos[i] = now;
++            }
++            this.tpsWindowTicks[i]++;
++            final long elapsed = now - this.tpsWindowStartNanos[i];
++            if (elapsed >= TPS_WINDOW_NANOS[i]) {
++                this.tps[i] = Math.min(20.0D, ((double)this.tpsWindowTicks[i] * 1.0E9D) / (double)elapsed);
++                this.tpsWindowStartNanos[i] = now;
++                this.tpsWindowTicks[i] = 0;
++            }
++        }
++    }
++    // Paper end
++
+     public boolean isStopped() {
+         return this.stopped;
      }
 @@ -1417,7 +_,7 @@
      }
@@ -1458,7 +1578,7 @@
 -    public <T> void onGameRuleChanged(GameRule<T> rule, T value) {
 -        this.notificationManager().onGameRuleChanged(rule, value);
 +    public static <T> void onGameRuleChanged(GameRule<T> rule, T value, ServerLevel serverlevel) { // CraftBukkit - per-world
-+        serverlevel.getServer().notificationManager().onGameRuleChanged(rule, value);
++        serverlevel.getServer().notificationManager().onGameRuleChanged(serverlevel, rule, value);
          if (rule == GameRules.REDUCED_DEBUG_INFO) {
              byte event = (byte)((Boolean)value ? 22 : 23);
  

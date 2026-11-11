@@ -32,8 +32,8 @@
          ServerPlayer serverPlayer = (ServerPlayer)player;
          ItemStack result = ItemStack.EMPTY;
 +        // Paper start - Perf: Improve mass crafting; check last recipe used first
-+        if (recipeHint == null && container.getCurrentRecipe() instanceof RecipeHolder<CraftingRecipe> currentRecipe) {
-+            recipeHint = currentRecipe;
++        if (recipeHint == null && container.getCurrentRecipe() instanceof RecipeHolder<?> currentRecipe && currentRecipe.value() instanceof CraftingRecipe) { // CraftBukkit - getCurrentRecipe() returns RecipeHolder<?>
++            recipeHint = (RecipeHolder<CraftingRecipe>) currentRecipe;
 +        }
 +        // Paper end - Perf: Improve mass crafting; check last recipe used first
          Optional<RecipeHolder<CraftingRecipe>> maybeRecipe = level.getServer().getRecipeManager().getRecipeFor(RecipeType.CRAFTING, input, level, recipeHint);
@@ -45,7 +45,7 @@
                  }
              }
          }
-+        result = org.bukkit.craftbukkit.event.CraftEventFactory.callPreCraftEvent(container, resultSlots, result, menu.getBukkitView(), maybeRecipe); // CraftBukkit
++        result = org.bukkit.craftbukkit.event.CraftEventFactory.callPreCraftEvent(container, resultSlots, result, menu.getBukkitView(), maybeRecipe.map(RecipeHolder::value).orElse(null) instanceof net.minecraft.world.item.crafting.RepairItemRecipe); // CraftBukkit
  
          resultSlots.setItem(0, result);
          menu.setRemoteSlot(0, result);

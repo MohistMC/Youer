@@ -77,7 +77,7 @@
      @Deprecated
      private final RandomSource soundSeedGenerator = RandomSource.createThreadSafe();
      private final Holder<DimensionType> dimensionTypeRegistration;
-@@ -130,17 +_,728 @@
+@@ -130,17 +_,731 @@
      private final DamageSources damageSources;
      private final PalettedContainerFactory palettedContainerFactory;
      private long subTickCount;
@@ -801,10 +801,13 @@
 +        this.maxSectionY = this.maxY >> 4;
 +        this.sectionsCount = this.maxSectionY - this.minSectionY + 1;
 +        // Paper end - getblock optimisations - cache world height/sections
-+        this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) levelData).getLevelName()); // Spigot
++        // Paper start
++        final org.bukkit.NamespacedKey worldKey = org.bukkit.craftbukkit.util.CraftNamespacedKey.fromMinecraft(dimension.identifier());
++        this.spigotConfig = new org.spigotmc.SpigotWorldConfig(((net.minecraft.world.level.storage.PrimaryLevelData) levelData).getLevelName(), worldKey); // Spigot
 +        this.paperConfig = paperWorldConfigCreator.apply(this.spigotConfig); // Paper - create paper world config
 +        this.generator = gen;
-+        this.world = new CraftWorld((ServerLevel) this, gen, biomeProvider, env);
++        this.world = new CraftWorld((ServerLevel) this, worldKey, biomeProvider, env);
++        // Paper end
 +
 +        // CraftBukkit Ticks things
 +        for (SpawnCategory spawnCategory : SpawnCategory.values()) {
@@ -994,8 +997,8 @@
 +                capturedBlockState = CapturedBlockState.getTreeBlockState(this, pos, updateFlags);
 +                this.capturedBlockStates.put(pos.immutable(), capturedBlockState);
 +            }
-+            capturedBlockState.setData(blockState);
-+            capturedBlockState.setFlag(updateFlags);
++            capturedBlockState.setBlock(blockState);
++            capturedBlockState.setFlags(updateFlags);
 +            return true;
 +        }
 +        // CraftBukkit end
@@ -1075,7 +1078,7 @@
 +                        if (this instanceof ServerLevel serverLevel) {
 +                            CraftWorld world = serverLevel.getWorld();
 +                            if (world != null) {
-+                                BlockPhysicsEvent event = new BlockPhysicsEvent(world.getBlockAt(pos.getX(), pos.getY(), pos.getZ()), CraftBlockData.fromData(newState));
++                                BlockPhysicsEvent event = new BlockPhysicsEvent(world.getBlockAt(pos.getX(), pos.getY(), pos.getZ()), CraftBlockData.createData(newState));
 +                                this.getCraftServer().getPluginManager().callEvent(event);
 +
 +                                if (event.isCancelled()) {
@@ -1135,7 +1138,7 @@
 +                if (this instanceof ServerLevel serverLevel) {
 +                    CraftWorld world = serverLevel.getWorld();
 +                    if (world != null) {
-+                        BlockPhysicsEvent event = new BlockPhysicsEvent(world.getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ()), CraftBlockData.fromData(blockstate));
++                        BlockPhysicsEvent event = new BlockPhysicsEvent(world.getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ()), CraftBlockData.createData(blockstate));
 +                        this.getCraftServer().getPluginManager().callEvent(event);
 +
 +                        if (event.isCancelled()) {

@@ -8,21 +8,26 @@
  import org.jspecify.annotations.Nullable;
  
  public class Sheep extends Animal implements Shearable {
-@@ -137,8 +_,13 @@
+@@ -137,9 +_,17 @@
      @Override
      public InteractionResult mobInteract(Player player, InteractionHand hand) {
          ItemStack itemStack = player.getItemInHand(hand);
 -        if (itemStack.is(Items.SHEARS)) {
 +        if (false && itemStack.is(Items.SHEARS)) { // Neo: Shear logic is handled by IShearable
              if (this.level() instanceof ServerLevel level && this.readyForShearing()) {
+-                this.shear(level, SoundSource.PLAYERS, itemStack);
 +                // CraftBukkit start
-+                if (!org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemStack, hand)) {
++                java.util.List<ItemStack> drops = this.generateDefaultDrops(level, itemStack);
++                org.bukkit.event.player.PlayerShearEntityEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemStack, hand, drops);
++                if (event == null || event.isCancelled()) {
 +                    return InteractionResult.PASS;
 +                }
++                drops = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getDrops());
 +                // CraftBukkit end
-                 this.shear(level, SoundSource.PLAYERS, itemStack);
++                this.shear(level, SoundSource.PLAYERS, itemStack, drops);
                  this.gameEvent(GameEvent.SHEAR, player);
                  itemStack.hurtAndBreak(1, player, hand.asEquipmentSlot());
+                 return InteractionResult.SUCCESS_SERVER;
 @@ -151,29 +_,40 @@
          }
      }

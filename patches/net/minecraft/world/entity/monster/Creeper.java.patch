@@ -107,21 +107,19 @@
              cloud.setRadius(2.5F);
              cloud.setRadiusOnUse(-0.5F);
              cloud.setWaitTime(10);
-@@ -254,15 +_,30 @@
+@@ -254,7 +_,7 @@
                  cloud.addEffect(new MobEffectInstance(mobEffect));
              }
  
 -            this.level().addFreshEntity(cloud);
--        }
--    }
 +            this.level().addFreshEntity(cloud, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.EXPLOSION); // CraftBukkit
-+        }
-+    }
-+
-+    public boolean isIgnited() {
-+        return this.entityData.get(DATA_IS_IGNITED);
-+    }
-+
+         }
+     }
+ 
+@@ -262,7 +_,18 @@
+         return this.entityData.get(DATA_IS_IGNITED);
+     }
+ 
 +    // Paper start - Call CreeperIgniteEvent
 +    public void setIgnited(boolean ignited) {
 +        if (isIgnited() != ignited) {
@@ -132,11 +130,7 @@
 +        }
 +    }
 +    // Paper end - Call CreeperIgniteEvent
- 
-     public boolean isIgnited() {
-         return this.entityData.get(DATA_IS_IGNITED);
-     }
- 
++
      public void ignite() {
 -        this.entityData.set(DATA_IS_IGNITED, true);
 +        setIgnited(true); // Paper - Call CreeperIgniteEvent

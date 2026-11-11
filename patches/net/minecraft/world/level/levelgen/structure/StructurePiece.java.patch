@@ -22,11 +22,13 @@
                  FluidState fluidState = level.getFluidState(pos);
                  if (!fluidState.isEmpty()) {
                      level.scheduleTick(pos, fluidState.getType(), 0);
-@@ -198,6 +_,38 @@
+@@ -198,6 +_,48 @@
          }
      }
  
 +    // CraftBukkit start
++    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
++
 +    protected boolean placeCraftBlockEntity(ServerLevelAccessor worldAccess, BlockPos position, org.bukkit.craftbukkit.block.CraftBlockEntityState<?> craftBlockEntityState, int i) {
 +        if (worldAccess instanceof org.bukkit.craftbukkit.util.TransformerLevelAccessor transformerAccess) {
 +            return transformerAccess.setCraftBlock(position, craftBlockEntityState, i);
@@ -34,7 +36,15 @@
 +        boolean result = worldAccess.setBlock(position, craftBlockEntityState.getHandle(), i);
 +        BlockEntity tileEntity = worldAccess.getBlockEntity(position);
 +        if (tileEntity != null) {
-+            tileEntity.loadWithComponents(craftBlockEntityState.getSnapshotInput());
++            try (final net.minecraft.util.ProblemReporter.ScopedCollector problemReporter = new net.minecraft.util.ProblemReporter.ScopedCollector(
++                () -> "StructurePieceTranformers@" + position.toShortString(), LOGGER
++            )) {
++                tileEntity.loadWithComponents(net.minecraft.world.level.storage.TagValueInput.create(
++                    problemReporter,
++                    worldAccess.registryAccess(),
++                    craftBlockEntityState.getSnapshotNBT()
++                ));
++            }
 +        }
 +        return result;
 +    }

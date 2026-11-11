@@ -600,7 +600,7 @@
          int selection = packet.getItem();
          if (this.player.containerMenu instanceof MerchantMenu menu) {
 +            // CraftBukkit start
-+            final org.bukkit.event.inventory.TradeSelectEvent tradeSelectEvent = CraftEventFactory.callTradeSelectEvent(this.player, selection, menu);
++            final org.bukkit.event.inventory.TradeSelectEvent tradeSelectEvent = CraftEventFactory.callTradeSelectEvent(selection, menu);
 +            if (tradeSelectEvent.isCancelled()) {
 +                this.player.getBukkitEntity().updateInventory();
 +                return;
@@ -1416,7 +1416,7 @@
 +        }
 +    }
 +
-+    private void handleCommand(String s) {
++    public void handleCommand(String s) {
 +        if ( org.spigotmc.SpigotConfig.logCommands ) // Spigot
 +        this.LOGGER.info(this.player.getScoreboardName() + " issued server command: " + s);
 +
@@ -1482,7 +1482,7 @@
              this.disconnect(Component.translatable("disconnect.spam"));
          }
      }
-@@ -1693,6 +_,42 @@
+@@ -1693,6 +_,41 @@
      public void handleAnimate(ServerboundSwingPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
          this.player.resetLastActionTime();
@@ -1507,8 +1507,7 @@
 +        } else if (this.player.gameMode.getGameModeForPlayer() == GameType.ADVENTURE) {
 +            Block block = result.getHitBlock();
 +            if (block != null) {
-+                Vector hitPosition = result.getHitPosition().subtract(block.getLocation().toVector());
-+                CraftEventFactory.callPlayerInteractEvent(this.player, Action.LEFT_CLICK_BLOCK, block, result.getHitBlockFace(), this.player.getInventory().getSelectedItem(), true, InteractionHand.MAIN_HAND, hitPosition);
++                CraftEventFactory.callPlayerInteractEvent(this.player, Action.LEFT_CLICK_BLOCK, ((org.bukkit.craftbukkit.block.CraftBlock) block).getPosition(), org.bukkit.craftbukkit.block.CraftBlock.blockFaceToNotch(result.getHitBlockFace()), this.player.getInventory().getSelectedItem(), true, InteractionHand.MAIN_HAND, org.bukkit.craftbukkit.util.CraftVector.toVec3(result.getHitPosition()));
 +            }
 +        }
 +
@@ -1688,11 +1687,19 @@
                      }
                  }
                  break;
-@@ -1919,15 +_,18 @@
+@@ -1918,16 +_,26 @@
+ 
      @Override
      public void handleContainerClose(ServerboundContainerClosePacket packet) {
++        // Paper start - Inventory close reason
++        this.handleContainerClose(packet, org.bukkit.event.inventory.InventoryCloseEvent.Reason.PLAYER);
++    }
++
++    public void handleContainerClose(ServerboundContainerClosePacket packet, org.bukkit.event.inventory.InventoryCloseEvent.Reason reason) {
++        // Paper end - Inventory close reason
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
 +        if (this.player.isImmobile()) return; // CraftBukkit
++        CraftEventFactory.handleInventoryCloseEvent(this.player, reason); // CraftBukkit // Paper
          this.player.doCloseContainer();
      }
  

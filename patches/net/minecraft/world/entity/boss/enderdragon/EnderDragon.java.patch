@@ -173,15 +173,15 @@
 +                CraftBlock craftBlock = ((CraftBlock) block);
 +                BlockPos blockpos = craftBlock.getPosition();
 +
-+                Block nmsBlock = craftBlock.getNMS().getBlock();
++                Block nmsBlock = craftBlock.getBlockState().getBlock();
 +                if (nmsBlock.dropFromExplosion(explosionSource)) {
-+                    BlockEntity blockentity = craftBlock.getNMS().hasBlockEntity() ? this.level().getBlockEntity(blockpos) : null;
++                    BlockEntity blockentity = craftBlock.getBlockState().hasBlockEntity() ? this.level().getBlockEntity(blockpos) : null;
 +                    LootParams.Builder loottableinfo_builder = (new LootParams.Builder((ServerLevel) this.level())).withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(blockpos)).withParameter(LootContextParams.TOOL, ItemStack.EMPTY).withParameter(LootContextParams.EXPLOSION_RADIUS, 1.0F / event.getYield()).withOptionalParameter(LootContextParams.BLOCK_ENTITY, blockentity);
 +
-+                    craftBlock.getNMS().getDrops(loottableinfo_builder).forEach((itemstack) -> {
++                    craftBlock.getBlockState().getDrops(loottableinfo_builder).forEach((itemstack) -> {
 +                        Block.popResource(this.level(), blockpos, itemstack);
 +                    });
-+                    craftBlock.getNMS().spawnAfterBreak((ServerLevel) this.level(), blockpos, ItemStack.EMPTY, false);
++                    craftBlock.getBlockState().spawnAfterBreak((ServerLevel) this.level(), blockpos, ItemStack.EMPTY, false);
 +                }
 +                nmsBlock.wasExploded((ServerLevel) this.level(), blockpos, explosionSource);
 +

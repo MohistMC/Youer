@@ -91,4 +91,8 @@ public interface CraftRecipe extends Recipe {
     static CookingBookCategory getCategory(net.minecraft.world.item.crafting.CookingBookCategory internal) {
         return CookingBookCategory.valueOf(internal.name());
     }
+
+    static net.minecraft.resources.ResourceKey<net.minecraft.world.item.crafting.Recipe<?>> toMinecraft(org.bukkit.NamespacedKey key) {
+        return net.minecraft.resources.ResourceKey.create(Registries.RECIPE, org.bukkit.craftbukkit.util.CraftNamespacedKey.toMinecraft(key));
+    }
 }

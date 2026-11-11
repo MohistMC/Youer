@@ -1345,9 +1345,7 @@ public final class CraftServer implements Server {
             genSettingsFinal,
             creator.environment(),
             chunkGenerator,
-            biomeProvider,
-            loadedWorldData.bukkitName(),
-            actualDimension
+            biomeProvider
         );
 
         if (!(this.worlds.containsKey(name.toLowerCase(Locale.ROOT)))) {

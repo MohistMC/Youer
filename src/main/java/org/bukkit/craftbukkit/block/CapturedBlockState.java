@@ -80,4 +80,9 @@ public final class CapturedBlockState extends CraftBlockState {
     public static CapturedBlockState getBlockState(Level world, BlockPos pos, @net.minecraft.world.level.block.Block.UpdateFlags int flags) {
         return new CapturedBlockState(CraftBlock.at(world, pos), flags, false);
     }
+
+    public static void setBlockState(org.bukkit.block.BlockState blockState) {
+        CraftBlockState craftBlockState = (CraftBlockState) blockState;
+        craftBlockState.place(craftBlockState.getFlags());
+    }
 }

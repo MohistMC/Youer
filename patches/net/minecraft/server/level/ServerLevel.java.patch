@@ -121,7 +121,7 @@
      private final SleepStatus sleepStatus;
      private int emptyTime;
      private final PortalForcer portalForcer;
-@@ -215,44 +_,335 @@
+@@ -215,44 +_,342 @@
      private boolean handlingTick;
      private final List<CustomSpawner> customSpawners;
      private @Nullable EnderDragonFight dragonFight;
@@ -141,6 +141,7 @@
 +    // CraftBukkit start
 +    public final LevelStorageSource.LevelStorageAccess storageSource;
 +    public final UUID uuid;
++    public final String bukkitName; // CraftBukkit
 +    public java.util.ArrayDeque<net.minecraft.world.level.block.RedstoneTorchBlock.Toggle> redstoneUpdateInfos; // Paper - Faster redstone torch rapid clock removal
 +    // Moved from MinecraftServer start
 +    private final SavedDataStorage savedDataStorage;
@@ -417,6 +418,12 @@
 +            spigotConfig -> server.paperConfigurations.createWorldConfig(io.papermc.paper.configuration.PaperConfigurations.createWorldContextMap(server.storageSource.getDimensionPath(dimension), dimension.identifier(), spigotConfig, server.registryAccess(), gameRules)), executor); // Paper - create paper world configs // Paper - Anti-Xray - Pass executor
 +        storageSource = levelStorage;
 +        uuid = WorldUUID.getUUID(levelStorage.levelDirectory.path().toFile());
++        // CraftBukkit start - world name
++        final String levelId = levelStorage.getLevelId();
++        final String worldType = (dimension != Level.OVERWORLD && dimension != Level.NETHER && dimension != Level.END)
++            ? dimension.identifier().getNamespace() + "_" + dimension.identifier().getPath()
++            : env.toString().toLowerCase(java.util.Locale.ROOT);
++        this.bukkitName = dimension == Level.OVERWORLD ? levelId : levelId + "_" + worldType;
 +        // CraftBukkit end
          this.tickTime = tickTime;
          this.server = server;
@@ -444,7 +451,7 @@
 +
 +        weatherData.setWorld(this);
 +        if (biomeProvider != null) {
-+            BiomeSource worldChunkManager = new CustomWorldChunkManager(getWorld(), biomeProvider, server.registryAccess().lookupOrThrow(Registries.BIOME));
++            BiomeSource worldChunkManager = new CustomWorldChunkManager(getWorld(), biomeProvider, generator.getBiomeSource()); // Paper - add vanillaBiomeProvider
 +            if (generator instanceof NoiseBasedChunkGenerator cga) {
 +                generator = new NoiseBasedChunkGenerator(worldChunkManager, cga.settings);
 +            } else if (generator instanceof FlatLevelSource cpf) {
@@ -772,7 +779,7 @@
          if (biome.shouldFreeze(this, belowPos)) {
 +            this.callEvent(true);
              this.setBlockAndUpdate(belowPos, Blocks.ICE.defaultBlockState());
-+            org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(this, belowPos, this.youer$defaultBlockState, null); // CraftBukkit
++            org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(this, belowPos, Blocks.ICE.defaultBlockState()); // CraftBukkit
          }
  
          if (this.isRaining()) {
@@ -782,12 +789,12 @@
                          Block.pushEntitiesUp(state, newState, this, topPos);
 +                        this.callEvent(true);
                          this.setBlockAndUpdate(topPos, newState);
-+                        CraftEventFactory.handleBlockFormEvent(this, topPos, this.youer$defaultBlockState, null); // CraftBukkit
++                        CraftEventFactory.handleBlockFormEvent(this, topPos, newState); // CraftBukkit
                      }
                  } else {
 +                    this.callEvent(true);
                      this.setBlockAndUpdate(topPos, Blocks.SNOW.defaultBlockState());
-+                    CraftEventFactory.handleBlockFormEvent(this, topPos, this.youer$defaultBlockState, null); // CraftBukkit
++                    CraftEventFactory.handleBlockFormEvent(this, topPos, Blocks.SNOW.defaultBlockState()); // CraftBukkit
                  }
              }
  
@@ -1408,7 +1415,7 @@
          this.neighborUpdater.updateNeighborsAtExceptFromFacing(pos, blockObject, skipDirection, orientation);
      }
  
-@@ -1191,18 +_,33 @@
+@@ -1191,18 +_,38 @@
          WeightedList<ExplosionParticleInfo> blockParticles,
          Holder<SoundEvent> explosionSound
      ) {
@@ -1417,6 +1424,10 @@
 +    }
 +
 +    public ServerExplosion explode0(@Nullable Entity source, @Nullable DamageSource damageSource, @Nullable ExplosionDamageCalculator damageCalculator, double x, double y, double z, float r, boolean fire, Level.ExplosionInteraction interactionType, ParticleOptions smallExplosionParticles, ParticleOptions largeExplosionParticles, WeightedList<ExplosionParticleInfo> blockParticles, Holder<SoundEvent> explosionSound) {
++        return this.explode0(source, damageSource, damageCalculator, x, y, z, r, fire, interactionType, smallExplosionParticles, largeExplosionParticles, blockParticles, explosionSound, null);
++    }
++
++    public ServerExplosion explode0(@Nullable Entity source, @Nullable DamageSource damageSource, @Nullable ExplosionDamageCalculator damageCalculator, double x, double y, double z, float r, boolean fire, Level.ExplosionInteraction interactionType, ParticleOptions smallExplosionParticles, ParticleOptions largeExplosionParticles, WeightedList<ExplosionParticleInfo> blockParticles, Holder<SoundEvent> explosionSound, java.util.function.@Nullable Consumer<ServerExplosion> configurator) {
 +        // CraftBukkit end
          Explosion.BlockInteraction blockInteraction = switch (interactionType) {
              case NONE -> Explosion.BlockInteraction.KEEP;
@@ -1433,6 +1444,7 @@
          };
          Vec3 center = new Vec3(x, y, z);
          ServerExplosion explosion = new ServerExplosion(this, source, damageSource, damageCalculator, center, r, fire, blockInteraction);
++        if (configurator != null) configurator.accept(explosion); // Paper - Allow explosions to damage source
 +        if (net.neoforged.neoforge.event.EventHooks.onExplosionStart(this, explosion)) return explosion;
          int blockCount = explosion.explode();
 +        // CraftBukkit start
@@ -1451,18 +1463,22 @@
      }
  
      private Explosion.BlockInteraction getDestroyType(GameRule<Boolean> gameRule) {
-@@ -1281,6 +_,24 @@
+@@ -1281,6 +_,28 @@
          return this.sendParticles(particle, false, false, x, y, z, count, xDist, yDist, zDist, speed);
      }
  
 +    // CraftBukkit start - visibility api support
 +    public <T extends ParticleOptions> int sendParticlesSource(ServerPlayer sender, T particle, boolean overrideLimiter, boolean alwaysShow, double x, double y, double z, int count, double xDist, double yDist, double zDist, double speed) {
++        return this.sendParticlesSource(this.players, sender, particle, overrideLimiter, alwaysShow, x, y, z, count, xDist, yDist, zDist, speed);
++    }
++
++    public <T extends ParticleOptions> int sendParticlesSource(List<ServerPlayer> receivers, @Nullable ServerPlayer sender, T particle, boolean overrideLimiter, boolean alwaysShow, double x, double y, double z, int count, double xDist, double yDist, double zDist, double speed) {
 +        // CraftBukkit end
 +        ClientboundLevelParticlesPacket clientboundlevelparticlespacket = new ClientboundLevelParticlesPacket(particle, overrideLimiter, alwaysShow, x, y, z, (float) xDist, (float) yDist, (float) zDist, (float) speed, count);
 +        int j = 0;
 +
-+        for (int k = 0; k < this.players.size(); ++k) {
-+            ServerPlayer serverplayer = (ServerPlayer) this.players.get(k);
++        for (int k = 0; k < receivers.size(); ++k) {
++            ServerPlayer serverplayer = receivers.get(k);
 +            if (sender != null && !serverplayer.getBukkitEntity().canSee(sender.getBukkitEntity())) continue; // CraftBukkit
 +
 +            if (this.sendParticles(serverplayer, overrideLimiter, x, y, z, clientboundlevelparticlespacket)) {
@@ -1610,13 +1626,42 @@
              this.blockEntityTickers.size(),
              getTypeCount(this.blockEntityTickers, TickingBlockEntity::getType),
              this.getBlockTicks().count(),
-@@ -1695,15 +_,25 @@
+@@ -1695,15 +_,53 @@
  
      @Override
      public LevelEntityGetter<Entity> getEntities() {
 -        return this.entityManager.getEntityGetter();
+-    }
 +        return this.moonrise$getEntityLookup(); // Paper - rewrite chunk system
-     }
++    }
++
++    // Paper start - rewrite chunk system
++    public org.bukkit.entity.Entity[] getChunkEntities(int chunkX, int chunkZ) {
++        ca.spottedleaf.moonrise.patches.chunk_system.level.entity.ChunkEntitySlices slices = this.moonrise$getEntityLookup().getChunk(chunkX, chunkZ);
++        if (slices == null) {
++            return new org.bukkit.entity.Entity[0];
++        }
++
++        List<org.bukkit.entity.Entity> ret = new java.util.ArrayList<>();
++        for (Entity entity : slices.getAllEntities()) {
++            org.bukkit.entity.Entity bukkit = entity.getBukkitEntity();
++            if (bukkit != null && bukkit.isValid()) {
++                ret.add(bukkit);
++            }
++        }
++
++        return ret.toArray(new org.bukkit.entity.Entity[0]);
++    }
++    // Paper end - rewrite chunk system
++
++    // Paper start - notify observers even if grow failed
++    @Deprecated
++    public void checkCapturedTreeStateForObserverNotify(final BlockPos pos, final org.bukkit.craftbukkit.block.CraftBlockState craftBlockState) {
++        if (craftBlockState.getPosition().getY() == pos.getY() && this.getBlockState(craftBlockState.getPosition()) == craftBlockState.getHandle()) {
++            this.notifyAndUpdatePhysics(craftBlockState.getPosition(), null, craftBlockState.getHandle(), craftBlockState.getHandle(), craftBlockState.getHandle(), craftBlockState.getFlags(), 512);
++        }
++    }
++    // Paper end - notify observers even if grow failed
  
      public void addLegacyChunkEntities(Stream<Entity> loaded) {
 -        this.entityManager.addLegacyChunkEntities(loaded);

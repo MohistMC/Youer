@@ -240,6 +240,18 @@ public enum InventoryType {
         return isCreatable;
     }
 
+    // Youer start - mod inventory flag
+    private boolean mods;
+
+    public boolean isMods() {
+        return mods;
+    }
+
+    public void setMods(boolean mods) {
+        this.mods = mods;
+    }
+    // Youer end
+
     public enum SlotType {
         /**
          * A result slot in a furnace or crafting inventory.

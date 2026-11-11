@@ -110,6 +110,10 @@ public class EntityUnleashEvent extends EntityEvent implements Cancellable {
          * When the leashholder shears the leash off
          */
         SHEAR,
+        /**
+         * When the leashholder uses a firework rocket while leashed
+         */
+        FIREWORK,
         UNKNOWN;
     }
 }

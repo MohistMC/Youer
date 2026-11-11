@@ -1441,12 +1441,13 @@ public class CraftEventFactory {
         return CraftItemStack.asNMSCopy(event.getInventory().getResult());
     }
 
-    public static CrafterCraftEvent callCrafterCraftEvent(BlockPos pos, Level level, ItemStack result, RecipeHolder<net.minecraft.world.item.crafting.CraftingRecipe> holder) {
+    public static CrafterCraftEvent callCrafterCraftEvent(BlockPos pos, Level level, net.minecraft.world.level.block.entity.CrafterBlockEntity blockEntity, ItemStack result, List<ItemStack> remainingItems, RecipeHolder<net.minecraft.world.item.crafting.CraftingRecipe> holder) {
         CraftBlock block = CraftBlock.at(level, pos);
         CraftItemStack itemStack = CraftItemStack.asCraftMirror(result);
         CraftingRecipe craftingRecipe = (CraftingRecipe) holder.toBukkitRecipe();
+        List<org.bukkit.inventory.ItemStack> bukkitRemainingItems = remainingItems.stream().map(CraftItemStack::asCraftMirror).collect(java.util.stream.Collectors.toList());
 
-        CrafterCraftEvent crafterCraftEvent = new CrafterCraftEvent(block, craftingRecipe, itemStack);
+        CrafterCraftEvent crafterCraftEvent = new CrafterCraftEvent(block, craftingRecipe, itemStack, bukkitRemainingItems);
         Bukkit.getPluginManager().callEvent(crafterCraftEvent);
         return crafterCraftEvent;
     }
@@ -1695,6 +1696,30 @@ public class CraftEventFactory {
         PlayerLeashEntityEvent event = new PlayerLeashEntityEvent(entity.getBukkitEntity(), leashHolder.getBukkitEntity(), (Player) player.getBukkitEntity(), CraftEquipmentSlot.getHand(hand));
         entity.level().getCraftServer().getPluginManager().callEvent(event);
         return event;
+    }
+
+    public static PlayerUnleashEntityEvent callPlayerUnleashEntityEvent(Entity entity, net.minecraft.world.entity.player.Player player, InteractionHand hand) {
+        PlayerUnleashEntityEvent event = new PlayerUnleashEntityEvent(entity.getBukkitEntity(), (Player) player.getBukkitEntity(), CraftEquipmentSlot.getHand(hand));
+        entity.level().getCraftServer().getPluginManager().callEvent(event);
+        return event;
+    }
+
+    public static org.bukkit.event.entity.EntityTargetBlockEvent callEntityTargetBlockEvent(Entity entity, Level level, BlockPos pos) {
+        org.bukkit.event.entity.EntityTargetBlockEvent event = new org.bukkit.event.entity.EntityTargetBlockEvent(entity.getBukkitEntity(), pos == null ? null : CraftBlock.at(level, pos));
+        level.getCraftServer().getPluginManager().callEvent(event);
+        return event;
+    }
+
+    public static org.bukkit.event.block.BlockBrushEvent callBlockBrushEvent(ServerLevel level, BlockPos pos, net.minecraft.world.level.block.state.BlockState newState, int updateFlags, ServerPlayer player) {
+        org.bukkit.event.block.BlockBrushEvent event = new org.bukkit.event.block.BlockBrushEvent(CraftBlock.at(level, pos), CraftBlockStates.getBlockState(level.getWorld(), pos, newState, null), (Player) player.getBukkitEntity());
+        level.getCraftServer().getPluginManager().callEvent(event);
+        return event;
+    }
+
+    public static void callPlayerCustomClickEvent(net.minecraft.resources.Identifier id, java.util.Optional<net.minecraft.nbt.Tag> payload, ServerPlayer player) {
+        if (player == null) return;
+        io.papermc.paper.event.player.PaperPlayerCustomClickEvent event = new io.papermc.paper.event.player.PaperPlayerCustomClickEvent(io.papermc.paper.adventure.PaperAdventure.asAdventure(id), player.connection.getApiConnection(), payload.orElse(null));
+        event.callEvent();
     }
 
     public static boolean callPlayerRiptideEvent(net.minecraft.world.entity.player.Player player, ItemStack tridentItemStack, float velocityX, float velocityY, float velocityZ) {

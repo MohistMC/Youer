@@ -50,7 +50,7 @@
 +        // SPIGOT-7746: Entity will only be null during world generation, which is async, so just generate without event
 +        if (entity != null) {
 +            org.bukkit.World bworld = newLevel.getLevel().getWorld();
-+            PortalCreateEvent portalEvent = new PortalCreateEvent((List<BlockState>) (List) blockList.getList(), bworld, entity.getBukkitEntity(), org.bukkit.event.world.PortalCreateEvent.CreateReason.END_PLATFORM);
++            PortalCreateEvent portalEvent = new PortalCreateEvent((List<BlockState>) (List) blockList.getSnapshotBlocks(), bworld, entity.getBukkitEntity(), org.bukkit.event.world.PortalCreateEvent.CreateReason.END_PLATFORM);
 +
 +            newLevel.getLevel().getCraftServer().getPluginManager().callEvent(portalEvent);
 +            if (portalEvent.isCancelled()) {
@@ -60,9 +60,9 @@
 +
 +        // SPIGOT-7856: End platform not dropping items after replacing blocks
 +        if (dropResources) {
-+            blockList.getList().forEach((state) -> newLevel.destroyBlock(state.getPosition(), true, null));
++            blockList.getSnapshotBlocks().forEach((state) -> newLevel.destroyBlock(state.getPosition(), true, null));
 +        }
-+        blockList.updateList();
++        blockList.placeBlocks();
 +        // CraftBukkit end
      }
  }

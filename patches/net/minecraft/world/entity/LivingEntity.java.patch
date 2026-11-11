@@ -96,7 +96,7 @@
 +
 +    // CraftBukkit start
 +    public int expToDrop;
-+    public ArrayList<org.bukkit.inventory.ItemStack> drops = new ArrayList<org.bukkit.inventory.ItemStack>();
++    public java.util.List<Entity.DefaultDrop> drops = new ArrayList<>(); // Paper - Restore vanilla drops behavior
 +    public final org.bukkit.craftbukkit.attribute.CraftAttributeMap craftAttributes;
 +    public boolean collides = true;
 +    public Set<UUID> collidableExemptions = new HashSet<>();
@@ -217,24 +217,29 @@
          this.activeEffects.clear();
      }
  
-@@ -755,6 +_,12 @@
+@@ -755,6 +_,16 @@
      }
  
      public @Nullable ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand) {
 +        // CraftBukkit start - SPIGOT-2942: Add boolean to call event
-+        return drop(itemStack, randomly, thrownFromHand, true);
++        return drop(itemStack, randomly, thrownFromHand, true, null);
 +    }
 +
 +    public @Nullable ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand, boolean callEvent) {
-+        // CraftBukkit end
++        return drop(itemStack, randomly, thrownFromHand, callEvent, null);
++    }
++
++    public @Nullable ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand, boolean callEvent, java.util.function.@Nullable Consumer<org.bukkit.entity.Item> entityOperation) {
++        // CraftBukkit end // Paper - Extend dropItem API
          if (itemStack.isEmpty()) {
              return null;
          } else if (this.level().isClientSide()) {
-@@ -763,7 +_,36 @@
+@@ -763,7 +_,37 @@
          } else {
              ItemEntity entity = this.createItemStackToDrop(itemStack, randomly, thrownFromHand);
              if (entity != null) {
 -                this.level().addFreshEntity(entity);
++                if (entityOperation != null) entityOperation.accept((org.bukkit.entity.Item) entity.getBukkitEntity()); // Paper - Extend dropItem API
 +                if (captureDrops() != null) {
 +                    captureDrops().add(entity);
 +                } else {
@@ -682,6 +687,21 @@
                  this.hurtDuration = 10;
                  this.hurtTime = this.hurtDuration;
              }
+@@ -1234,12 +_,9 @@
+ 
+             if (this.isDeadOrDying()) {
+                 if (!this.checkTotemDeathProtection(source)) {
+-                    if (tookFullDamage) {
+-                        this.makeSound(this.getDeathSound());
+-                        this.playSecondaryHurtSound(source);
+-                    }
+-
++                    this.silentDeath = !tookFullDamage; // Paper - moved into CraftEventFactory event caller for configurable death event
+                     this.die(source);
++                    this.silentDeath = true; // Paper
+                 }
+             } else if (tookFullDamage) {
+                 this.playHurtSound(source);
 @@ -1267,11 +_,21 @@
                  CriteriaTriggers.PLAYER_HURT_ENTITY.trigger(sourcePlayer, this, source, damage, damage, blocked);
              }
@@ -781,7 +801,7 @@
  
      protected void blockedByItem(LivingEntity defender) {
 -        defender.knockback(0.5, defender.getX() - this.getX(), defender.getZ() - this.getZ());
-+        defender.knockback(0.5, defender.getX() - this.getX(), defender.getZ() - this.getZ(), this, org.bukkit.event.entity.EntityKnockbackEvent.KnockbackCause.SHIELD_BLOCK); // CraftBukkit
++        defender.knockback(0.5, defender.getX() - this.getX(), defender.getZ() - this.getZ(), this, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.SHIELD_BLOCK); // CraftBukkit
      }
  
      private boolean checkTotemDeathProtection(DamageSource killingDamage) {
@@ -838,8 +858,12 @@
  
              return protection != null;
          }
-@@ -1416,6 +_,8 @@
+@@ -1414,8 +_,12 @@
+         }
+     }
  
++    public boolean silentDeath = true; // Paper - mark entity as dying silently for cancellable death event
++
      public void die(DamageSource source) {
          if (!this.isRemoved() && !this.dead) {
 +            // Neo: Fire the LivingDeathEvent after validating that the entity isn't already dead, but before trying to kill it.
@@ -856,7 +880,15 @@
              }
  
              this.dead = true;
-@@ -1451,17 +_,25 @@
+@@ -1437,6 +_,7 @@
+                 if (sourceEntity == null || sourceEntity.killedEntity(serverLevel, this, source)) {
+                     this.gameEvent(GameEvent.ENTITY_DIE);
+                     this.dropAllDeathLoot(serverLevel, source);
++                    this.postDeathEventCallback(); // Paper - post death event hook
+                     this.createWitherRose(killer);
+                 }
+ 
+@@ -1451,45 +_,75 @@
          if (this.level() instanceof ServerLevel serverLevel) {
              boolean var6 = false;
              if (killer instanceof WitherBoss) {
@@ -877,7 +909,7 @@
                      ItemEntity itemEntity = new ItemEntity(this.level(), this.getX(), this.getY(), this.getZ(), new ItemStack(Items.WITHER_ROSE));
 +                    // CraftBukkit start
 +                    org.bukkit.event.entity.EntityDropItemEvent event = new org.bukkit.event.entity.EntityDropItemEvent(this.getBukkitEntity(), (org.bukkit.entity.Item) itemEntity.getBukkitEntity());
-+                    CraftEventFactory.callEvent(event);
++                    event.callEvent();
 +                    if (event.isCancelled()) {
 +                        return;
 +                    }
@@ -885,10 +917,11 @@
                      this.level().addFreshEntity(itemEntity);
                  }
              }
-@@ -1469,27 +_,45 @@
+         }
      }
  
-     protected void dropAllDeathLoot(ServerLevel level, DamageSource source) {
+-    protected void dropAllDeathLoot(ServerLevel level, DamageSource source) {
++    protected org.bukkit.event.entity.EntityDeathEvent dropAllDeathLoot(ServerLevel level, DamageSource source) {
 +        this.captureDrops(new java.util.ArrayList<>());
          boolean playerKilled = this.lastHurtByPlayerMemoryTime > 0;
 +
@@ -898,7 +931,7 @@
              this.dropCustomDeathLoot(level, source, playerKilled);
          }
 +        // CraftBukkit start - Call death event
-+        CraftEventFactory.callEntityDeathEvent(this, source, this.drops);
++        org.bukkit.event.entity.EntityDeathEvent event = CraftEventFactory.callEntityDeathEvent(this, source, this.drops);
 +        this.drops = new ArrayList<>();
 +        // CraftBukkit end
  
@@ -909,11 +942,15 @@
 +        Collection<ItemEntity> drops = captureDrops(null);
 +        if (!net.neoforged.neoforge.common.CommonHooks.onLivingDrops(this, source, drops, lastHurtByPlayerMemoryTime > 0))
 +            drops.forEach(e -> level().addFreshEntity(e));
++        return event; // Paper - make cancellable
      }
  
      protected void dropEquipment(ServerLevel level) {
      }
  
++    protected void postDeathEventCallback() { // Paper - post death event hook
++    }
++
 +    public int getExpReward(ServerLevel level, @Nullable Entity entity) { // CraftBukkit
 +        if (!this.wasExperienceConsumed() && (this.isAlwaysExperienceDropper() || this.lastHurtByPlayerMemoryTime > 0 && this.shouldDropExperience() && (Boolean) level.getGameRules().get(GameRules.MOB_DROPS))) {
 +            return this.getExperienceReward(level, entity); // CraftBukkit
@@ -1515,7 +1552,7 @@
      public void causeExtraKnockback(Entity target, float knockback, Vec3 oldMovement) {
          if (knockback > 0.0F && target instanceof LivingEntity livingTarget) {
 -            livingTarget.knockback(knockback, Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)), -Mth.cos(this.getYRot() * (float) (Math.PI / 180.0)));
-+            livingTarget.knockback(knockback, Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)), -Mth.cos(this.getYRot() * (float) (Math.PI / 180.0)), target, org.bukkit.event.entity.EntityKnockbackEvent.KnockbackCause.ENTITY_ATTACK); // CraftBukkit
++            livingTarget.knockback(knockback, Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)), -Mth.cos(this.getYRot() * (float) (Math.PI / 180.0)), target, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.ENTITY_ATTACK); // CraftBukkit
              this.setDeltaMovement(this.getDeltaMovement().multiply(0.6, 1.0, 0.6));
          }
      }
@@ -1592,7 +1629,7 @@
                  this.setSharedFlag(7, false);
                  return;
              }
-@@ -3261,13 +_,28 @@
+@@ -3261,13 +_,27 @@
  
      @Override
      public boolean isPickable() {
@@ -1600,9 +1637,8 @@
 +        return !this.isRemoved() && this.collides; // CraftBukkit
      }
  
-+    @Override
-+    // Paper start - Climbing should not bypass cramming gamerule
      @Override
++    // Paper start - Climbing should not bypass cramming gamerule
      public boolean isPushable() {
 -        return this.isAlive() && !this.isSpectator() && !this.onClimbable();
 -    }

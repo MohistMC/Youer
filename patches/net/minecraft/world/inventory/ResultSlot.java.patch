@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/inventory/ResultSlot.java
 +++ b/net/minecraft/world/inventory/ResultSlot.java
+@@ -7,6 +_,7 @@
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.crafting.CraftingInput;
+ import net.minecraft.world.item.crafting.CraftingRecipe;
++import net.minecraft.world.item.crafting.RecipeHolder;
+ import net.minecraft.world.item.crafting.RecipeType;
+ import net.minecraft.world.level.Level;
+ 
 @@ -39,6 +_,11 @@
      protected void onQuickCraft(ItemStack picked, int count) {
          this.removeCount += count;
@@ -20,12 +28,15 @@
          }
  
          if (this.container instanceof RecipeCraftingHolder recipeCraftingHolder) {
-@@ -72,7 +_,7 @@
+@@ -70,9 +_,10 @@
+     }
+ 
      private NonNullList<ItemStack> getRemainingItems(CraftingInput input, Level level) {
++        RecipeHolder<?> currentRecipe = this.craftSlots.getCurrentRecipe(); // CraftBukkit - getCurrentRecipe() returns RecipeHolder<?>; use its key for the typed hint overload
          return level instanceof ServerLevel serverLevel
              ? serverLevel.recipeAccess()
 -                .getRecipeFor(RecipeType.CRAFTING, input, serverLevel)
-+                .getRecipeFor(RecipeType.CRAFTING, input, serverLevel, this.craftSlots.getCurrentRecipe()) // Paper - Perf: Improve mass crafting; check last recipe used first
++                .getRecipeFor(RecipeType.CRAFTING, input, serverLevel, currentRecipe != null ? currentRecipe.id() : null) // Paper - Perf: Improve mass crafting; check last recipe used first
                  .map(recipe -> recipe.value().getRemainingItems(input))
                  .orElseGet(() -> copyAllInputItems(input))
              : CraftingRecipe.defaultCraftingReminder(input);

@@ -155,6 +155,11 @@ public interface InventoryView {
     @NotNull
     public HumanEntity getPlayer();
 
+    // Youer start
+    default void setPlayer(HumanEntity player) {
+    }
+    // Youer end
+
     /**
      * Determine the type of inventory involved in the transaction. This
      * indicates the window style being shown. It will never return PLAYER,

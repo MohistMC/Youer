@@ -138,16 +138,21 @@
      }
  
      public boolean isBroken() {
-@@ -443,13 +_,37 @@
+@@ -443,16 +_,48 @@
      }
  
      public void hurtAndBreak(int amount, ServerLevel level, @Nullable ServerPlayer player, Consumer<Item> onBreak) {
+-        int newAmount = this.processDurabilityChange(amount, level, player);
 +        this.hurtAndBreak(amount, level, (LivingEntity) player, onBreak);
 +    }
 +
 +    public void hurtAndBreak(int amount, ServerLevel level, @Nullable LivingEntity player, Consumer<Item> onBreak) {
++        this.hurtAndBreak(amount, level, player, onBreak, false); // Paper - add force boolean overload
++    }
++
++    public void hurtAndBreak(int amount, ServerLevel level, @Nullable LivingEntity player, Consumer<Item> onBreak, boolean force) { // Paper - add force boolean overload
 +        amount = getItem().damageItem(this, amount, player, onBreak);
-         int newAmount = this.processDurabilityChange(amount, level, player);
++        int newAmount = this.processDurabilityChange(amount, level, player, force);
 +        // CraftBukkit start
 +        if (player instanceof ServerPlayer serverplayer) {
 +            PlayerItemDamageEvent event = new PlayerItemDamageEvent(serverplayer.getBukkitEntity(), CraftItemStack.asCraftMirror(this), newAmount);
@@ -173,9 +178,17 @@
 +    }
 +
 +    private int processDurabilityChange(int amount, ServerLevel level, @Nullable LivingEntity player) {
++        return this.processDurabilityChange(amount, level, player, false); // Paper - add force boolean overload
++    }
++
++    private int processDurabilityChange(int amount, ServerLevel level, @Nullable LivingEntity player, boolean force) { // Paper - add force boolean overload
          if (!this.isDamageableItem()) {
              return 0;
-         } else if (player != null && player.hasInfiniteMaterials()) {
+-        } else if (player != null && player.hasInfiniteMaterials()) {
++        } else if (player != null && player.hasInfiniteMaterials() && !force) {
+             return 0;
+         } else {
+             return amount > 0 ? EnchantmentHelper.processDurabilityChange(level, this, amount) : amount;
 @@ -460,13 +_,22 @@
      }
  
@@ -201,12 +214,18 @@
              this.shrink(1);
              onBreak.accept(item);
          }
-@@ -491,7 +_,7 @@
+@@ -489,9 +_,13 @@
+     }
+ 
      public void hurtAndBreak(int amount, LivingEntity owner, EquipmentSlot slot) {
++        this.hurtAndBreak(amount, owner, slot, false); // Paper - add param to skip infinite mats check
++    }
++
++    public void hurtAndBreak(int amount, LivingEntity owner, EquipmentSlot slot, boolean force) { // Paper - add param to skip infinite mats check
          if (owner.level() instanceof ServerLevel serverLevel) {
              this.hurtAndBreak(
 -                amount, serverLevel, owner instanceof ServerPlayer player ? player : null, brokenItem -> owner.onEquippedItemBroken(brokenItem, slot)
-+                amount, serverLevel, owner, brokenItem -> owner.onEquippedItemBroken(brokenItem, slot)
++                amount, serverLevel, owner, brokenItem -> owner.onEquippedItemBroken(brokenItem, slot), force
              );
          }
      }
@@ -379,7 +398,7 @@
      private void addAttributeTooltips(Consumer<Component> consumer, TooltipDisplay display, @Nullable Player player) {
          if (display.shows(DataComponents.ATTRIBUTE_MODIFIERS)) {
              for (EquipmentSlotGroup slot : EquipmentSlotGroup.values()) {
-@@ -980,22 +_,53 @@
+@@ -980,22 +_,63 @@
          return !this.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).isEmpty();
      }
  
@@ -427,6 +446,16 @@
 +    @Deprecated
 +    public void setItem(Holder<Item> item) {
 +        this.item = item;
++    }
++
++    public void setItem(Item item) {
++        this.bukkitStack = null;
++        this.item = item.builtInRegistryHolder();
++        // Paper start - change base component prototype
++        final DataComponentPatch patch = this.getComponentsPatch();
++        this.components = new PatchedDataComponentMap(this.item.components());
++        this.applyComponents(patch);
++        // Paper end - change base component prototype
 +    }
 +    // CraftBukkit end
 +

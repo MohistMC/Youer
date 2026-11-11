@@ -58,15 +58,13 @@
              LOGGER.warn("Block entity {} found in a wrong chunk, expected position from chunk {}", entityTag, base);
              x = base.getBlockX(SectionPos.sectionRelative(x));
              z = base.getBlockZ(SectionPos.sectionRelative(z));
-@@ -94,6 +_,13 @@
+@@ -94,6 +_,11 @@
      }
  
      protected void loadAdditional(ValueInput input) {
 +        this.persistentDataContainer = new CraftPersistentDataContainer(DATA_TYPE_REGISTRY);
 +
-+        input.child("PublicBukkitValues").ifPresent((persistentDataTag) -> {
-+            this.persistentDataContainer.putAll(persistentDataTag);
-+        });
++        input.read("PublicBukkitValues", CompoundTag.CODEC).ifPresent(this.persistentDataContainer::putAll); // Paper - store PDC
 +        input.read("NeoForgeData", CompoundTag.CODEC).ifPresent(neoData -> this.customPersistentData = neoData);
 +        input.child(ATTACHMENTS_NBT_KEY).ifPresent(attachments -> this.deserializeAttachments(attachments));
      }
@@ -90,7 +88,7 @@
          output.store("components", DataComponentMap.CODEC, this.components);
 +        // CraftBukkit start - store container
 +        if (this.persistentDataContainer != null && !this.persistentDataContainer.isEmpty()) {
-+            this.persistentDataContainer.store(output.child("PublicBukkitValues"));
++            output.store("PublicBukkitValues", CompoundTag.CODEC, this.persistentDataContainer.toTagCompound());
 +        }
 +        // CraftBukkit end
      }
@@ -102,7 +100,7 @@
          this.saveAdditional(output);
 +        // Paper start - store PDC here as well
 +        if (this.persistentDataContainer != null && !this.persistentDataContainer.isEmpty()) {
-+            this.persistentDataContainer.store(output.child("PublicBukkitValues"));
++            output.store("PublicBukkitValues", CompoundTag.CODEC, this.persistentDataContainer.toTagCompound());
 +        }
 +        // Paper end
      }
@@ -223,7 +221,7 @@
      protected void collectImplicitComponents(DataComponentMap.Builder components) {
      }
  
-@@ -352,10 +_,27 @@
+@@ -352,10 +_,32 @@
      public void registerDebugValues(ServerLevel level, DebugValueSource.Registration registration) {
      }
  
@@ -244,8 +242,13 @@
 +
 +    // CraftBukkit start - add method
 +    public InventoryHolder getOwner() {
++        return this.getOwner(true);
++    }
++
++    public InventoryHolder getOwner(boolean useSnapshot) {
 +        if (level == null) return null;
-+        org.bukkit.block.BlockState state = level.getWorld().getBlockAt(worldPosition.getX(), worldPosition.getY(), worldPosition.getZ()).getState();
++        org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(level, worldPosition);
++        org.bukkit.block.BlockState state = block.getState(useSnapshot);
 +        if (state instanceof InventoryHolder) return (InventoryHolder) state;
 +        return null;
 +    }

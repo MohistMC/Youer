@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/skeleton/Bogged.java
 +++ b/net/minecraft/world/entity/monster/skeleton/Bogged.java
-@@ -70,9 +_,15 @@
+@@ -70,9 +_,18 @@
      @Override
      protected InteractionResult mobInteract(Player player, InteractionHand hand) {
          ItemStack itemStack = player.getItemInHand(hand);
@@ -10,12 +10,15 @@
 +        if (false && itemStack.is(Items.SHEARS) && this.readyForShearing()) { // Neo: Shear logic is handled by IShearable
 +            if (this.level() instanceof ServerLevel serverLevel) {
 +                // CraftBukkit start
-+                if (!org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemStack, hand)) {
++                java.util.List<ItemStack> drops = this.generateDefaultDrops(serverLevel, itemStack);
++                org.bukkit.event.player.PlayerShearEntityEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemStack, hand, drops);
++                if (event == null || event.isCancelled()) {
 +                    this.getEntityData().markDirty(DATA_SHEARED); // CraftBukkit - mark dirty to restore sheared state to clients
 +                    return InteractionResult.PASS;
 +                }
++                drops = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getDrops());
 +                // CraftBukkit end
-+                this.shear(serverLevel, SoundSource.PLAYERS, itemStack);
++                this.shear(serverLevel, SoundSource.PLAYERS, itemStack, drops);
                  this.gameEvent(GameEvent.SHEAR, player);
                  itemStack.hurtAndBreak(1, player, hand.asEquipmentSlot());
              }
