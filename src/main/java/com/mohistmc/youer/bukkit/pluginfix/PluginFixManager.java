@@ -2,6 +2,8 @@ package com.mohistmc.youer.bukkit.pluginfix;
 
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.YouerConfig;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -9,9 +11,12 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.IntInsnNode;
+import org.objectweb.asm.tree.JumpInsnNode;
+import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -21,12 +26,23 @@ import static org.objectweb.asm.Opcodes.ARETURN;
 
 public class PluginFixManager {
 
+    private static final String WE_PROPERTY_SKIP_MARKER = "__youer_modprop_skip__:";
+
     public static byte[] injectPluginFix(String plugin, String className, byte[] clazz) {
         if (plugin.equals("WorldEdit")) {
             String adapter = System.getProperty("worldedit.bukkit.adapter");
             if (adapter == null) {
                 System.setProperty("worldedit.bukkit.adapter", "com.sk89q.worldedit.bukkit.adapter.impl.v1_21.PaperweightAdapter");
             }
+        }
+        if (className.startsWith("com.sk89q.worldedit") && className.contains("PaperweightAdapter")) {
+            return patch(clazz, node -> {
+                helloWorld(node, "org.spigotmc.WatchdogThread", Youer.modid);
+                for (MethodNode m : node.methods) {
+                    paperweightLoad(m);
+                    paperweightGetProps(m);
+                }
+            });
         }
         switch (className) {
             case "com.ghostchu.quickshop.platform.spigot.AbstractSpigotPlatform" -> {
@@ -67,9 +83,6 @@ public class PluginFixManager {
                 helloWorld(node, "allow-editing-on-unsupported-versions", Youer.modid);
                 helloWorld(node, "false", Youer.modid);
             };
-            case "com.sk89q.worldedit.bukkit.adapter.impl.v1_21.PaperweightAdapter",
-                 "com.sk89q.worldedit.bukkit.adapter.ext.fawe.v1_21_R1.PaperweightAdapter" ->
-                    node -> helloWorld(node, "org.spigotmc.WatchdogThread", Youer.modid);
             case "cn.lunadeer.dominion.utils.Misc" ->
                     node -> helloWorld(node, "io.papermc.paper.threadedregions.scheduler.ScheduledTask", Youer.modid);
             case "com.sk89q.worldedit.bukkit.paperlib.PaperLib" -> node -> {
@@ -172,6 +185,119 @@ public class PluginFixManager {
 
     private static void fawe(ClassNode node) {
         redirectMethodToGetNMSVersion(node, "getPackageVersion");
+    }
+
+    // WorldEdit's PaperweightAdapter throws on modded Property subclasses (e.g. Vinery GrapeProperty).
+    // Replace the throw with a sentinel WorldEdit EnumProperty so the property cache never blows up,
+    // and let getProperties skip it (see putWeProperty).
+    private static void paperweightLoad(MethodNode methodNode) {
+        if (!methodNode.name.equals("load")) return;
+        if (!methodNode.desc.contains("block/state/properties/Property")) return;
+        if (!methodNode.desc.contains("registry/state/Property")) return;
+        AbstractInsnNode athrow = null;
+        for (AbstractInsnNode n = methodNode.instructions.getFirst(); n != null; n = n.getNext()) {
+            if (n.getOpcode() == Opcodes.ATHROW) athrow = n;
+        }
+        if (athrow == null) return;
+        AbstractInsnNode lastInstanceof = null;
+        for (AbstractInsnNode n = methodNode.instructions.getFirst(); n != null; n = n.getNext()) {
+            if (n.getOpcode() == Opcodes.INSTANCEOF) lastInstanceof = n;
+            if (n == athrow) break;
+        }
+        if (lastInstanceof == null) return;
+        AbstractInsnNode jump = lastInstanceof.getNext();
+        while (jump != null && !(jump instanceof JumpInsnNode)) jump = jump.getNext();
+        if (!(jump instanceof JumpInsnNode j)) return;
+        AbstractInsnNode labelNode = null;
+        for (AbstractInsnNode n = methodNode.instructions.getFirst(); n != null; n = n.getNext()) {
+            if (n == j.label) { labelNode = n; break; }
+        }
+        if (labelNode == null) return;
+        AbstractInsnNode start = labelNode.getNext();
+        if (start == null) return;
+        InsnList inject = new InsnList();
+        inject.add(new VarInsnNode(Opcodes.ALOAD, 1));
+        inject.add(new MethodInsnNode(Opcodes.INVOKESTATIC,
+                "com/mohistmc/youer/bukkit/pluginfix/PluginFixManager",
+                "fixModProperty", "(Ljava/lang/Object;)Ljava/lang/Object;"));
+        inject.add(new TypeInsnNode(Opcodes.CHECKCAST, "com/sk89q/worldedit/registry/state/Property"));
+        inject.add(new InsnNode(Opcodes.ARETURN));
+        methodNode.instructions.insertBefore(start, inject);
+        AbstractInsnNode e = start;
+        while (e != null) {
+            AbstractInsnNode nxt = e.getNext();
+            methodNode.instructions.remove(e);
+            if (e == athrow) break;
+            e = nxt;
+        }
+    }
+
+    private static void paperweightGetProps(MethodNode methodNode) {
+        if (!methodNode.name.equals("getProperties")) return;
+        boolean hasCache = false;
+        for (AbstractInsnNode n = methodNode.instructions.getFirst(); n != null; n = n.getNext()) {
+            if (n.getOpcode() == Opcodes.GETSTATIC && ((FieldInsnNode) n).name.equals("PROPERTY_CACHE")) {
+                hasCache = true;
+                break;
+            }
+        }
+        if (!hasCache) return;
+        for (AbstractInsnNode n = methodNode.instructions.getFirst(); n != null; n = n.getNext()) {
+            if (n.getOpcode() == Opcodes.INVOKEINTERFACE && ((MethodInsnNode) n).name.equals("put")
+                    && ((MethodInsnNode) n).owner.equals("java/util/Map")) {
+                MethodInsnNode replacement = new MethodInsnNode(Opcodes.INVOKESTATIC,
+                        "com/mohistmc/youer/bukkit/pluginfix/PluginFixManager",
+                        "putWeProperty", "(Ljava/util/Map;Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/Object;", false);
+                methodNode.instructions.set(n, replacement);
+                return;
+            }
+        }
+    }
+
+    public static Object fixModProperty(Object state) {
+        try {
+            String realName = String.valueOf(state.getClass().getMethod("getName").invoke(state));
+            Class<?> enumProp = loadWeClass("com.sk89q.worldedit.registry.state.EnumProperty", state.getClass().getClassLoader());
+            return enumProp.getConstructor(String.class, List.class)
+                    .newInstance(WE_PROPERTY_SKIP_MARKER + realName, List.of("__skip__"));
+        } catch (Throwable t) {
+            try {
+                Class<?> enumProp = loadWeClass("com.sk89q.worldedit.registry.state.EnumProperty", state.getClass().getClassLoader());
+                return enumProp.getConstructor(String.class, List.class)
+                        .newInstance(WE_PROPERTY_SKIP_MARKER + "unknown", List.of("__skip__"));
+            } catch (Throwable t2) {
+                throw new RuntimeException("Youer: unable to wrap modded WE property " + state.getClass().getName(), t2);
+            }
+        }
+    }
+
+    public static Object putWeProperty(Map<?, ?> map, String name, Object property) {
+        if (isSkippedProperty(property)) return null;
+        return ((Map<Object, Object>) map).put(name, property);
+    }
+
+    public static boolean isSkippedProperty(Object property) {
+        if (property == null) return true;
+        try {
+            Object name = property.getClass().getMethod("getName").invoke(property);
+            return name instanceof String s && s.startsWith(WE_PROPERTY_SKIP_MARKER);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    private static Class<?> loadWeClass(String name, ClassLoader fallback) throws ClassNotFoundException {
+        ClassNotFoundException last = null;
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        for (ClassLoader loader : new ClassLoader[]{cl, fallback, PluginFixManager.class.getClassLoader()}) {
+            if (loader == null) continue;
+            try {
+                return Class.forName(name, true, loader);
+            } catch (ClassNotFoundException e) {
+                last = e;
+            }
+        }
+        throw last != null ? last : new ClassNotFoundException(name);
     }
 
     public static void ex(ClassNode node) {

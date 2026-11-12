@@ -5,6 +5,8 @@ import com.mohistmc.youer.api.WorldAPI;
 import com.mohistmc.youer.util.YamlUtils;
 import java.io.File;
 import java.util.List;
+import java.util.Random;
+import java.util.UUID;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -279,9 +281,12 @@ public class WorldConfig {
                 boolean keepspawninmemory = true;
                 boolean isVoid = false;
                 boolean isFlat = false;
+                boolean isResource = WorldConfig.isResource(w);
                 if (Bukkit.getWorld(w) == null) {
                     long seed = -1L;
-                    if (config.get("worlds." + w + ".seed") != null) {
+                    if (isResource) {
+                        seed = new Random().nextLong();
+                    } else if (config.get("worlds." + w + ".seed") != null) {
                         seed = config.getLong("worlds." + w + ".seed");
                     }
                     if (config.get("worlds." + w + ".environment") != null) {
@@ -331,16 +336,26 @@ public class WorldConfig {
                 if (world != null) {
                     world.setVoid(isVoid);
                     world.setFlat(isFlat);
-                    if (config.get("worlds." + w + ".worldborder") != null) {
-                        world.getWorldBorder().setSize(config.getDouble("worlds." + w + ".worldborder"));
+                    if (isResource) {
+                        WorldConfig.applyResource(world);
+                    } else {
+                        if (WorldConfig.isNoSave(w)) {
+                            WorldConfig.applyNoSave(world);
+                        }
+                        if (WorldConfig.isRandomUUID(w)) {
+                            WorldConfig.applyRandomUUID(world);
+                        }
+                        if (config.get("worlds." + w + ".worldborder") != null) {
+                            world.getWorldBorder().setSize(config.getDouble("worlds." + w + ".worldborder"));
+                        }
+                        if (config.get("worlds." + w + ".worldborder_center_x") != null && config.get("worlds." + w + ".worldborder_center_z") != null) {
+                            world.getWorldBorder().setCenter(config.getDouble("worlds." + w + ".worldborder_center_x"), config.getDouble("worlds." + w + ".worldborder_center_z"));
+                        }
+                        loadGameRules(world);
+                        config.set("worlds." + w + ".seed", world.getSeed());
+                        init();
                     }
-                    if (config.get("worlds." + w + ".worldborder_center_x") != null && config.get("worlds." + w + ".worldborder_center_z") != null) {
-                        world.getWorldBorder().setCenter(config.getDouble("worlds." + w + ".worldborder_center_x"), config.getDouble("worlds." + w + ".worldborder_center_z"));
-                    }
-                    loadGameRules(world);
-                    config.set("worlds." + w + ".seed", world.getSeed());
-                    init();
-                    world.setKeepSpawnInMemory(config.getBoolean("worlds." + w + ".keepspawninmemory", true));
+                    world.setKeepSpawnInMemory(isResource ? false : config.getBoolean("worlds." + w + ".keepspawninmemory", true));
                 } else {
                     if (!isYouer && !isMods) {
                         config.set("worlds." + w, null);
@@ -379,7 +394,7 @@ public class WorldConfig {
     public static void getSpawn(String w, Player player) {
         World world = Bukkit.getWorld(w);
         if (f.exists() && world != null) {
-            if (config.getString("worlds." + world.getName() + ".spawn") != null) {
+            if (!WorldConfig.isResource(w) && config.getString("worlds." + world.getName() + ".spawn") != null) {
                 double x = config.getDouble("worlds." + world.getName() + ".spawn.x");
                 double y = config.getDouble("worlds." + world.getName() + ".spawn.y");
                 double z = config.getDouble("worlds." + world.getName() + ".spawn.z");
@@ -467,5 +482,68 @@ public class WorldConfig {
     public static void setMaintenance(String w, boolean maintenance) {
         config.set("worlds." + w + ".maintenance", maintenance);
         init();
+    }
+
+    public static boolean isNoSave(String w) {
+        return f.exists() && config.getBoolean("worlds." + w + ".nosave", false);
+    }
+
+    public static void setNoSave(String w, boolean nosave) {
+        config.set("worlds." + w + ".nosave", nosave);
+        init();
+    }
+
+    /** Whether the world should be assigned a fresh random level UUID on every load. */
+    public static boolean isRandomUUID(String w) {
+        return f.exists() && config.getBoolean("worlds." + w + ".randomuuid", false);
+    }
+
+    public static void setRandomUUID(String w, boolean randomuuid) {
+        config.set("worlds." + w + ".randomuuid", randomuuid);
+        init();
+    }
+
+    /**
+     * Disables all disk saving (chunks, level data, data storage) for an already-loaded world.
+     * Intended to be called whenever the world is loaded. UUID randomization is handled separately.
+     */
+    public static void applyNoSave(World world) {
+        applyNoSaveState(world, true);
+    }
+
+    public static void applyNoSaveState(World world, boolean enable) {
+        if (world == null) return;
+        world.setAutoSave(!enable);
+        ((CraftWorld) world).getHandle().youerNoSave = enable;
+    }
+
+    /** Assigns a fresh random level UUID so the world gets a new identity on the next load. */
+    public static void applyRandomUUID(World world) {
+        if (world == null) return;
+        ((CraftWorld) world).getHandle().setWorldUUID(UUID.randomUUID());
+    }
+
+    /** Whether the world is a resource world: regenerates fresh terrain each load, never persisted. */
+    public static boolean isResource(String w) {
+        return f.exists() && config.getBoolean("worlds." + w + ".resource", false);
+    }
+
+    public static void setResource(String w, boolean resource) {
+        config.set("worlds." + w + ".resource", resource);
+        init();
+    }
+
+    /**
+     * Applies the resource-world behaviour bundle to an already-loaded world: no disk saving, a fresh
+     * UUID each load, spawn chunks not held in memory, and full mob spawning forced on. Seed and spawn
+     * are intentionally left out so they are recomputed from the fresh terrain every load.
+     */
+    public static void applyResource(World world) {
+        if (world == null) return;
+        applyNoSave(world);
+        applyRandomUUID(world);
+        world.setKeepSpawnInMemory(false);
+        setNaturalSpawn(world.getName(), true);
+        setChunkSpawn(world.getName(), true);
     }
 }

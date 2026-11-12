@@ -23,6 +23,7 @@ import net.minecraft.world.level.LevelSettings;
 import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.dimension.end.EndDragonFight;
 import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.storage.DerivedLevelData;
 import net.minecraft.world.level.storage.LevelStorageSource;
@@ -34,7 +35,7 @@ import net.minecraft.world.level.timers.TimerQueue;
 public class YouerDerivedWorldInfo extends PrimaryLevelData {
 
     private final ServerLevelData derivedWorldInfo;
-    private final GameRules gameRules; // Youer - per-dimension game rules (independent copy of the main world's rules)
+    private final GameRules gameRules; // Youer - per-dimension game rules
 
     public YouerDerivedWorldInfo(ServerLevelData derivedWorldInfo, GameRules gameRules, LevelSettings p_78470_, WorldOptions p_78471_, SpecialWorldProperty p_252268_, Lifecycle p_78472_) {
         super(p_78470_, p_78471_, p_252268_, p_78472_);
@@ -46,8 +47,7 @@ public class YouerDerivedWorldInfo extends PrimaryLevelData {
         return new YouerDerivedWorldInfo(worldInfo, gameRules, worldSettings(worldInfo), generatorSettings(worldInfo), specialWorldProperty(worldInfo), lifecycle(worldInfo));
     }
 
-    // Youer - per-dimension game rules: start from a copy of the main world's rules, then restore
-    // the rules persisted in the dimension's own level.dat (written by saveDimensionDataTag) if present.
+    // Youer - restore game rules persisted in the dimension's own level.dat
     public static GameRules loadDimensionGameRules(MinecraftServer server, LevelStorageSource.LevelStorageAccess storage, ResourceKey<Level> dimension) {
         GameRules rules = server.getWorldData().getGameRules().copy();
         Path dimensionLevelFile = DimensionType.getStorageFolder(dimension, storage.levelDirectory.path()).resolve("level.dat");
@@ -238,7 +238,30 @@ public class YouerDerivedWorldInfo extends PrimaryLevelData {
 
     @Override
     public GameRules getGameRules() {
-        return this.gameRules; // Youer - per-dimension game rules instead of the shared main world rules
+        return this.gameRules;
+    }
+
+    // Youer - dragon fight state must be shared with the main world, else it resets every boot
+    @Override
+    public EndDragonFight.Data endDragonFightData() {
+        PrimaryLevelData owner = dragonFightOwner();
+        return owner == this ? super.endDragonFightData() : owner.endDragonFightData();
+    }
+
+    @Override
+    public void setEndDragonFightData(EndDragonFight.Data data) {
+        // also sync this object: createTag() serialises its own field
+        super.setEndDragonFightData(data);
+        PrimaryLevelData owner = dragonFightOwner();
+        if (owner != this) {
+            owner.setEndDragonFightData(data);
+        }
+    }
+
+    // Youer - dragon fight state is owned by the main world's PrimaryLevelData
+    private PrimaryLevelData dragonFightOwner() {
+        ServerLevelData owner = resolveDelegate(this.derivedWorldInfo);
+        return owner instanceof PrimaryLevelData primary ? primary : this;
     }
 
     @Override

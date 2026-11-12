@@ -144,6 +144,15 @@
  
  public class ServerLevel extends Level implements WorldGenLevel {
      public static final BlockPos END_SPAWN_POINT = new BlockPos(100, 50, 0);
+@@ -184,6 +_,8 @@
+     public final PersistentEntitySectionManager<Entity> entityManager;
+     private final GameEventDispatcher gameEventDispatcher;
+     public boolean noSave;
++    // Youer - persistent ephemeral-world flag; survives the shutdown force-save that clears noSave
++    public boolean youerNoSave;
+     private final SleepStatus sleepStatus;
+     private int emptyTime;
+     private final PortalForcer portalForcer;
 @@ -199,12 +_,84 @@
      private final List<CustomSpawner> customSpawners;
      @Nullable
@@ -157,7 +166,7 @@
  
 +    public PrimaryLevelData K;
 +    public final LevelStorageSource.LevelStorageAccess convertable;
-+    public final UUID uuid;
++    public UUID uuid;
 +    public ResourceKey<LevelStem> typeKey;
 +    public boolean hasEntityMoveEvent; // Paper - Add EntityMoveEvent
 +    public boolean hasPhysicsEvent = true; // Paper - BlockPhysicsEvent
@@ -1200,6 +1209,18 @@
              return null;
          } else {
              Optional<HolderSet.Named<Structure>> optional = this.registryAccess().registryOrThrow(Registries.STRUCTURE).getTag(p_215012_);
+@@ -1302,6 +_,11 @@
+         return this.noSave;
+     }
+ 
++    // Youer - allow reassigning the level uuid so ephemeral worlds get a fresh identity on each load
++    public void setWorldUUID(UUID uuid) {
++        this.uuid = uuid;
++    }
++
+     public DimensionDataStorage getDataStorage() {
+         return this.getChunkSource().getDataStorage();
+     }
 @@ -1309,11 +_,32 @@
      @Nullable
      @Override

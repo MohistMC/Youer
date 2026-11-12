@@ -64,6 +64,15 @@ public class WorldsGUI {
                     flat = config.getBoolean("worlds." + w.getName() + ".flat");
                     infoLore.add("§bFlat §8>> §7" + flat);
                 }
+                if (WorldConfig.isNoSave(w.getName())) {
+                    infoLore.add(I18n.as("worldmanage.gui.lore5") + I18n.as("worldcommands.toggle.status.on"));
+                }
+                if (WorldConfig.isRandomUUID(w.getName())) {
+                    infoLore.add(I18n.as("worldmanage.gui.lore6") + I18n.as("worldcommands.toggle.status.on"));
+                }
+                if (WorldConfig.isResource(w.getName())) {
+                    infoLore.add(I18n.as("worldmanage.gui.lore7") + I18n.as("worldcommands.toggle.status.on"));
+                }
             }
             Material material = flat ? Material.GREEN_CARPET : getMaterial(w);
             wh.addItem(new GUIItem(new ItemStackFactory(material)

@@ -27,7 +27,7 @@ import org.bukkit.inventory.ItemStack;
 
 public class WorldsCommands extends Command {
 
-    private final List<String> params = Arrays.asList("create", "delete", "tp", "import", "unload", "info", "addinfo", "setdisplayname", "setspawn", "gui", "difficulty", "gamemode", "maintenance", "naturalspawn", "keepspawn", "spawnforchunk");
+    private final List<String> params = Arrays.asList("create", "delete", "tp", "import", "unload", "info", "addinfo", "setdisplayname", "setspawn", "gui", "difficulty", "gamemode", "maintenance", "naturalspawn", "keepspawn", "spawnforchunk", "nosave", "randomuuid", "resource");
 
     public WorldsCommands(String name) {
         super(name);
@@ -117,6 +117,85 @@ public class WorldsCommands extends Command {
             }
             sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.maintenance.usage"));
             return false;
+        }
+        if (args[0].equalsIgnoreCase("nosave")) {
+            String[] resolved = worldAction(sender, args);
+            String worldName = resolved[0];
+            String action = resolved[1];
+            if (worldName == null) {
+                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.nosave.usage"));
+                return false;
+            }
+            World world = Bukkit.getWorld(worldName);
+            if (world == null) {
+                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.nosave.worldNotExists", worldName));
+                return false;
+            }
+            if (action == null) {
+                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.nosave.status", worldName,
+                        I18n.as(WorldConfig.isNoSave(worldName) ? "worldcommands.toggle.status.on" : "worldcommands.toggle.status.off")));
+                return true;
+            }
+            boolean enable = action.equalsIgnoreCase("on");
+            WorldConfig.setNoSave(worldName, enable);
+            WorldConfig.applyNoSaveState(world, enable);
+            sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as(enable ? "worldcommands.nosave.enable" : "worldcommands.nosave.disable", worldName));
+            return true;
+        }
+        if (args[0].equalsIgnoreCase("randomuuid")) {
+            String[] resolved = worldAction(sender, args);
+            String worldName = resolved[0];
+            String action = resolved[1];
+            if (worldName == null) {
+                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.randomuuid.usage"));
+                return false;
+            }
+            World world = Bukkit.getWorld(worldName);
+            if (world == null) {
+                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.randomuuid.worldNotExists", worldName));
+                return false;
+            }
+            if (action == null) {
+                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.randomuuid.status", worldName,
+                        I18n.as(WorldConfig.isRandomUUID(worldName) ? "worldcommands.toggle.status.on" : "worldcommands.toggle.status.off")));
+                return true;
+            }
+            boolean enable = action.equalsIgnoreCase("on");
+            WorldConfig.setRandomUUID(worldName, enable);
+            if (enable) {
+                WorldConfig.applyRandomUUID(world);
+            }
+            sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as(enable ? "worldcommands.randomuuid.enable" : "worldcommands.randomuuid.disable", worldName));
+            return true;
+        }
+        if (args[0].equalsIgnoreCase("resource")) {
+            String[] resolved = worldAction(sender, args);
+            String worldName = resolved[0];
+            String action = resolved[1];
+            if (worldName == null) {
+                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.resource.usage"));
+                return false;
+            }
+            World world = Bukkit.getWorld(worldName);
+            if (world == null) {
+                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.resource.worldNotExists", worldName));
+                return false;
+            }
+            if (action == null) {
+                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.resource.status", worldName,
+                        I18n.as(WorldConfig.isResource(worldName) ? "worldcommands.toggle.status.on" : "worldcommands.toggle.status.off")));
+                return true;
+            }
+            boolean enable = action.equalsIgnoreCase("on");
+            WorldConfig.setResource(worldName, enable);
+            if (enable) {
+                WorldConfig.applyResource(world);
+                WorldConfig.config.set("worlds." + worldName + ".seed", null);
+                WorldConfig.config.set("worlds." + worldName + ".spawn", null);
+                WorldConfig.init();
+            }
+            sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as(enable ? "worldcommands.resource.enable" : "worldcommands.resource.disable", worldName));
+            return true;
         }
         if (args[0].equalsIgnoreCase("naturalspawn") || args[0].equalsIgnoreCase("keepspawn") || args[0].equalsIgnoreCase("spawnforchunk")) {
             int kind = args[0].equalsIgnoreCase("naturalspawn") ? 0 : (args[0].equalsIgnoreCase("keepspawn") ? 1 : 2);
@@ -421,7 +500,10 @@ public class WorldsCommands extends Command {
         if (args.length == 2 && (args[0].equalsIgnoreCase("maintenance")
                 || args[0].equalsIgnoreCase("naturalspawn")
                 || args[0].equalsIgnoreCase("keepspawn")
-                || args[0].equalsIgnoreCase("spawnforchunk"))) {
+                || args[0].equalsIgnoreCase("spawnforchunk")
+                || args[0].equalsIgnoreCase("nosave")
+                || args[0].equalsIgnoreCase("randomuuid")
+                || args[0].equalsIgnoreCase("resource"))) {
             list.add("on");
             list.add("off");
             list.addAll(Bukkit.getWorldsByName());
@@ -430,7 +512,10 @@ public class WorldsCommands extends Command {
         if (args.length == 3 && (args[0].equalsIgnoreCase("maintenance")
                 || args[0].equalsIgnoreCase("naturalspawn")
                 || args[0].equalsIgnoreCase("keepspawn")
-                || args[0].equalsIgnoreCase("spawnforchunk"))) {
+                || args[0].equalsIgnoreCase("spawnforchunk")
+                || args[0].equalsIgnoreCase("nosave")
+                || args[0].equalsIgnoreCase("randomuuid")
+                || args[0].equalsIgnoreCase("resource"))) {
             list.add("on");
             list.add("off");
         }
@@ -456,5 +541,8 @@ public class WorldsCommands extends Command {
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds naturalspawn [world] <on|off> " + I18n.as("worldmanage.command.naturalspawn"));
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds keepspawn [world] <on|off> " + I18n.as("worldmanage.command.keepspawn"));
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds spawnforchunk [world] <on|off> " + I18n.as("worldmanage.command.spawnforchunk"));
+        player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds nosave [world] <on|off> " + I18n.as("worldmanage.command.nosave"));
+        player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds randomuuid [world] <on|off> " + I18n.as("worldmanage.command.randomuuid"));
+        player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds resource [world] <on|off> " + I18n.as("worldmanage.command.resource"));
     }
 }
