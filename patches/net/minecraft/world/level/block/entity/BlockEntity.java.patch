@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/entity/BlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BlockEntity.java
-@@ -35,14 +_,21 @@
+@@ -35,26 +_,43 @@
  import net.minecraft.world.level.storage.TagValueOutput;
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
@@ -16,17 +16,16 @@
 +public abstract class BlockEntity extends net.neoforged.neoforge.attachment.AttachmentHolder implements DebugValueSource, TypedInstance<BlockEntityType<?>>, IBlockEntityExtension {
      private static final Codec<BlockEntityType<?>> TYPE_CODEC = BuiltInRegistries.BLOCK_ENTITY_TYPE.byNameCodec();
      private static final Logger LOGGER = LogUtils.getLogger();
-+    /**
-+     * @deprecated Neo: use {@link #getType()}
-+     */
++    /// @deprecated  Neo: Field accesses are redirected to [#getType()] with a coremod.
 +    @Deprecated
      private final BlockEntityType<?> type;
      protected @Nullable Level level;
      protected final BlockPos worldPosition;
-@@ -50,11 +_,22 @@
+     protected boolean remove;
      private BlockState blockState;
      private DataComponentMap components = DataComponentMap.EMPTY;
- 
++    public boolean real = true; // Paper - mark block entities that aren't actually in the level
++
 +    @Nullable
 +    private CompoundTag customPersistentData;
 +    @Nullable
@@ -36,7 +35,7 @@
 +    private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
 +    public final org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer persistentDataContainer;
 +    // CraftBukkit end
-+
+ 
      public BlockEntity(BlockEntityType<?> type, BlockPos worldPosition, BlockState blockState) {
          this.type = type;
          this.worldPosition = worldPosition.immutable();
@@ -46,12 +45,8 @@
      }
  
      private void validateBlockState(BlockState blockState) {
-@@ -64,13 +_,14 @@
-     }
- 
-     public boolean isValidBlockState(BlockState blockState) {
--        return this.type.isValid(blockState);
-+        return this.getType().isValid(blockState); // Neo: use getter so correct type is checked for modded subclasses
+@@ -67,10 +_,11 @@
+         return this.type.isValid(blockState);
      }
  
 -    public static BlockPos getPosFromTag(ChunkPos base, CompoundTag entityTag) {
@@ -109,10 +104,12 @@
      }
  
      public final CompoundTag saveWithFullMetadata(HolderLookup.Provider registries) {
-@@ -193,6 +_,7 @@
+@@ -192,7 +_,8 @@
+     }
  
      public void setChanged() {
-         if (this.level != null) {
+-        if (this.level != null) {
++        if (this.level != null && this.real) { // Paper - don't broadcast for fake block entities
 +            if (ignoreBlockEntityUpdates) return; // Paper - Perf: Optimize Hoppers
              setChanged(this.level, this.worldPosition, this.blockState);
          }
@@ -228,7 +225,7 @@
 +    }
 +
 +    public org.bukkit.inventory.@Nullable InventoryHolder getOwner(boolean useSnapshot) {
-+        if (this.level == null) return null;
++        if (this.level == null || !this.real) return null; // Paper - fake block entities have no owner
 +        org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(this.level, this.worldPosition);
 +        org.bukkit.block.BlockState state = block.getState(useSnapshot); // Paper
 +        return state instanceof final org.bukkit.inventory.InventoryHolder inventoryHolder ? inventoryHolder : null;

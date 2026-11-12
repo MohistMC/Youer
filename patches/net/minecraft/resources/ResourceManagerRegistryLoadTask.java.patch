@@ -1,10 +1,11 @@
 --- a/net/minecraft/resources/ResourceManagerRegistryLoadTask.java
 +++ b/net/minecraft/resources/ResourceManagerRegistryLoadTask.java
-@@ -26,21 +_,33 @@
+@@ -26,21 +_,39 @@
          return new RegistrationInfo(knownPack, lifecycle);
      });
      private final ResourceManager resourceManager;
 +    private final List<net.minecraft.core.Registry.PendingTags<?>> pendingTags;
++    private io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause cause; // Paper - add load cause
  
 +    /// @deprecated Neo: use [#ResourceManagerRegistryLoadTask(RegistryDataLoader.RegistryData, Lifecycle, Map, ResourceManager, List)] instead
 +    @Deprecated
@@ -20,6 +21,11 @@
          super(data, lifecycle, loadingErrors);
          this.resourceManager = resourceManager;
 +        this.pendingTags = pendingTags;
++    }
++
++    public ResourceManagerRegistryLoadTask<T> cause(io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause cause) {
++        this.cause = cause;
++        return this;
      }
  
      @Override
@@ -47,7 +53,7 @@
                          this.registryKey(), this.concurrentRegistrationGetter, this.readOnlyRegistry()
                      );
 -                    Map<TagKey<T>, List<Holder<T>>> pendingTags = TagLoader.loadTagsForRegistry(this.resourceManager, this.registryKey(), tagElementLookup);
-+                    Map<TagKey<T>, List<Holder<T>>> pendingTags = TagLoader.loadTagsForRegistry(this.resourceManager, this.registryKey(), tagElementLookup, this.registry, io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.INITIAL); // Paper - tag lifecycle - add registry, cause
++                    Map<TagKey<T>, List<Holder<T>>> pendingTags = TagLoader.loadTagsForRegistry(this.resourceManager, this.registryKey(), tagElementLookup, this.registry, this.cause); // Paper - tag lifecycle - add registry, cause
                      this.registerTags(pendingTags);
                  },
                  executor

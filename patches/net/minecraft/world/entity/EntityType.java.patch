@@ -80,7 +80,7 @@
          this.factory = factory;
          this.category = category;
          this.canSpawnFarFromPlayer = canSpawnFarFromPlayer;
-@@ -113,25 +_,28 @@
+@@ -113,25 +_,34 @@
          this.requiredFeatures = requiredFeatures;
          this.allowedInPeaceful = allowedInPeaceful;
          this.trackDeltas = trackDeltas;
@@ -95,7 +95,6 @@
 -        boolean tryMoveDown,
 -        boolean movedUp
 -    ) {
--        PostSpawnProcessor<T> postSpawnConfig;
 +        this.trackDeltasSupplier = trackDeltasSupplier;
 +        this.trackingRangeSupplier = trackingRangeSupplier;
 +        this.updateIntervalSupplier = updateIntervalSupplier;
@@ -107,20 +106,25 @@
 +        return this.spawn(level, itemStack, user, spawnPos, spawnReason, tryMoveDown, movedUp, spawnReason == EntitySpawnReason.DISPENSER ? org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DISPENSE_EGG : org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER_EGG); // Paper - use correct spawn reason for dispenser spawn eggs
 +    }
 +
-+    public @Nullable T spawn(ServerLevel level, @Nullable ItemStack itemStack, @Nullable LivingEntity user, BlockPos spawnPos, EntitySpawnReason spawnReason, boolean tryMoveDown, boolean movedUp, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason bukkitSpawnReason) {
++    public @Nullable T spawn(ServerLevel level, @Nullable ItemStack itemStack, @Nullable LivingEntity user, BlockPos spawnPos, EntitySpawnReason spawnReason, boolean tryMoveDown, boolean movedUp, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason createSpawnReason) {
 +        // CraftBukkit end
-+        PostSpawnProcessor<T> consumer;
-+
+         PostSpawnProcessor<T> postSpawnConfig;
          if (itemStack != null) {
 -            postSpawnConfig = createDefaultStackConfig(level, itemStack, user);
-+            consumer = createDefaultStackConfig(level, itemStack, user);
++            // Paper start - Override spawnReason with createSpawnReason if not Paper.SpawnReason it's used to avoid bad fallback reason behavior
++            TypedEntityData<EntityType<?>> typedEntityData = itemStack.get(DataComponents.ENTITY_DATA);
++            if (typedEntityData != null && !typedEntityData.contains("Paper.SpawnReason")) {
++                postSpawnConfig = appendCustomEntityStackConfig(appendComponentsConfig(entity -> entity.spawnReason = createSpawnReason, itemStack), level, itemStack, user);
++            } else {
++                postSpawnConfig = createDefaultStackConfig(level, itemStack, user);
++            }
++            // Paper end - Override spawnReason with createSpawnReason if not Paper.SpawnReason it's used to avoid bad fallback reason behavior
          } else {
--            postSpawnConfig = PostSpawnProcessor.nop();
-+            consumer = entity -> {};
+             postSpawnConfig = PostSpawnProcessor.nop();
          }
  
 -        return this.spawn(level, postSpawnConfig, spawnPos, spawnReason, tryMoveDown, movedUp);
-+        return (T) this.spawn(level, consumer, spawnPos, spawnReason, tryMoveDown, movedUp, bukkitSpawnReason); // CraftBukkit
++        return this.spawn(level, postSpawnConfig, spawnPos, spawnReason, tryMoveDown, movedUp, createSpawnReason); // CraftBukkit
      }
  
      public static <T extends Entity> PostSpawnProcessor<T> createDefaultStackConfig(Level level, ItemStack itemStack, @Nullable LivingEntity user) {
