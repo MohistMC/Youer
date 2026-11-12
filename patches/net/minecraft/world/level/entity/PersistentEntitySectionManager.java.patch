@@ -38,7 +38,7 @@
              return false;
          } else {
              return true;
-@@ -72,7 +_,17 @@
+@@ -72,7 +_,27 @@
          return this.addEntity(entity, false);
      }
  
@@ -53,6 +53,16 @@
 +    }
 +
 +    private boolean addEntityWithoutEvent(T entity, boolean loaded) {
++        // Paper start - chunk system hooks
++        // I don't want to know why this is a generic type.
++        Entity entityCasted = (Entity)entity;
++        boolean wasRemoved = entityCasted.isRemoved();
++        boolean screened = ca.spottedleaf.moonrise.common.PlatformHooks.get().screenEntity((net.minecraft.server.level.ServerLevel)entityCasted.level(), entityCasted, loaded, true);
++        if ((!wasRemoved && entityCasted.isRemoved()) || !screened) {
++            // removed by callback
++            return false;
++        }
++        // Paper end - chunk system hooks
          if (!this.addEntityUuid(entity)) {
              return false;
          } else {

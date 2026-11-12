@@ -69,6 +69,15 @@
      }
  
      @Override
+@@ -80,7 +_,7 @@
+         ItemStack retrievedItem = Objects.requireNonNullElse(this.getItems().get(slot), ItemStack.EMPTY);
+         this.getItems().set(slot, ItemStack.EMPTY);
+         if (!retrievedItem.isEmpty()) {
+-            this.updateState(slot);
++            if (this.level != null) this.updateState(slot); // CraftBukkit - SPIGOT-7381: check for null world
+         }
+ 
+         return retrievedItem;
 @@ -88,12 +_,50 @@
  
      @Override
@@ -83,7 +92,7 @@
              this.getItems().set(slot, itemStack);
 -            this.updateState(slot);
 +            if (!insideTransaction) {
-+                this.updateState(slot);
++                if (this.level != null) this.updateState(slot); // CraftBukkit - SPIGOT-7381: check for null world
 +            }
          } else if (itemStack.isEmpty()) {
 +            if (insideTransaction) {

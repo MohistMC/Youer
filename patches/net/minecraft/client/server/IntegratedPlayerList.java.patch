@@ -1,13 +1,21 @@
 --- a/net/minecraft/client/server/IntegratedPlayerList.java
 +++ b/net/minecraft/client/server/IntegratedPlayerList.java
-@@ -18,6 +_,10 @@
+@@ -18,10 +_,14 @@
      }
  
      @Override
+-    public Component canPlayerLogin(SocketAddress address, NameAndId nameAndId) {
+-        return (Component)(this.getServer().isSingleplayerOwner(nameAndId) && this.getPlayerByName(nameAndId.name()) != null
+-            ? Component.translatable("multiplayer.disconnect.name_taken")
+-            : super.canPlayerLogin(address, nameAndId));
 +    public void loadAndSaveFiles() {
 +    }
 +
 +    @Override
-     public Component canPlayerLogin(SocketAddress address, NameAndId nameAndId) {
-         return (Component)(this.getServer().isSingleplayerOwner(nameAndId) && this.getPlayerByName(nameAndId.name()) != null
-             ? Component.translatable("multiplayer.disconnect.name_taken")
++    public LoginResult canPlayerLogin(SocketAddress address, NameAndId nameAndId) {
++        return this.getServer().isSingleplayerOwner(nameAndId) && this.getPlayerByName(nameAndId.name()) != null
++            ? new LoginResult(Component.translatable("multiplayer.disconnect.name_taken"), org.bukkit.event.player.PlayerLoginEvent.Result.KICK_OTHER)
++            : super.canPlayerLogin(address, nameAndId);
+     }
+ 
+     public IntegratedServer getServer() {

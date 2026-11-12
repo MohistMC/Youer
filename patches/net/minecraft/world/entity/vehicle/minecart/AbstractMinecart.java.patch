@@ -137,7 +137,7 @@
      }
  
      @Override
-@@ -481,13 +_,27 @@
+@@ -481,13 +_,31 @@
  
          output.putBoolean("FlippedRotation", this.flipped);
          output.putBoolean("HasTicked", this.firstTick);
@@ -154,6 +154,10 @@
              if (!entity.noPhysics && !this.noPhysics) {
 +                if (!this.level().paperConfig().collisions.allowVehicleCollisions && this.level().paperConfig().collisions.onlyPlayersCollide && !(entity instanceof Player)) return; // Paper - Collision option for requiring a player participant
                  if (!this.hasPassenger(entity)) {
++                    // Paper start - Add EntityCollideWithEntity Event
++                    if (io.papermc.paper.event.entity.EntityCollideWithEntityEvent.getHandlerList().getRegisteredListeners().length != 0 &&
++                        !new io.papermc.paper.event.entity.EntityCollideWithEntityEvent(this.getBukkitEntity(), entity.getBukkitEntity()).callEvent()) return;
++                    // Paper end - Add EntityCollideWithEntity Event
 +                    // CraftBukkit start
 +                    VehicleEntityCollisionEvent collisionEvent = new VehicleEntityCollisionEvent((Vehicle) this.getBukkitEntity(), entity.getBukkitEntity());
 +                    this.level().getCraftServer().getPluginManager().callEvent(collisionEvent);

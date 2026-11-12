@@ -1,5 +1,17 @@
 --- a/net/minecraft/commands/arguments/selector/EntitySelectorParser.java
 +++ b/net/minecraft/commands/arguments/selector/EntitySelectorParser.java
+@@ -113,6 +_,11 @@
+     }
+ 
+     public static <S> boolean allowSelectors(S source) {
++        // Paper start - Fix EntityArgument permissions
++        if (source instanceof net.minecraft.commands.CommandSourceStack stack) {
++            return stack.bypassSelectorPermissions || stack.hasPermission(Permissions.COMMANDS_ENTITY_SELECTORS, "minecraft.command.selector");
++        }
++        // Paper end - Fix EntityArgument permissions
+         return source instanceof PermissionSetSupplier sender && sender.permissions().hasPermission(Permissions.COMMANDS_ENTITY_SELECTORS);
+     }
+ 
 @@ -194,8 +_,10 @@
          };
      }

@@ -497,27 +497,114 @@
          this.player.getRecipeBook().setBookSetting(packet.getBookType(), packet.isOpen(), packet.isFiltering());
      }
  
-@@ -590,6 +_,12 @@
+@@ -587,18 +_,104 @@
+         }
+     }
+ 
++    // Paper start - AsyncTabCompleteEvent
++    private static final java.util.concurrent.ExecutorService TAB_COMPLETE_EXECUTOR = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor();
++    // Paper end - AsyncTabCompleteEvent
++
      @Override
      public void handleCustomCommandSuggestions(ServerboundCommandSuggestionPacket packet) {
-         PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
+-        PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
++        // PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level()); // Paper - AsyncTabCompleteEvent; run this async
 +        // CraftBukkit start
-+        if (!this.chatSpamThrottler.isIncrementAndUnderThreshold(1, 500) && !this.server.getPlayerList().isOp(this.player.nameAndId()) && !this.server.isSingleplayerOwner(this.player.nameAndId())) {
-+            this.disconnect(Component.translatable("disconnect.spam"));
++        if (!this.tabSpamThrottler.isIncrementAndUnderThreshold() && !this.server.getPlayerList().isOp(this.player.nameAndId()) && !this.server.isSingleplayerOwner(this.player.nameAndId())) { // Paper - configurable tab spam limits
++            this.disconnectAsync(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM); // Paper - Kick event cause // Paper - add proper async disconnect
 +            return;
 +        }
 +        // CraftBukkit end
++        // Paper start - Don't suggest if tab-complete is disabled
++        if (org.spigotmc.SpigotConfig.tabComplete < 0) {
++            return;
++        }
++        // Paper end - Don't suggest if tab-complete is disabled
++        // Paper start
++        final int index;
++        if (packet.getCommand().length() > 64 && ((index = packet.getCommand().indexOf(' ')) == -1 || index >= 64)) {
++            this.disconnectAsync(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM); // Paper - add proper async disconnect
++            return;
++        }
++        // Paper end
++        // Paper start - AsyncTabCompleteEvent
++        TAB_COMPLETE_EXECUTOR.execute(() -> this.handleCustomCommandSuggestions0(packet));
++    }
++
++    private void handleCustomCommandSuggestions0(final ServerboundCommandSuggestionPacket packet) {
++        // Paper end - AsyncTabCompleteEvent
          StringReader command = new StringReader(packet.getCommand());
          if (command.canRead() && command.peek() == '/') {
              command.skip();
-@@ -597,6 +_,7 @@
+         }
  
++        // Paper start - AsyncTabCompleteEvent
++        final com.destroystokyo.paper.event.server.AsyncTabCompleteEvent event = new com.destroystokyo.paper.event.server.AsyncTabCompleteEvent(this.getCraftPlayer(), packet.getCommand(), true, null);
++        event.callEvent();
++        final List<com.destroystokyo.paper.event.server.AsyncTabCompleteEvent.Completion> completions = event.isCancelled() ? com.google.common.collect.ImmutableList.of() : event.completions();
++        // If the event isn't handled, we can assume that we have no completions, and so we'll ask the server
++        if (!event.isHandled()) {
++            if (event.isCancelled()) {
++                return;
++            }
++
++            // This needs to be on main
++            this.server.scheduleOnMain(() -> this.sendServerSuggestions(packet, command));
++        } else if (!completions.isEmpty()) {
++            final com.mojang.brigadier.suggestion.SuggestionsBuilder builder0 = new com.mojang.brigadier.suggestion.SuggestionsBuilder(packet.getCommand(), command.getTotalLength());
++            final com.mojang.brigadier.suggestion.SuggestionsBuilder builder = builder0.createOffset(builder0.getInput().lastIndexOf(' ') + 1);
++            for (final com.destroystokyo.paper.event.server.AsyncTabCompleteEvent.Completion completion : completions) {
++                final Integer intSuggestion = com.google.common.primitives.Ints.tryParse(completion.suggestion());
++                if (intSuggestion != null) {
++                    builder.suggest(intSuggestion, io.papermc.paper.adventure.PaperAdventure.asVanilla(completion.tooltip()));
++                } else {
++                    builder.suggest(completion.suggestion(), io.papermc.paper.adventure.PaperAdventure.asVanilla(completion.tooltip()));
++                }
++            }
++            // Paper start - Brigadier API
++            com.mojang.brigadier.suggestion.Suggestions suggestions = builder.buildFuture().join();
++            com.destroystokyo.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent suggestEvent = new com.destroystokyo.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent(this.getCraftPlayer(), suggestions, packet.getCommand());
++            suggestEvent.setCancelled(suggestions.isEmpty());
++            if (suggestEvent.callEvent()) {
++                this.connection.send(new ClientboundCommandSuggestionsPacket(packet.getId(), limitTo(suggestEvent.getSuggestions(), ServerGamePacketListenerImpl.MAX_COMMAND_SUGGESTIONS)));
++            }
++            // Paper end - Brigadier API
++        }
++    }
++    // Paper start - brig API
++    private static Suggestions limitTo(final Suggestions suggestions, final int size) {
++        return suggestions.getList().size() <= size ? suggestions : new Suggestions(suggestions.getRange(), suggestions.getList().subList(0, size));
++    }
++    // Paper end - brig API
++
++    private void sendServerSuggestions(final ServerboundCommandSuggestionPacket packet, final StringReader command) {
++        // Paper end - AsyncTabCompleteEvent
          ParseResults<CommandSourceStack> parse = this.server.getCommands().getDispatcher().parse(command, this.player.createCommandSourceStack());
++        // Paper start - Handle non-recoverable exceptions
++        if (!parse.getExceptions().isEmpty()
++                && parse.getExceptions().values().stream().anyMatch(e -> e instanceof io.papermc.paper.brigadier.TagParseCommandSyntaxException)) {
++            this.disconnect(Component.translatable("disconnect.spam"), org.bukkit.event.player.PlayerKickEvent.Cause.SPAM);
++            return;
++        }
++        // Paper end - Handle non-recoverable exceptions
          this.server.getCommands().getDispatcher().getCompletionSuggestions(parse).thenAccept(results -> {
-+            if (results.isEmpty()) return; // CraftBukkit - don't send through empty suggestions - prevents [<args>] from showing for plugins with nothing more to offer
-             Suggestions suggestions = results.getList().size() <= 1000 ? results : new Suggestions(results.getRange(), results.getList().subList(0, 1000));
-             this.send(new ClientboundCommandSuggestionsPacket(packet.getId(), suggestions));
+-            Suggestions suggestions = results.getList().size() <= 1000 ? results : new Suggestions(results.getRange(), results.getList().subList(0, 1000));
+-            this.send(new ClientboundCommandSuggestionsPacket(packet.getId(), suggestions));
++            // Paper start - Don't tab-complete namespaced commands if send-namespaced is false
++            if (!org.spigotmc.SpigotConfig.sendNamespaced && results.getRange().getStart() <= 1) {
++                results.getList().removeIf(suggestion -> suggestion.getText().contains(":"));
++            }
++            // Paper end - Don't tab-complete namespaced commands if send-namespaced is false
++            // Paper start - Brigadier API
++            com.destroystokyo.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent suggestEvent = new com.destroystokyo.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent(this.getCraftPlayer(), results, packet.getCommand());
++            suggestEvent.setCancelled(results.isEmpty());
++            if (suggestEvent.callEvent()) {
++                this.send(new ClientboundCommandSuggestionsPacket(packet.getId(), limitTo(suggestEvent.getSuggestions(), ServerGamePacketListenerImpl.MAX_COMMAND_SUGGESTIONS)));
++            }
++            // Paper end - Brigadier API
          });
+     }
+ 
 @@ -700,13 +_,13 @@
              if (level.isLoaded(pos)) {
                  BlockState blockState = level.getBlockState(pos);
@@ -609,13 +696,51 @@
              if (!menu.stillValid(this.player)) {
                  LOGGER.debug("Player {} interacted with invalid menu {}", this.player, menu);
                  return;
-@@ -979,6 +_,13 @@
+@@ -979,6 +_,51 @@
  
      @Override
      public void handleEditBook(ServerboundEditBookPacket packet) {
++        // Paper start - Book size limits
++        final io.papermc.paper.configuration.type.number.IntOr.Disabled pageMax = io.papermc.paper.configuration.GlobalConfiguration.get().itemValidation.bookSize.pageMax;
++        if (!this.cserver.isPrimaryThread() && pageMax.enabled()) {
++            final List<String> pageList = packet.pages();
++            long byteTotal = 0;
++            final int maxBookPageSize = pageMax.intValue();
++            final double multiplier = Math.clamp(io.papermc.paper.configuration.GlobalConfiguration.get().itemValidation.bookSize.totalMultiplier, 0.3D, 1D);
++            long byteAllowed = maxBookPageSize;
++            for (final String page : pageList) {
++                final int byteLength = page.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
++                byteTotal += byteLength;
++                final int length = page.length();
++                int multiByteCharacters = 0;
++                if (byteLength != length) {
++                    // Count the number of multi byte characters
++                    for (final char c : page.toCharArray()) {
++                        if (c > 127) {
++                            multiByteCharacters++;
++                        }
++                    }
++                }
++
++                // Allow pages with fewer characters to consume less of the allowed byte quota
++                byteAllowed += maxBookPageSize * Math.clamp((double) length / 255D, 0.1D, 1) * multiplier;
++
++                if (multiByteCharacters > 1) {
++                    // Penalize multibyte characters
++                    byteAllowed -= multiByteCharacters;
++                }
++            }
++
++            if (byteTotal > byteAllowed) {
++                ServerGamePacketListenerImpl.LOGGER.warn("{} tried to send a book too large. Book size: {} - Allowed: {} - Pages: {}", this.player.getScoreboardName(), byteTotal, byteAllowed, pageList.size());
++                this.disconnectAsync(Component.literal("Book too large!"), org.bukkit.event.player.PlayerKickEvent.Cause.ILLEGAL_ACTION); // Paper - kick event cause // Paper - add proper async disconnect
++                return;
++            }
++        }
++        // Paper end - Book size limits
 +        // CraftBukkit start
 +        if (this.lastBookTick + 20 > MinecraftServer.currentTick) {
-+            this.disconnect(Component.literal("Book edited too quickly!"));
++            this.disconnectAsync(Component.literal("Book edited too quickly!"), org.bukkit.event.player.PlayerKickEvent.Cause.ILLEGAL_ACTION); // Paper - kick event cause // Paper - add proper async disconnect
 +            return;
 +        }
 +        this.lastBookTick = MinecraftServer.currentTick;
@@ -635,7 +760,7 @@
          if (carried.has(DataComponents.WRITABLE_BOOK_CONTENT)) {
              List<Filterable<String>> pages = contents.stream().map(this::filterableFromOutgoing).toList();
              carried.set(DataComponents.WRITABLE_BOOK_CONTENT, new WritableBookContent(pages));
-+            CraftEventFactory.handleEditBookEvent(player, slot, handItem, carried); // CraftBukkit
++            this.player.getInventory().setItem(slot, CraftEventFactory.handleEditBookEvent(player, slot, handItem, carried)); // CraftBukkit // Paper - Don't ignore result (see other callsite for handleEditBookEvent)
          }
      }
  
@@ -711,7 +836,27 @@
                                              LOGGER.warn("{} moved too quickly! {},{},{}", this.player.getPlainTextName(), xDist, yDist, zDist);
                                              this.teleport(
                                                  this.player.getX(), this.player.getY(), this.player.getZ(), this.player.getYRot(), this.player.getXRot()
-@@ -1127,6 +_,7 @@
+@@ -1122,11 +_,26 @@
+                                 zDist = targetZ - this.lastGoodZ;
+                                 boolean movedUpwards = yDist > 0.0;
+                                 if (this.player.onGround() && !packet.isOnGround() && movedUpwards) {
+-                                    this.player.jumpFromGround();
++                                    // Paper start - Add PlayerJumpEvent
++                                    org.bukkit.entity.Player player = this.getCraftPlayer();
++                                    Location from = new Location(player.getWorld(), this.lastPosX, this.lastPosY, this.lastPosZ, this.lastYaw, this.lastPitch); // Get the Players previous Event location. // Youer - lastYaw/lastPitch (not lastYRot/lastXRot)
++                                    Location to = new Location(player.getWorld(), targetX, targetY, targetZ, targetYRot, targetXRot);
++
++                                    com.destroystokyo.paper.event.player.PlayerJumpEvent event = new com.destroystokyo.paper.event.player.PlayerJumpEvent(player, from, to);
++
++                                    if (event.callEvent()) {
++                                        this.player.jumpFromGround();
++                                    } else {
++                                        from = event.getFrom();
++                                        this.internalTeleport(new PositionMoveRotation(org.bukkit.craftbukkit.util.CraftLocation.toVec3(from), Vec3.ZERO, from.getYaw(), from.getPitch()), Collections.emptySet());
++                                        return;
++                                    }
++                                    // Paper end - Add PlayerJumpEvent
+                                 }
  
                                  boolean playerStandsOnSomething = this.player.verticalCollisionBelow;
                                  this.player.move(MoverType.PLAYER, new Vec3(xDist, yDist, zDist));
@@ -1580,7 +1725,7 @@
          if (this.hasClientLoaded() && !this.player.isSpectator()) {
              ServerLevel level = this.player.level();
              Entity target = level.getEntityOrPart(packet.entityId());
-@@ -1805,13 +_,18 @@
+@@ -1805,27 +_,45 @@
                      if (!mainHandItem.has(DataComponents.PIERCING_WEAPON)) {
                          if (target instanceof ItemEntity
                              || target instanceof ExperienceOrb
@@ -1600,7 +1745,16 @@
                              }
                          }
                      }
-@@ -1823,9 +_,17 @@
+                 }
+             }
++            // Paper start - PlayerUseUnknownEntityEvent
++            else if (target == null) {
++                CraftEventFactory.callPlayerUseUnknownEntityEvent(this.player, packet.entityId(), true, net.minecraft.world.InteractionHand.MAIN_HAND, null);
++            }
++            // Paper end - PlayerUseUnknownEntityEvent
+         }
+     }
+ 
      @Override
      public void handleInteract(ServerboundInteractPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
@@ -1663,6 +1817,18 @@
                              ItemStack awardedForStack = success.wasItemInteraction() ? usedItemStack : ItemStack.EMPTY;
                              CriteriaTriggers.PLAYER_INTERACTED_WITH_ENTITY.trigger(this.player, awardedForStack, target);
                              if (success.swingSource() == InteractionResult.SwingSource.SERVER) {
+@@ -1846,6 +_,11 @@
+                     }
+                 }
+             }
++            // Paper start - PlayerUseUnknownEntityEvent
++            else if (target == null) {
++                CraftEventFactory.callPlayerUseUnknownEntityEvent(this.player, packet.entityId(), false, packet.hand(), packet.location());
++            }
++            // Paper end - PlayerUseUnknownEntityEvent
+         }
+     }
+ 
 @@ -1875,7 +_,7 @@
              case PERFORM_RESPAWN:
                  if (this.player.wonGame) {
@@ -1716,7 +1882,7 @@
                  this.player.containerMenu.sendAllDataToRemote();
              } else if (!this.player.containerMenu.stillValid(this.player)) {
                  LOGGER.debug("Player {} interacted with invalid menu {}", this.player, this.player.containerMenu);
-@@ -1943,7 +_,285 @@
+@@ -1943,7 +_,298 @@
                  } else {
                      boolean fullResyncNeeded = packet.stateId() != this.player.containerMenu.getStateId();
                      this.player.containerMenu.suppressRemoteUpdates();
@@ -1930,6 +2096,19 @@
 +                                }
 +                            }
 +                        }
++
++                        // Paper start - cartography item event
++                        if (packet.slotNum() == net.minecraft.world.inventory.CartographyTableMenu.RESULT_SLOT && top instanceof org.bukkit.inventory.CartographyInventory cartographyInventory) {
++                            org.bukkit.inventory.ItemStack result = cartographyInventory.getResult();
++                            if (result != null && !result.isEmpty()) {
++                                if (click == org.bukkit.event.inventory.ClickType.NUMBER_KEY) {
++                                    event = new io.papermc.paper.event.player.CartographyItemEvent(inventory, type, packet.slotNum(), click, action, packet.buttonNum());
++                                } else {
++                                    event = new io.papermc.paper.event.player.CartographyItemEvent(inventory, type, packet.slotNum(), click, action);
++                                }
++                            }
++                        }
++                        // Paper end - cartography item event
 +
 +                        event.setCancelled(cancelled);
 +                        AbstractContainerMenu oldContainer = this.player.containerMenu; // SPIGOT-1224
@@ -2179,6 +2358,20 @@
          if (!this.receivedMovementThisTick) {
              this.player.setKnownMovement(Vec3.ZERO);
          }
+@@ -2201,6 +_,13 @@
+         return this.player.hasInfiniteMaterials();
+     }
+ 
++    // Paper start - check if game master
++    @Override
++    public boolean canUseCommandBlocks() {
++        return this.player.canUseGameMasterBlocks();
++    }
++    // Paper end - check if game master
++
+     @Override
+     public ServerPlayer getPlayer() {
+         return this.player;
 @@ -2211,14 +_,24 @@
      }
  

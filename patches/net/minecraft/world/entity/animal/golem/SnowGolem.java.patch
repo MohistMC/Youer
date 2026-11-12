@@ -22,15 +22,26 @@
                      this.level().gameEvent(GameEvent.BLOCK_PLACE, snowPos, GameEvent.Context.of(this, snow));
                  }
              }
-@@ -136,7 +_,7 @@
+@@ -136,9 +_,17 @@
      @Override
      protected InteractionResult mobInteract(Player player, InteractionHand hand) {
          ItemStack itemStack = player.getItemInHand(hand);
 -        if (itemStack.is(Items.SHEARS) && this.readyForShearing()) {
 +        if (false && itemStack.is(Items.SHEARS) && this.readyForShearing()) { // Neo: Shear logic is handled by IShearable
              if (this.level() instanceof ServerLevel level) {
-                 this.shear(level, SoundSource.PLAYERS, itemStack);
+-                this.shear(level, SoundSource.PLAYERS, itemStack);
++                // Paper start - call PlayerShearEntityEvent
++                java.util.List<ItemStack> drops = this.generateDefaultDrops(level, itemStack);
++                org.bukkit.event.player.PlayerShearEntityEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemStack, hand, drops);
++                if (event.isCancelled()) {
++                    return InteractionResult.PASS;
++                }
++                drops = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getDrops());
++                this.shear(level, SoundSource.PLAYERS, itemStack, drops);
++                // Paper end - call PlayerShearEntityEvent
                  this.gameEvent(GameEvent.SHEAR, player);
+                 itemStack.hurtAndBreak(1, player, hand.asEquipmentSlot());
+             }
 @@ -149,11 +_,33 @@
          }
      }

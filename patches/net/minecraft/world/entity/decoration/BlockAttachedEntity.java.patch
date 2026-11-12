@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/decoration/BlockAttachedEntity.java
 +++ b/net/minecraft/world/entity/decoration/BlockAttachedEntity.java
-@@ -16,6 +_,16 @@
+@@ -16,12 +_,22 @@
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.Vec3;
@@ -17,6 +17,13 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
+ public abstract class BlockAttachedEntity extends Entity {
+     private static final Logger LOGGER = LogUtils.getLogger();
+-    private int checkInterval;
++    private int checkInterval; { this.checkInterval = this.getId() % this.level().spigotConfig.hangingTickFrequency; } // Paper - Perf: offset item frame ticking
+     protected BlockPos pos;
+ 
+     protected BlockAttachedEntity(EntityType<? extends BlockAttachedEntity> type, Level level) {
 @@ -39,10 +_,28 @@
      public void tick() {
          if (this.level() instanceof ServerLevel level) {
@@ -53,7 +60,7 @@
          } else {
              if (!this.isRemoved()) {
 +                // CraftBukkit start - fire break events
-+                Entity damager = (source.isDirect()) ? source.getDirectEntity() : source.getEntity();
++                Entity damager = source.getDirectEntity(); // Paper
 +                HangingBreakEvent event;
 +                if (damager != null) {
 +                    event = new HangingBreakByEntityEvent((Hanging) this.getBukkitEntity(), damager.getBukkitEntity(), new org.bukkit.craftbukkit.damage.CraftDamageSource(source), source.is(DamageTypeTags.IS_EXPLOSION) ? HangingBreakEvent.RemoveCause.EXPLOSION : HangingBreakEvent.RemoveCause.ENTITY);
@@ -71,10 +78,22 @@
                  this.kill(level);
                  this.markHurt();
                  this.dropItem(level, source.getEntity());
-@@ -100,6 +_,16 @@
+@@ -100,18 +_,37 @@
      @Override
      public void move(MoverType moverType, Vec3 delta) {
          if (this.level() instanceof ServerLevel level && !this.isRemoved() && delta.lengthSqr() > 0.0) {
+-            this.kill(level);
+-            this.dropItem(level, null);
+-        }
+-    }
+-
+-    @Override
+-    public void push(double xa, double ya, double za) {
+-        if (this.level() instanceof ServerLevel level && !this.isRemoved() && xa * xa + ya * ya + za * za > 0.0) {
+-            this.kill(level);
+-            this.dropItem(level, null);
+-        }
+-    }
 +            // CraftBukkit start - fire break events
 +            // TODO - Does this need its own cause? Seems to only be triggered by pistons
 +            HangingBreakEvent event = new HangingBreakEvent((Hanging) this.getBukkitEntity(), HangingBreakEvent.RemoveCause.PHYSICS);
@@ -85,15 +104,27 @@
 +            }
 +            // CraftBukkit end
 +
-             this.kill(level);
-             this.dropItem(level, null);
-         }
-@@ -107,7 +_,7 @@
++            this.kill(level);
++            this.dropItem(level, null);
++        }
++    }
++
++    @Override
++    public void push(double xa, double ya, double za, @Nullable Entity pushingEntity) { // Paper - override correct overload
++        if (false && this.level() instanceof ServerLevel level && !this.isRemoved() && xa * xa + ya * ya + za * za > 0.0) { // CraftBukkit - not needed
++            this.kill(level);
++            this.dropItem(level, null);
++        }
++    }
++
++    // CraftBukkit start - selectively save tile position
++    @Override
++    protected void addAdditionalSaveData(ValueOutput output, boolean includeAll) {
++        if (includeAll) {
++            this.addAdditionalSaveData(output);
++        }
++    }
++    // CraftBukkit end
  
      @Override
-     public void push(double xa, double ya, double za) {
--        if (this.level() instanceof ServerLevel level && !this.isRemoved() && xa * xa + ya * ya + za * za > 0.0) {
-+        if (false && this.level() instanceof ServerLevel level && !this.isRemoved() && xa * xa + ya * ya + za * za > 0.0) { // CraftBukkit - not needed
-             this.kill(level);
-             this.dropItem(level, null);
-         }
+     protected void addAdditionalSaveData(ValueOutput output) {

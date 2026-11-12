@@ -28,34 +28,74 @@
      private static final int PATTERN_NOT_SET = -1;
      private static final int INV_SLOT_START = 4;
      private static final int INV_SLOT_END = 31;
-@@ -50,6 +_,13 @@
-             LoomMenu.this.slotsChanged(this);
-             LoomMenu.this.slotUpdateListener.run();
-         }
-+
-+        // CraftBukkit start
-+        @Override
-+        public Location getLocation() {
-+            return access.getLocation();
-+        }
-+        // CraftBukkit end
-     };
-     private final Container outputContainer = new SimpleContainer(1) {
-         {
-@@ -61,6 +_,13 @@
-             super.setChanged();
-             LoomMenu.this.slotUpdateListener.run();
-         }
-+
-+        // CraftBukkit start
-+        @Override
-+        public Location getLocation() {
-+            return access.getLocation();
-+        }
-+        // CraftBukkit end
-     };
+@@ -39,29 +_,8 @@
+     private final Slot patternSlot;
+     private final Slot resultSlot;
+     private long lastSoundTime;
+-    private final Container inputContainer = new SimpleContainer(3) {
+-        {
+-            Objects.requireNonNull(LoomMenu.this);
+-        }
+-
+-        @Override
+-        public void setChanged() {
+-            super.setChanged();
+-            LoomMenu.this.slotsChanged(this);
+-            LoomMenu.this.slotUpdateListener.run();
+-        }
+-    };
+-    private final Container outputContainer = new SimpleContainer(1) {
+-        {
+-            Objects.requireNonNull(LoomMenu.this);
+-        }
+-
+-        @Override
+-        public void setChanged() {
+-            super.setChanged();
+-            LoomMenu.this.slotUpdateListener.run();
+-        }
+-    };
++    private final Container inputContainer; // Paper - Add missing InventoryHolders - move down
++    private final Container outputContainer; // Paper - Add missing InventoryHolders - move down
  
      public LoomMenu(int containerId, Inventory inventory) {
+         this(containerId, inventory, ContainerLevelAccess.NULL);
+@@ -70,6 +_,35 @@
+     public LoomMenu(int containerId, Inventory inventory, ContainerLevelAccess access) {
+         super(MenuType.LOOM, containerId);
+         this.access = access;
++        this.inputContainer = new SimpleContainer(this.createBlockHolder(access), 3) { // Paper - Add missing InventoryHolders
++            @Override
++            public void setChanged() {
++                super.setChanged();
++                LoomMenu.this.slotsChanged(this);
++                LoomMenu.this.slotUpdateListener.run();
++            }
++
++            // CraftBukkit start
++            @Override
++            public Location getLocation() {
++                return access.getLocation();
++            }
++            // CraftBukkit end
++        };
++        this.outputContainer = new SimpleContainer(this.createBlockHolder(access), 1) { // Paper - Add missing InventoryHolders
++            @Override
++            public void setChanged() {
++                super.setChanged();
++                LoomMenu.this.slotUpdateListener.run();
++            }
++
++            // CraftBukkit start
++            @Override
++            public Location getLocation() {
++                return access.getLocation();
++            }
++            // CraftBukkit end
++        };
+         this.bannerSlot = this.addSlot(new Slot(this.inputContainer, 0, 13, 26) {
+             {
+                 Objects.requireNonNull(LoomMenu.this);
 @@ -131,6 +_,7 @@
          this.addStandardInventorySlots(inventory, 8, 84);
          this.addDataSlot(this.selectedBannerPatternIndex);
@@ -64,7 +104,7 @@
      }
  
      private static boolean isPatternItem(ItemStack itemStack) {
-@@ -143,6 +_,7 @@
+@@ -143,14 +_,39 @@
  
      @Override
      public boolean stillValid(Player player) {
@@ -72,6 +112,50 @@
          return stillValid(this.access, player, Blocks.LOOM);
      }
  
+     @Override
+     public boolean clickMenuButton(Player player, int buttonId) {
+         if (buttonId >= 0 && buttonId < this.selectablePatterns.size()) {
+-            this.selectedBannerPatternIndex.set(buttonId);
+-            this.setupResultSlot(this.selectablePatterns.get(buttonId));
++            // Paper start - Add PlayerLoomPatternSelectEvent
++            int selectablePatternIndex = buttonId;
++            io.papermc.paper.event.player.PlayerLoomPatternSelectEvent event = new io.papermc.paper.event.player.PlayerLoomPatternSelectEvent((org.bukkit.entity.Player) player.getBukkitEntity(), this.getBukkitView().getTopInventory(), org.bukkit.craftbukkit.block.banner.CraftPatternType.minecraftHolderToBukkit(this.selectablePatterns.get(selectablePatternIndex)));
++            if (!event.callEvent()) {
++                player.containerMenu.sendAllDataToRemote();
++                return false;
++            }
++            final Holder<BannerPattern> eventPattern = org.bukkit.craftbukkit.block.banner.CraftPatternType.bukkitToMinecraftHolder(event.getPatternType());
++            Holder<BannerPattern> selectedPattern = null;
++            for (int i = 0; i < this.selectablePatterns.size(); i++) {
++                final Holder<BannerPattern> holder = this.selectablePatterns.get(i);
++                if (eventPattern.equals(holder)) {
++                    selectablePatternIndex = i;
++                    selectedPattern = holder;
++                    break;
++                }
++            }
++            if (selectedPattern == null) {
++                selectedPattern = eventPattern;
++                selectablePatternIndex = -1;
++            }
++
++            player.containerMenu.sendAllDataToRemote();
++            this.selectedBannerPatternIndex.set(selectablePatternIndex);
++            this.setupResultSlot(java.util.Objects.requireNonNull(selectedPattern, "selectedPattern was null, this is unexpected"));
++            // Paper end - Add PlayerLoomPatternSelectEvent
+             return true;
+         } else {
+             return false;
+@@ -212,7 +_,8 @@
+                 this.resultSlot.set(ItemStack.EMPTY);
+             }
+ 
+-            this.broadcastChanges();
++            // this.broadcastChanges(); // Paper - Add PrepareResultEvent; done below
++            org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareResultEvent(this, 3); // Paper - Add PrepareResultEvent
+         } else {
+             this.resultSlot.set(ItemStack.EMPTY);
+             this.selectablePatterns = List.of();
 @@ -302,7 +_,14 @@
                  result.update(
                      DataComponents.BANNER_PATTERNS,

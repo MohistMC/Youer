@@ -30,7 +30,7 @@
          this.byType = byType;
          this.byKey = byKey;
      }
-@@ -30,7 +_,54 @@
+@@ -30,7 +_,56 @@
              byKey.put(recipe.id(), recipe);
          }
  
@@ -50,21 +50,23 @@
 +        }
 +    }
 +
-+    public boolean removeRecipe(ResourceKey<Recipe<?>> mcKey) {
-+        boolean removed = false;
-+        Iterator<RecipeHolder<?>> iter = byType.values().iterator();
-+        while (iter.hasNext()) {
-+            RecipeHolder<?> recipe = iter.next();
-+            if (recipe.id().equals(mcKey)) {
-+                iter.remove();
-+                removed = true;
-+            }
-+        }
-+        removed |= byKey.remove(mcKey) != null;
-+
-+        return removed;
-+    }
 +    // CraftBukkit end
++
++    // Paper start - replace removeRecipe implementation
++    public boolean removeRecipe(ResourceKey<Recipe<?>> id) {
++        final RecipeHolder<?> remove = this.byKey.remove(id);
++        if (remove == null) {
++            return false;
++        }
++        // CraftBukkit start - defensive: ensure byType is mutable before attempting remove
++        if (this.byType instanceof com.google.common.collect.ImmutableMultimap) {
++            this.byType = com.google.common.collect.LinkedHashMultimap.create(this.byType);
++        }
++        // CraftBukkit end
++        final Collection<? extends RecipeHolder<?>> recipes = this.byType.get(remove.value().getType());
++        return recipes.remove(remove);
++    }
++    // Paper end - replace removeRecipe implementation
 +
 +    // Neo: handle ordering according to any recipe priorities
 +    public void order(it.unimi.dsi.fastutil.objects.Object2IntMap<ResourceKey<net.minecraft.world.item.crafting.Recipe<?>>> recipePriorities) {

@@ -104,7 +104,7 @@
      public static final BlockPos END_SPAWN_POINT = new BlockPos(100, 50, 0);
      public static final IntProvider RAIN_DELAY = UniformInt.of(12000, 180000);
      public static final IntProvider RAIN_DURATION = UniformInt.of(12000, 24000);
-@@ -194,13 +_,14 @@
+@@ -194,13 +_,15 @@
      private final List<ServerPlayer> players = Lists.newArrayList();
      public final ServerChunkCache chunkSource;
      private final MinecraftServer server;
@@ -118,6 +118,7 @@
      private final GameEventDispatcher gameEventDispatcher;
      public boolean noSave;
 +    public boolean hasPhysicsEvent = true; // Paper - BlockPhysicsEvent
++    public boolean hasEntityMoveEvent; // Paper - Add EntityMoveEvent
      private final SleepStatus sleepStatus;
      private int emptyTime;
      private final PortalForcer portalForcer;
@@ -1263,7 +1264,7 @@
              return false;
          } else {
              this.addFreshEntityWithPassengers(entity);
-@@ -997,23 +_,70 @@
+@@ -997,23 +_,81 @@
          }
      }
  
@@ -1319,6 +1320,17 @@
 +        Entity entity = this.getEntity(id);
 +        if (entity instanceof Player) player_bukkit = (Player) entity;
 +        // CraftBukkit end
++
++        // Paper start - Add BlockBreakProgressUpdateEvent
++        // If a plugin is using this method to send destroy packets for a client-side only entity id, no block progress occurred on the server.
++        // Hence, do not call the event.
++        if (entity != null) {
++            float progressFloat = Mth.clamp(progress, 0, 10) / 10.0f;
++            org.bukkit.craftbukkit.block.CraftBlock bukkitBlock = org.bukkit.craftbukkit.block.CraftBlock.at(this, blockPos);
++            new io.papermc.paper.event.block.BlockBreakProgressUpdateEvent(bukkitBlock, progressFloat, entity.getBukkitEntity())
++                .callEvent();
++        }
++        // Paper end - Add BlockBreakProgressUpdateEvent
          for (ServerPlayer player : this.server.getPlayerList().getPlayers()) {
              if (player.level() == this && player.getId() != id) {
                  double xd = blockPos.getX() - player.getX();
@@ -1841,7 +1853,7 @@
              ServerLevel.this.getChunkSource().removeEntity(entity);
              if (entity instanceof ServerPlayer player) {
                  ServerLevel.this.players.remove(player);
-@@ -1927,25 +_,69 @@
+@@ -1927,25 +_,81 @@
                  if (ServerLevel.this.isUpdatingNavigations) {
                      String message = "onTrackingStart called during navigation iteration";
                      Util.logAndPauseIfInIde(
@@ -1878,7 +1890,7 @@
          public void onSectionChange(Entity entity) {
              entity.updateDynamicGameEventListener(DynamicGameEventListener::move);
          }
-+    }
+     }
 +
 +    @Override
 +    public final void syncData(net.neoforged.neoforge.attachment.AttachmentType<?> type) {
@@ -1912,5 +1924,17 @@
 +    @org.jetbrains.annotations.ApiStatus.Internal
 +    public void cleanCapabilityListenerReferences() {
 +        capListenerHolder.clean();
-     }
++    }
++
++    // Paper start - lag compensation
++    private long lagCompensationTick = MinecraftServer.SERVER_INIT;
++
++    public long getLagCompensationTick() {
++        return this.lagCompensationTick;
++    }
++
++    public void updateLagCompensationTick() {
++        this.lagCompensationTick = (System.nanoTime() - MinecraftServer.SERVER_INIT) / (java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(50L));
++    }
++    // Paper end - lag compensation
  }

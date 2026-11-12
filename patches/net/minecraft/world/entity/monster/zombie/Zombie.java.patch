@@ -122,7 +122,7 @@
          this.convertToZombieType(level, EntityType.DROWNED);
          if (!this.isSilent()) {
              level.levelEvent(null, 1040, this.blockPosition(), 0);
-@@ -245,17 +_,29 @@
+@@ -245,17 +_,36 @@
      }
  
      protected void convertToZombieType(ServerLevel level, EntityType<? extends Zombie> zombieType) {
@@ -155,6 +155,13 @@
 +
 +    public static @Nullable ZombieVillager convertVillagerToZombieVillager(final ServerLevel level, final Villager villager, final net.minecraft.core.BlockPos blockPosition, boolean silent, org.bukkit.event.entity.EntityTransformEvent.TransformReason transformReason, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason creatureSpawnReason) {
 +        // CraftBukkit end
++        // Paper start - Clear display items before conversion
++        for (net.minecraft.world.entity.ai.behavior.BehaviorControl<? super Villager> behavior : villager.getBrain().getRunningBehaviors()) {
++            if (behavior instanceof net.minecraft.world.entity.ai.behavior.ShowTradesToPlayer) {
++                behavior.doStop(level, villager, level.getGameTime());
++            }
++        }
++        // Paper end - Clear display items before conversion
          ZombieVillager zombieVillager = villager.convertTo(
              EntityType.ZOMBIE_VILLAGER,
              ConversionParams.single(villager, true, true),

@@ -1,6 +1,34 @@
 --- a/net/minecraft/world/level/block/SpreadingSnowyBlock.java
 +++ b/net/minecraft/world/level/block/SpreadingSnowyBlock.java
-@@ -46,19 +_,27 @@
+@@ -27,8 +_,13 @@
+     protected abstract MapCodec<? extends SpreadingSnowyBlock> codec();
+ 
+     private static boolean canStayAlive(BlockState state, LevelReader level, BlockPos pos) {
++        // Paper start - Perf: optimize dirt and snow spreading
++        return canStayAlive(level.getChunk(pos), state, pos);
++    }
++    private static boolean canStayAlive(final net.minecraft.world.level.chunk.ChunkAccess chunk, final BlockState state, final BlockPos pos) {
++        // Paper end - Perf: optimize dirt and snow spreading
+         BlockPos above = pos.above();
+-        BlockState aboveState = level.getBlockState(above);
++        BlockState aboveState = chunk.getBlockState(above); // Paper - Perf: optimize dirt and snow spreading
+         if (aboveState.is(Blocks.SNOW) && aboveState.getValue(SnowLayerBlock.LAYERS) == 1) {
+             return true;
+         } else if (aboveState.getFluidState().isFull()) {
+@@ -40,25 +_,58 @@
+     }
+ 
+     private static boolean canPropagate(BlockState state, LevelReader level, BlockPos pos) {
++        // Paper start - Perf: optimize dirt and snow spreading
++        return canPropagate(level.getChunk(pos), state, pos);
++    }
++
++    private static boolean canPropagate(final net.minecraft.world.level.chunk.ChunkAccess chunk, final BlockState state, final BlockPos pos) {
++        // Paper end - Perf: optimize dirt and snow spreading
+         BlockPos above = pos.above();
+-        return canStayAlive(state, level, pos) && !level.getFluidState(above).is(FluidTags.WATER);
++        return canStayAlive(chunk, state, pos) && !chunk.getFluidState(above).is(FluidTags.WATER); // Paper - Perf: optimize dirt and snow spreading
+     }
  
      @Override
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
@@ -8,7 +36,15 @@
          Registry<Block> blocks = level.registryAccess().lookupOrThrow(Registries.BLOCK);
          Optional<Block> baseBlock = blocks.getOptional(this.baseBlock);
          if (!baseBlock.isEmpty()) {
-             if (!canStayAlive(state, level, pos)) {
+-            if (!canStayAlive(state, level, pos)) {
++            // Paper start - Perf: optimize dirt and snow spreading
++            final net.minecraft.world.level.chunk.ChunkAccess cachedChunk = level.getChunkIfLoaded(pos);
++            if (cachedChunk == null) {
++                return;
++            }
++
++            if (!canStayAlive(cachedChunk, state, pos)) {
++                // Paper end - Perf: optimize dirt and snow spreading
 +                if (!level.isAreaLoaded(pos, 1)) return; // Forge: prevent loading unloaded chunks when checking neighbor's light and spreading
 +                // CraftBukkit start
 +                if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(level, pos, baseBlock.get().defaultBlockState()).isCancelled()) {
@@ -23,9 +59,22 @@
  
                      for (int i = 0; i < 4; i++) {
                          BlockPos testPos = pos.offset(random.nextInt(3) - 1, random.nextInt(5) - 3, random.nextInt(3) - 1);
-                         if (level.getBlockState(testPos).is(baseBlock.get()) && canPropagate(defaultBlockState, level, testPos)) {
+-                        if (level.getBlockState(testPos).is(baseBlock.get()) && canPropagate(defaultBlockState, level, testPos)) {
 -                            level.setBlockAndUpdate(testPos, defaultBlockState.setValue(SNOWY, isSnowySetting(level.getBlockState(testPos.above()))));
-+                            org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(level, pos, testPos, defaultBlockState.setValue(SNOWY, isSnowySetting(level.getBlockState(testPos.above()))), Block.UPDATE_ALL); // CraftBukkit
++                        // Paper start - Perf: optimize dirt and snow spreading
++                        if (pos.getX() == testPos.getX() && pos.getY() == testPos.getY() && pos.getZ() == testPos.getZ()) {
++                            continue;
++                        }
++
++                        final net.minecraft.world.level.chunk.ChunkAccess access;
++                        if (cachedChunk.locX == testPos.getX() >> 4 && cachedChunk.locZ == testPos.getZ() >> 4) {
++                            access = cachedChunk;
++                        } else {
++                            access = level.getChunkAt(testPos);
++                        }
++                        if (access.getBlockState(testPos).is(baseBlock.get()) && SpreadingSnowyBlock.canPropagate(access, defaultBlockState, testPos)) {
++                            org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(level, pos, testPos, defaultBlockState.setValue(SNOWY, isSnowySetting(access.getBlockState(testPos.above()))), Block.UPDATE_ALL); // CraftBukkit
++                            // Paper end - Perf: optimize dirt and snow spreading
                          }
                      }
                  }

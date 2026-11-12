@@ -42,6 +42,19 @@
      }
  
      public void setSoundEvent(SoundEvent soundEvent) {
+@@ -146,7 +_,11 @@
+     @Override
+     public void lerpMotion(Vec3 movement) {
+         super.lerpMotion(movement);
+-        this.life = 0;
++        // Paper start - Fix loophole for arrow immunity
++        if (!this.level().paperConfig().entities.spawning.maxArrowDespawnInvulnerability.enabled()) {
++            this.life = 0;
++        }
++        // Paper end - Fix loophole for arrow immunity
+         if (this.isInGround() && movement.lengthSqr() > 0.0) {
+             this.setInGround(false);
+         }
 @@ -185,7 +_,7 @@
              this.shakeTime--;
          }
@@ -51,6 +64,17 @@
              this.clearFire();
          }
  
+@@ -207,6 +_,10 @@
+                 this.setSharedFlagOnFire(this.getRemainingFireTicks() > 0);
+             }
+         } else {
++            // Paper start - tick life regardless after X seconds
++            final io.papermc.paper.configuration.type.number.IntOr.Disabled maxArrowDespawnInvulnerability = this.level().paperConfig().entities.spawning.maxArrowDespawnInvulnerability;
++            if (maxArrowDespawnInvulnerability.enabled() && this.tickCount > maxArrowDespawnInvulnerability.intValue()) this.tickDespawn();
++            // Paper end - tick life regardless after X seconds
+             this.inGroundTime = 0;
+             Vec3 originalPosition = this.position();
+             if (this.isInWater()) {
 @@ -278,11 +_,15 @@
  
              if (entitiesHit.isEmpty()) {
@@ -78,14 +102,59 @@
              if (!this.isAlive() || deflection != ProjectileDeflection.NONE) {
                  return deflection;
              }
+@@ -327,6 +_,19 @@
+         }
+     }
+ 
++    // Paper start - Fix cancelling ProjectileHitEvent for piercing arrows
++    @Override
++    public ProjectileDeflection preHitTargetOrDeflectSelf(HitResult hitResult) {
++        if (hitResult instanceof EntityHitResult entityHitResult && this.hitCancelled && this.getPierceLevel() > 0) {
++            if (this.piercingIgnoreEntityIds == null) {
++                this.piercingIgnoreEntityIds = new IntOpenHashSet(5);
++            }
++            this.piercingIgnoreEntityIds.add(entityHitResult.getEntity().getId());
++        }
++        return super.preHitTargetOrDeflectSelf(hitResult);
++    }
++    // Paper end - Fix cancelling ProjectileHitEvent for piercing arrows
++
+     @Override
+     protected double getDefaultGravity() {
+         return 0.05;
+@@ -340,7 +_,11 @@
+         this.setInGround(false);
+         Vec3 deltaMovement = this.getDeltaMovement();
+         this.setDeltaMovement(deltaMovement.multiply(this.random.nextFloat() * 0.2F, this.random.nextFloat() * 0.2F, this.random.nextFloat() * 0.2F));
+-        this.life = 0;
++        // Paper start - Fix loophole for arrow immunity
++        if (!this.level().paperConfig().entities.spawning.maxArrowDespawnInvulnerability.enabled()) {
++            this.life = 0;
++        }
++        // Paper end - Fix loophole for arrow immunity
+     }
+ 
+     public boolean isInGround() {
 @@ -366,8 +_,8 @@
  
      protected void tickDespawn() {
          this.life++;
 -        if (this.life >= 1200) {
 -            this.discard();
-+        if (this.life >= ((this instanceof ThrownTrident) ? this.level().spigotConfig.tridentDespawnRate : this.level().spigotConfig.arrowDespawnRate)) { // Spigot
++        if (this.life >= (this.pickup == Pickup.CREATIVE_ONLY ? this.level().paperConfig().entities.spawning.creativeArrowDespawnRate.value() : (this.pickup == Pickup.DISALLOWED ? this.level().paperConfig().entities.spawning.nonPlayerArrowDespawnRate.value() : ((this instanceof ThrownTrident) ? this.level().spigotConfig.tridentDespawnRate : this.level().spigotConfig.arrowDespawnRate)))) { // Spigot // Paper - Configurable non-player arrow despawn rate; TODO: Extract this to init?
 +            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         }
+     }
+ 
+@@ -401,9 +_,9 @@
+     }
+ 
+     @Override
+-    public void push(double xa, double ya, double za) {
++    public void push(double xa, double ya, double za, @Nullable Entity pushingEntity) { // Paper - add push source entity param
+         if (!this.isInGround()) {
+-            super.push(xa, ya, za);
++            super.push(xa, ya, za, pushingEntity); // Paper - add push source entity param
          }
      }
  
@@ -98,8 +167,11 @@
                  return;
              }
  
-@@ -448,8 +_,15 @@
+@@ -446,10 +_,18 @@
+             livingOwner.setLastHurtMob(entity);
+         }
  
++        if (this.isCritArrow()) damageSource = damageSource.critical(); // Paper - add critical damage API
          boolean isEnderman = entity.is(EntityType.ENDERMAN);
          int remainingFireTicks = entity.getRemainingFireTicks();
 +
@@ -133,6 +205,24 @@
              }
          }
      }
+@@ -511,7 +_,7 @@
+             double knockbackResistance = Math.max(0.0, 1.0 - mob.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE));
+             Vec3 movement = this.getDeltaMovement().multiply(1.0, 0.0, 1.0).normalize().scale(knockback * 0.6 * knockbackResistance);
+             if (movement.lengthSqr() > 0.0) {
+-                mob.push(movement.x, 0.1, movement.z);
++                mob.push(movement.x, 0.1, movement.z, this); // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
+             }
+         }
+     }
+@@ -611,7 +_,7 @@
+         this.lastState = input.read("inBlockState", BlockState.CODEC).orElse(null);
+         this.shakeTime = input.getByteOr("shake", (byte)0) & 255;
+         this.setInGround(input.getBooleanOr("inGround", false));
+-        this.baseDamage = input.getDoubleOr("damage", 2.0);
++        this.baseDamage = input.getDoubleOr("damage", this instanceof ThrownTrident ? net.minecraft.world.item.TridentItem.BASE_DAMAGE : 2.0); // Paper - Allow trident custom damage
+         this.pickup = input.read("pickup", AbstractArrow.Pickup.LEGACY_CODEC).orElse(AbstractArrow.Pickup.DISALLOWED);
+         this.setCritArrow(input.getBooleanOr("crit", false));
+         this.setPierceLevel(input.getByteOr("PierceLevel", (byte)0));
 @@ -622,7 +_,14 @@
  
      @Override
@@ -148,7 +238,7 @@
  
          this.pickup = switch (owner) {
              case Player ignored when this.pickup == AbstractArrow.Pickup.DISALLOWED -> AbstractArrow.Pickup.ALLOWED;
-@@ -634,9 +_,24 @@
+@@ -634,17 +_,32 @@
      @Override
      public void playerTouch(Player player) {
          if (!this.level().isClientSide() && (this.isInGround() || this.isNoPhysics()) && this.shakeTime <= 0) {
@@ -167,11 +257,21 @@
 +                itemstack = item.getItem();
 +            }
 +
-+            if ((this.pickup == AbstractArrow.Pickup.ALLOWED && player.getInventory().add(itemstack)) || (this.pickup == AbstractArrow.Pickup.CREATIVE_ONLY && player.getAbilities().instabuild)) {
++            if (this.tryPickup(player, itemstack)) {
 +                // CraftBukkit end
                  player.take(this, 1);
 -                this.discard();
 +                this.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
              }
          }
+     }
+ 
+-    protected boolean tryPickup(Player player) {
++    protected boolean tryPickup(Player player, ItemStack pickupItem) { // Paper - pass custom pickup item
+         return switch (this.pickup) {
+             case DISALLOWED -> false;
+-            case ALLOWED -> player.getInventory().add(this.getPickupItem());
++            case ALLOWED -> player.getInventory().add(pickupItem); // Paper - pass custom pickup item
+             case CREATIVE_ONLY -> player.hasInfiniteMaterials();
+         };
      }

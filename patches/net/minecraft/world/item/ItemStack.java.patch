@@ -33,7 +33,7 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -178,15 +_,25 @@
+@@ -178,17 +_,36 @@
                  } else {
                      Holder<Item> item = Item.STREAM_CODEC.decode(input);
                      DataComponentPatch patch = patchCodec.decode(input);
@@ -53,14 +53,36 @@
 +                if (itemStack.isEmpty() || itemStack.getItem() == null) { // CraftBukkit - NPE fix itemstack.getItem()
                      output.writeVarInt(0);
                  } else {
-                     output.writeVarInt(itemStack.getCount());
+-                    output.writeVarInt(itemStack.getCount());
++                    output.writeVarInt(io.papermc.paper.util.sanitizer.ItemComponentSanitizer.sanitizeCount(io.papermc.paper.util.sanitizer.ItemObfuscationSession.currentSession(), itemStack, itemStack.getCount())); // Paper - potentially sanitize count
 +                    // Spigot start - filter
 +                    itemStack = itemStack.copy();
 +                    CraftItemStack.setItemMeta(itemStack, CraftItemStack.getItemMeta(itemStack));
 +                    // Spigot end
                      Item.STREAM_CODEC.encode(output, itemStack.typeHolder());
-                     patchCodec.encode(output, itemStack.components.asPatch());
+-                    patchCodec.encode(output, itemStack.components.asPatch());
++                    // Paper start - adventure; conditionally render translatable components
++                    final ItemStack obfuscationStack = itemStack; // Spigot filter reassigns itemStack; capture for obfuscation context lambda
++                    boolean prev = net.minecraft.network.chat.ComponentSerialization.DONT_RENDER_TRANSLATABLES.get();
++                    try (final io.papermc.paper.util.SafeAutoClosable ignored = io.papermc.paper.util.sanitizer.ItemObfuscationSession.withContext(c -> c.itemStack(obfuscationStack))) { // pass the itemstack as context to the obfuscation session
++                        net.minecraft.network.chat.ComponentSerialization.DONT_RENDER_TRANSLATABLES.set(true);
++                        patchCodec.encode(output, itemStack.components.asPatch());
++                    } finally {
++                        net.minecraft.network.chat.ComponentSerialization.DONT_RENDER_TRANSLATABLES.set(prev);
++                    }
++                    // Paper end - adventure; conditionally render translatable components
                  }
+             }
+         };
+@@ -199,7 +_,7 @@
+             public ItemStack decode(RegistryFriendlyByteBuf input) {
+                 ItemStack itemStack = codec.decode(input);
+                 if (!itemStack.isEmpty()) {
+-                    RegistryOps<Unit> ops = input.registryAccess().createSerializationContext(NullOps.INSTANCE);
++                    RegistryOps<io.papermc.paper.util.CountingOps.Value> ops = input.registryAccess().createSerializationContext(io.papermc.paper.util.CountingOps.INSTANCE); // Paper - Track codec depth
+                     ItemStack.CODEC.encodeStart(ops, itemStack).getOrThrow(DecoderException::new);
+                 }
+ 
 @@ -237,6 +_,10 @@
          return !this.isEmpty() && this.components.hasNonDefault(type);
      }
@@ -138,11 +160,12 @@
      }
  
      public boolean isBroken() {
-@@ -443,16 +_,48 @@
+@@ -443,16 +_,57 @@
      }
  
      public void hurtAndBreak(int amount, ServerLevel level, @Nullable ServerPlayer player, Consumer<Item> onBreak) {
 -        int newAmount = this.processDurabilityChange(amount, level, player);
+-        if (newAmount != 0) {
 +        this.hurtAndBreak(amount, level, (LivingEntity) player, onBreak);
 +    }
 +
@@ -152,10 +175,11 @@
 +
 +    public void hurtAndBreak(int amount, ServerLevel level, @Nullable LivingEntity player, Consumer<Item> onBreak, boolean force) { // Paper - add force boolean overload
 +        amount = getItem().damageItem(this, amount, player, onBreak);
++        final int originalDamage = amount; // Paper - Expand PlayerItemDamageEvent
 +        int newAmount = this.processDurabilityChange(amount, level, player, force);
 +        // CraftBukkit start
-+        if (player instanceof ServerPlayer serverplayer) {
-+            PlayerItemDamageEvent event = new PlayerItemDamageEvent(serverplayer.getBukkitEntity(), CraftItemStack.asCraftMirror(this), newAmount);
++        if (newAmount > 0 && player instanceof final ServerPlayer serverplayer) { // Paper - Add EntityDamageItemEvent - limit to positive damage and run for player
++            PlayerItemDamageEvent event = new PlayerItemDamageEvent(serverplayer.getBukkitEntity(), CraftItemStack.asCraftMirror(this), newAmount, originalDamage); // Paper - Expand PlayerItemDamageEvent
 +            event.getPlayer().getServer().getPluginManager().callEvent(event);
 +
 +            if (newAmount != event.getDamage() || event.isCancelled()) {
@@ -166,9 +190,17 @@
 +            }
 +
 +            newAmount = event.getDamage();
++            // Paper start - Add EntityDamageItemEvent
++        } else if (newAmount > 0 && player != null) {
++            io.papermc.paper.event.entity.EntityDamageItemEvent event = new io.papermc.paper.event.entity.EntityDamageItemEvent(player.getBukkitLivingEntity(), CraftItemStack.asCraftMirror(this), newAmount);
++            if (!event.callEvent()) {
++                return;
++            }
++            newAmount = event.getDamage();
++            // Paper end - Add EntityDamageItemEvent
 +        }
 +        // CraftBukkit end
-         if (newAmount != 0) {
++        if (newAmount != 0) { // Paper - Add EntityDamageItemEvent - diff on change for above event ifs.
              this.applyDamage(this.getDamageValue() + newAmount, player, onBreak);
          }
      }
@@ -185,7 +217,7 @@
          if (!this.isDamageableItem()) {
              return 0;
 -        } else if (player != null && player.hasInfiniteMaterials()) {
-+        } else if (player != null && player.hasInfiniteMaterials() && !force) {
++        } else if (player instanceof ServerPlayer && player.hasInfiniteMaterials() && !force) { // Paper - Add EntityDamageItemEvent
              return 0;
          } else {
              return amount > 0 ? EnchantmentHelper.processDurabilityChange(level, this, amount) : amount;
@@ -214,6 +246,33 @@
              this.shrink(1);
              onBreak.accept(item);
          }
+@@ -479,7 +_,25 @@
+                 return;
+             }
+ 
+-            int newDamage = Math.min(this.getDamageValue() + newAmount, this.getMaxDamage() - 1);
++            int newDamage = Math.min(this.getDamageValue() + newAmount, this.getMaxDamage() - 1); // Paper - Expand PlayerItemDamageEvent - diff on change as min computation is copied post event.
++
++            // Paper start - Expand PlayerItemDamageEvent
++            if (newDamage - this.getDamageValue() > 0) {
++                PlayerItemDamageEvent event = new PlayerItemDamageEvent(
++                    serverPlayer.getBukkitEntity(),
++                    CraftItemStack.asCraftMirror(this),
++                    newDamage - this.getDamageValue(),
++                    amount
++                );
++                if (!event.callEvent() || event.getDamage() == 0) {
++                    return;
++                }
++
++                // Prevent breaking the item in this code path as callers may expect the item to survive
++                // (given the method name)
++                newDamage = Math.min(this.getDamageValue() + event.getDamage(), this.getMaxDamage() - 1);
++            }
++            // Paper end - Expand PlayerItemDamageEvent
+             this.applyDamage(newDamage, serverPlayer, i -> {});
+         }
+     }
 @@ -489,9 +_,13 @@
      }
  

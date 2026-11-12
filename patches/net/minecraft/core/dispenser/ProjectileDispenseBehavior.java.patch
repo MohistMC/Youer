@@ -10,7 +10,7 @@
  
  public class ProjectileDispenseBehavior extends DefaultDispenseItemBehavior {
      private final ProjectileItem projectileItem;
-@@ -27,17 +_,39 @@
+@@ -27,17 +_,41 @@
          ServerLevel level = source.level();
          Direction direction = source.state().getValue(DispenserBlock.FACING);
          Position position = this.dispenseConfig.positionFunction().getDispensePosition(source, direction);
@@ -26,9 +26,9 @@
 -        );
 -        dispensed.shrink(1);
 +        // CraftBukkit start
-+        ItemStack itemstack1 = dispensed.split(1);
++        ItemStack singleItemStack = dispensed.copyWithCount(1); // Paper - shrink below and single item in event
 +        org.bukkit.block.Block block = CraftBlock.at(level, source.pos());
-+        CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
++        CraftItemStack craftItem = CraftItemStack.asCraftMirror(singleItemStack);
 +
 +        BlockDispenseEvent event = new BlockDispenseEvent(block, craftItem.clone(), new org.bukkit.util.Vector((double) direction.getStepX(), (double) direction.getStepY(), (double) direction.getStepZ()));
 +        if (!DispenserBlock.eventFired) {
@@ -36,12 +36,12 @@
 +        }
 +
 +        if (event.isCancelled()) {
-+            dispensed.grow(1);
 +            return dispensed;
 +        }
 +
++        boolean shrink = true; // Paper - shrink below and single item in event
 +        if (!event.getItem().equals(craftItem)) {
-+            dispensed.grow(1);
++            shrink = false;
 +            // Chain to handler for new item
 +            ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
 +            DispenseItemBehavior dispenseitembehavior = DispenserBlock.getDispenseBehavior(source, eventStack); // Paper - Fix NPE with equippable and items without behavior
@@ -52,11 +52,13 @@
 +        }
 +
 +        // SPIGOT-7923: Avoid create projectiles with empty item
-+        if (!itemstack1.isEmpty()) {
-+            Projectile projectile = Projectile.spawnProjectileUsingShoot(this.projectileItem.asProjectile(level, position, itemstack1, direction), level, itemstack1, event.getVelocity().getX(), event.getVelocity().getY(), event.getVelocity().getZ(), this.dispenseConfig.power(), this.dispenseConfig.uncertainty());
++        if (!singleItemStack.isEmpty()) {
++            Projectile projectile = this.projectileItem.asProjectile(level, position, CraftItemStack.unwrap(event.getItem()), direction); // Paper - track changed items in the dispense event; unwrap is safe here because all uses of the stack make their own copies
++            Projectile.Delayed<Projectile> delayedProjectile = Projectile.spawnProjectileUsingShootDelayed(projectile, level, singleItemStack, event.getVelocity().getX(), event.getVelocity().getY(), event.getVelocity().getZ(), this.dispenseConfig.power(), this.dispenseConfig.uncertainty()); // Paper - delayed projectile spawning
 +            projectile.projectileSource = new org.bukkit.craftbukkit.projectiles.CraftBlockProjectileSource(source.blockEntity());
++            delayedProjectile.spawn();
 +        }
-+        // itemstack.shrink(1); // CraftBukkit - Handled during event processing
++        if (shrink) dispensed.shrink(1); // Paper - shrink below and single item in event
 +        // CraftBukkit end
          return dispensed;
      }

@@ -1,6 +1,6 @@
 --- a/net/minecraft/core/dispenser/DefaultDispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/DefaultDispenseItemBehavior.java
-@@ -7,10 +_,24 @@
+@@ -7,45 +_,110 @@
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.DispenserBlock;
@@ -11,7 +11,8 @@
  
  public class DefaultDispenseItemBehavior implements DispenseItemBehavior {
      private static final int DEFAULT_ACCURACY = 6;
- 
++    private Direction direction; // Paper - cache facing direction
++
 +    // CraftBukkit start
 +    private boolean dropper;
 +
@@ -21,17 +22,25 @@
 +    // CraftBukkit end
 +
 +    public DefaultDispenseItemBehavior() {}
-+
+ 
      @Override
      public final ItemStack dispense(BlockSource source, ItemStack dispensed) {
++        this.direction = source.state().getValue(DispenserBlock.FACING); // Paper - cache facing direction
          ItemStack result = this.execute(source, dispensed);
-@@ -23,29 +_,78 @@
-         Direction direction = source.state().getValue(DispenserBlock.FACING);
+         this.playSound(source);
+-        this.playAnimation(source, source.state().getValue(DispenserBlock.FACING));
++        this.playAnimation(source, this.direction); // Paper - cache facing direction
+         return result;
+     }
+ 
+     protected ItemStack execute(BlockSource source, ItemStack dispensed) {
+-        Direction direction = source.state().getValue(DispenserBlock.FACING);
++        // Paper - cache facing direction
          Position position = DispenserBlock.getDispensePosition(source);
          ItemStack itemStack = dispensed.split(1);
 -        spawnItem(source.level(), itemStack, 6, direction, position);
 +        // CraftBukkit start
-+        if (!spawnItem(source.level(), itemStack, 6, direction, source, dropper)) {
++        if (!spawnItem(source.level(), itemStack, 6, this.direction, source, dropper)) {
 +            dispensed.grow(1);
 +        }
 +        // CraftBukkit end

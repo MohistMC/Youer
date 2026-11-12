@@ -11,33 +11,32 @@
  
  public abstract class VehicleEntity extends Entity {
      protected static final EntityDataAccessor<Integer> DATA_ID_HURT = SynchedEntityData.defineId(VehicleEntity.class, EntityDataSerializers.INT);
-@@ -43,12 +_,43 @@
-             this.markHurt();
-             this.setDamage(this.getDamage() + damage * 10.0F);
-             this.gameEvent(GameEvent.ENTITY_DAMAGE, source.getEntity());
+@@ -38,6 +_,16 @@
+         } else if (this.isInvulnerableToBase(source)) {
+             return false;
+         } else {
 +            // CraftBukkit start
 +            Vehicle vehicle = (Vehicle) this.getBukkitEntity();
 +            org.bukkit.damage.DamageSource damageSourceBukkit = new org.bukkit.craftbukkit.damage.CraftDamageSource(source);
-+            org.bukkit.entity.Entity attacker = (source.getEntity() == null) ? null : source.getEntity().getBukkitEntity();
-+
-+            VehicleDamageEvent event = new VehicleDamageEvent(vehicle, damageSourceBukkit, attacker, (double) damage);
-+            this.level().getCraftServer().getPluginManager().callEvent(event);
-+
-+            if (event.isCancelled()) {
-+                return false;
-+            }
++            org.bukkit.entity.Entity attacker = net.minecraft.Optionull.map(
++                source.eventEntityDamager() != null ? source.eventEntityDamager() : source.getDirectEntity(), Entity::getBukkitEntity
++            );
++            VehicleDamageEvent event = new VehicleDamageEvent(vehicle, damageSourceBukkit, attacker, damage);
++            if (!event.callEvent()) return false;
 +            damage = (float) event.getDamage();
 +            // CraftBukkit end
+             this.setHurtDir(-this.getHurtDir());
+             this.setHurtTime(10);
+             this.markHurt();
+@@ -46,9 +_,23 @@
              boolean creativePlayer = source.getEntity() instanceof Player player && player.getAbilities().instabuild;
              if ((creativePlayer || !(this.getDamage() > 40.0F)) && !this.shouldSourceDestroy(source)) {
                  if (creativePlayer) {
 -                    this.discard();
 +                    // CraftBukkit start
 +                    VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, damageSourceBukkit, attacker);
-+                    this.level().getCraftServer().getPluginManager().callEvent(destroyEvent);
-+
-+                    if (destroyEvent.isCancelled()) {
-+                        this.setDamage(40.0F);
++                    if (!destroyEvent.callEvent()) {
++                        this.setDamage(40.0F); // Maximize damage so this doesn't get triggered again right away
 +                        return true;
 +                    }
 +                    // CraftBukkit end
@@ -46,10 +45,8 @@
              } else {
 +                // CraftBukkit start
 +                VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, damageSourceBukkit, attacker);
-+                this.level().getCraftServer().getPluginManager().callEvent(destroyEvent);
-+
-+                if (destroyEvent.isCancelled()) {
-+                    this.setDamage(40.0F);
++                if (!destroyEvent.callEvent()) {
++                    this.setDamage(40.0F); // Maximize damage so this doesn't get triggered again right away
 +                    return true;
 +                }
 +                // CraftBukkit end

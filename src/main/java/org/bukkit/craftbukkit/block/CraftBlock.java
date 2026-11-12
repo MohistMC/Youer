@@ -78,6 +78,17 @@ public class CraftBlock implements Block {
         return new CraftBlock(level, position);
     }
 
+    public static List<Block> getMatchingBlocks(LevelAccessor level, net.minecraft.world.level.block.state.pattern.BlockPattern.BlockPatternMatch match) {
+        List<Block> blocks = new ArrayList<>(match.getWidth() * match.getHeight());
+        for (int x = 0; x < match.getWidth(); x++) {
+            for (int y = 0; y < match.getHeight(); y++) {
+                net.minecraft.world.level.block.state.pattern.BlockInWorld block = match.getBlock(x, y, 0);
+                blocks.add(at(level, block.getPos()));
+            }
+        }
+        return blocks;
+    }
+
     public net.minecraft.world.level.block.state.BlockState getBlockState() {
         return this.level.getBlockState(this.position);
     }

@@ -136,6 +136,38 @@
                  .localAddress(LocalAddress.ANY)
                  .bind()
                  .syncUninterruptibly();
+@@ -139,10 +_,29 @@
+     public void stop() {
+         this.running = false;
+ 
++        // Paper start - Add maximum time to wait for channels to close
++        for (final ChannelFuture channel : this.channels) {
++            channel.channel().close();
++        }
++
++        final long startTime = System.nanoTime();
++        // Paper end - Add maximum time to wait for channels to close
+         for (ChannelFuture channel : this.channels) {
+             try {
+-                channel.channel().close().sync();
+-            } catch (InterruptedException var4) {
++                // Paper start - Add maximum time to wait for channels to close
++                final ChannelFuture closeFuture = channel.channel().closeFuture();
++                if (!closeFuture.await(TimeUnit.SECONDS.toNanos(30) - (System.nanoTime() - startTime), TimeUnit.NANOSECONDS)) {
++                    LOGGER.error("Timed out whilst waiting for channel to close");
++                }
++
++                // Need to manually throw to match how ChannelFuture#sync throws
++                // Youer - Netty 4.2.7 has no Future#state()/exceptionNow()/ChannelFuture.State; cause() is the equivalent failure accessor
++                final Throwable closeCause = closeFuture.cause();
++                if (closeCause != null) {
++                    com.destroystokyo.paper.util.SneakyThrow.sneaky(closeCause);
++                }
++                // Paper end - Add maximum time to wait for channels to close
++            } catch (InterruptedException ignored) {
+                 LOGGER.error("Interrupted whilst closing channel");
+             }
+         }
 @@ -150,12 +_,27 @@
  
      public void tick() {
@@ -175,7 +207,7 @@
                          iterator.remove();
                          connection.handleDisconnection();
                      }
-@@ -176,6 +_,17 @@
+@@ -176,6 +_,29 @@
              }
          }
      }
@@ -183,10 +215,22 @@
 +    // Paper start
 +    public void handleAllDisconnections() {
 +        synchronized (this.connections) {
-+            for (Connection connection : this.connections) {
-+                connection.channel.close().awaitUninterruptibly();
-+                connection.handleDisconnection();
++            // Paper start - Add maximum time to wait for channels to close
++            for (final Connection connection : this.connections) {
++                connection.channel.close();
 +            }
++
++            final long startTime = System.nanoTime();
++            for (final Connection connection : this.connections) {
++                final ChannelFuture closeFuture = connection.channel.closeFuture();
++
++                if (closeFuture.awaitUninterruptibly(TimeUnit.SECONDS.toNanos(30) - (System.nanoTime() - startTime), TimeUnit.NANOSECONDS)) {
++                    connection.handleDisconnection();
++                } else {
++                    LOGGER.error("Timed out whilst waiting for player connection channel to close");
++                }
++            }
++            // Paper end - Add maximum time to wait for channels to close
 +        }
 +    }
 +    // Paper end

@@ -181,13 +181,14 @@
      private final ServerFunctionManager functionManager;
      private boolean enforceWhitelist;
      private boolean usingWhitelist;
-@@ -288,16 +_,133 @@
+@@ -288,16 +_,135 @@
      public PotionBrewing potionBrewing;
      private FuelValues fuelValues;
      private int emptyTicks;
 +    // Paper start
 +    public boolean isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
 +    private final java.util.Set<String> pluginsBlockingSleep = new java.util.HashSet<>(); // Paper - API to allow/disallow tick sleeping
++    public static final long SERVER_INIT = System.nanoTime(); // Paper - Lag compensation
 +    private static final long[] TPS_WINDOW_NANOS = {60L * 1_000_000_000L, 5L * 60L * 1_000_000_000L, 15L * 60L * 1_000_000_000L};
 +    private final long[] tpsWindowStartNanos = new long[TPS_WINDOW_NANOS.length];
 +    private final int[] tpsWindowTicks = new int[TPS_WINDOW_NANOS.length];
@@ -205,6 +206,7 @@
 +    // CraftBukkit start
 +    public final WorldLoader.DataLoadContext worldLoader;
 +    public org.bukkit.craftbukkit.CraftServer server;
++    public final io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList entitySchedulerTickList = new io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList(); // Paper - optimise Folia entity scheduler
 +    public OptionSet options;
 +    public org.bukkit.command.ConsoleCommandSender console;
 +    public Terminal terminal;
@@ -831,7 +833,7 @@
  
          if (flush) {
              for (ServerLevel level : this.getAllLevels()) {
-@@ -645,19 +_,41 @@
+@@ -645,19 +_,42 @@
          this.stopServer();
      }
  
@@ -858,6 +860,7 @@
          }
  
          LOGGER.info("Stopping server");
++        Commands.COMMAND_SENDING_POOL.shutdownNow(); // Paper - Perf: Async command map building; Shutdown and don't bother finishing
 +        // CraftBukkit start
 +        if (this.server != null) {
 +            this.server.disablePlugins();
@@ -912,7 +915,7 @@
      }
  
      public String getLocalIp() {
-@@ -725,16 +_,42 @@
+@@ -725,16 +_,54 @@
          }
      }
  
@@ -947,8 +950,21 @@
              this.nextTickTimeNanos = Util.getNanos();
              this.statusIcon = this.loadStatusIcon().orElse(null);
              this.status = this.buildServerStatus();
+-
 +            resetStatusCache(status);
- 
++
++            // Paper start - Improve startup message
++            final long actualDoneTimeMs = System.currentTimeMillis() - org.bukkit.craftbukkit.Main.BOOT_TIME.toEpochMilli(); // Paper - Improve startup message
++            LOGGER.info("Done ({})! For help, type \"help\"", String.format(java.util.Locale.ROOT, "%.3fs", actualDoneTimeMs / 1000.00D)); // Paper - Improve startup message
++            org.spigotmc.WatchdogThread.tick();
++            org.spigotmc.WatchdogThread.hasStarted = true; // Paper
++            // Paper end - Improve startup message
++            // Paper start - Improve outdated version checking
++            if (System.getProperty("paper.disableStartupVersionCheck") == null && io.papermc.paper.configuration.GlobalConfiguration.get().updateChecker.enabled) {
++                CompletableFuture.runAsync(com.destroystokyo.paper.PaperVersionFetcher::getUpdateStatusStartupMessage, io.papermc.paper.util.MCUtil.ASYNC_EXECUTOR);
++            }
++            // Paper end - Improve outdated version checking
++
 +            // Spigot start
 +            Arrays.fill( recentTps, 20 );
 +            long tickSection = Util.getMillis(), tickCount = 1;
@@ -1047,9 +1063,11 @@
          long nano = Util.getNanos();
          int emptyTickThreshold = this.pauseWhenEmptySeconds() * 20;
          if (emptyTickThreshold > 0) {
-@@ -987,17 +_,37 @@
+@@ -986,29 +_,64 @@
+             }
          }
  
++        new com.destroystokyo.paper.event.server.ServerTickStartEvent(this.tickCount+1).callEvent(); // Paper - Server Tick Events
          this.tickCount++;
 +        this.updateTickTimeStatistics(); // Paper - TPS tracking
 +        net.neoforged.neoforge.event.EventHooks.fireServerTickPre(haveTime, this);
@@ -1087,8 +1105,14 @@
 +        // Paper end - Incremental chunk and player saving
  
          ProfilerFiller profiler = Profiler.get();
++        // Paper start - Server Tick Events
++        long endTime = System.nanoTime();
++        long remaining = this.nextTickTimeNanos - endTime;
++        new com.destroystokyo.paper.event.server.ServerTickEndEvent(this.tickCount, ((double)(endTime - nano) / 1000000D), remaining).callEvent(); // Youer - use tick-start 'nano' (no currentTickStart field)
++        // Paper end - Server Tick Events
          profiler.push("tallying");
-@@ -1006,9 +_,18 @@
+         long tickTime = Util.getNanos() - nano;
+         int tickIndex = this.tickCount % 100;
          this.aggregatedTickTimesNanos = this.aggregatedTickTimesNanos - this.tickTimesNanos[tickIndex];
          this.aggregatedTickTimesNanos += tickTime;
          this.tickTimesNanos[tickIndex] = tickTime;
@@ -1148,7 +1172,31 @@
          );
      }
  
-@@ -1102,7 +_,11 @@
+@@ -1080,7 +_,7 @@
+         if (this.hidesOnlinePlayers()) {
+             return new ServerStatus.Players(maxPlayers, players.size(), List.of());
+         } else {
+-            int sampleSize = Math.min(players.size(), 12);
++            int sampleSize = Math.min(players.size(), org.spigotmc.SpigotConfig.playerSample); // Paper - PaperServerListPingEvent
+             ObjectArrayList<NameAndId> sample = new ObjectArrayList<>(sampleSize);
+             int offset = Mth.nextInt(this.random, 0, players.size() - sampleSize);
+ 
+@@ -1097,12 +_,26 @@
+     protected void tickChildren(BooleanSupplier haveTime) {
+         ProfilerFiller profiler = Profiler.get();
+         this.getPlayerList().getPlayers().forEach(playerx -> playerx.connection.suspendFlushing());
++        this.server.getScheduler().mainThreadHeartbeat(); // CraftBukkit
++        // Paper start - optimise Folia entity scheduler
++        ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler) org.bukkit.Bukkit.getGlobalRegionScheduler()).tick();
++        for (io.papermc.paper.threadedregions.EntityScheduler scheduler : this.entitySchedulerTickList.getAllSchedulers()) {
++            if (scheduler.isRetired()) {
++                continue;
++            }
++            scheduler.executeTick();
++        }
++        // Paper end - optimise Folia entity scheduler
+         profiler.push("commandFunctions");
+         this.getFunctions().tick();
          profiler.pop();
          if (this.tickRateManager.runsNormally()) {
              profiler.push("clocks");
@@ -1161,13 +1209,15 @@
              profiler.pop();
          }
  
-@@ -1115,9 +_,12 @@
+@@ -1115,9 +_,14 @@
          profiler.push("levels");
          this.updateEffectiveRespawnData();
  
 -        for (ServerLevel level : this.getAllLevels()) {
 +        for (ServerLevel level : this.getWorldArray()) {
 +            long tickStart = Util.getNanos();
++            level.hasEntityMoveEvent = io.papermc.paper.event.entity.EntityMoveEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper - Add EntityMoveEvent
++            level.updateLagCompensationTick(); // Paper - lag compensation
              profiler.push(() -> level + " " + level.dimension().identifier());
 +            net.minecraft.world.level.block.entity.HopperBlockEntity.skipHopperEvents = level.paperConfig().hopper.disableMoveEvent || org.bukkit.event.inventory.InventoryMoveItemEvent.getHandlerList().getRegisteredListeners().length == 0; // Paper - Perf: Optimize Hoppers
              profiler.push("tick");
@@ -1364,14 +1414,55 @@
                      .map(Pack::open)
                      .collect(ImmutableList.toImmutableList()),
                  this
-@@ -1558,7 +_,9 @@
+@@ -1527,7 +_,7 @@
+             .thenCompose(
+                 packsToLoad -> {
+                     CloseableResourceManager resources = new MultiPackResourceManager(PackType.SERVER_DATA, packsToLoad);
+-                    List<Registry.PendingTags<?>> postponedTags = TagLoader.loadTagsForExistingRegistries(resources, this.registries.compositeAccess());
++                    List<Registry.PendingTags<?>> postponedTags = TagLoader.loadTagsForExistingRegistries(resources, this.registries.compositeAccess(), io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.RELOAD); // Paper - tag lifecycle - add cause
+                     return ReloadableServerResources.loadResources(
+                             resources,
+                             this.registries,
+@@ -1547,18 +_,39 @@
+                 }
+             )
+             .thenAcceptAsync(newResources -> {
++                io.papermc.paper.command.brigadier.PaperBrigadier.moveBukkitCommands(this.resources.managers.getCommands(), newResources.managers.getCommands()); // Paper
+                 this.resources.close();
+                 this.resources = newResources;
+-                this.packRepository.setSelected(packsToEnable);
++                this.server.syncCommands(); // SPIGOT-5884: Lost on reload
++                this.packRepository.setSelected(packsToEnable, false); // Paper - add pendingReload flag to determine required pack loading - false as this is *after* a reload (see above)
+                 WorldDataConfiguration newConfig = new WorldDataConfiguration(getSelectedPacks(this.packRepository, true), this.worldData.enabledFeatures());
+                 this.worldData.setDataConfiguration(newConfig);
+                 this.resources.managers.updateComponentsAndStaticRegistryTags();
+                 this.resources.managers.getRecipeManager().finalizeRecipeLoading(this.worldData.enabledFeatures());
+-                this.getPlayerList().saveAll();
++                this.potionBrewing = this.potionBrewing.reload(this.worldData.enabledFeatures()); // Paper - Custom Potion Mixes
++                if (Thread.currentThread() != this.serverThread) return; // Paper
++                // Paper start - we don't need to save everything, just advancements
++                // this.getPlayerList().saveAll();
++                for (final ServerPlayer player : this.getPlayerList().getPlayers()) {
++                    player.getAdvancements().save();
++                }
++                // Paper end - we don't need to save everything, just advancements
                  this.getPlayerList().reloadResources();
                  this.functionManager.replaceLibrary(this.resources.managers.getFunctionLibrary());
                  this.structureTemplateManager.onResourceManagerReload(this.resources.resourceManager);
 -                this.fuelValues = FuelValues.vanillaBurnTimes(this.registries.compositeAccess(), this.worldData.enabledFeatures());
 +                this.fuelValues = net.neoforged.neoforge.common.DataMapHooks.populateFuelValues(this.registries.compositeAccess(), this.worldData.enabledFeatures());
-+                this.getPlayerList().getPlayers().forEach(this.getPlayerList()::sendPlayerPermissionLevel); //Forge: Fix newly added/modified commands not being sent to the client when commands reload.
++                org.bukkit.craftbukkit.block.data.CraftBlockData.reloadCache(); // Paper - cache block data strings; they can be defined by datapacks so refresh it here
++                // Paper start - brigadier command API
++                io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.setValid(); // reset invalid state for event fire below
++                io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner.INSTANCE.callReloadableRegistrarEvent(io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents.COMMANDS, io.papermc.paper.command.brigadier.PaperCommands.INSTANCE, org.bukkit.plugin.Plugin.class, io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.RELOAD); // call commands event for regular plugins
++                final org.bukkit.craftbukkit.help.SimpleHelpMap helpMap = (org.bukkit.craftbukkit.help.SimpleHelpMap) this.server.getHelpMap();
++                helpMap.clear();
++                helpMap.initializeGeneralTopics();
++                helpMap.initializeCommands();
++                this.server.syncCommands(); // Refresh commands after event
++                // Paper end
 +                new io.papermc.paper.event.server.ServerResourcesReloadedEvent(cause).callEvent(); // Paper - Add ServerResourcesReloadedEvent; fire after everything has been reloaded
++                this.getPlayerList().getPlayers().forEach(this.getPlayerList()::sendPlayerPermissionLevel); //Forge: Fix newly added/modified commands not being sent to the client when commands reload.
              }, this);
          if (this.isSameThread()) {
              this.managedBlock(result::isDone);

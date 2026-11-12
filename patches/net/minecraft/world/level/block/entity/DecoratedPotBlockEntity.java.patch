@@ -64,3 +64,19 @@
      public static final String TAG_SHERDS = "sherds";
      public static final String TAG_ITEM = "item";
      public static final int EVENT_POT_WOBBLES = 1;
+@@ -69,7 +_,14 @@
+ 
+     @Override
+     public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+-        return this.saveCustomOnly(registries);
++        // Paper start - hide unnecessary update data
++        // Like chests, decorated pots should not allow clients to inspect their contents without breaking them.
++        final CompoundTag compoundTag = new CompoundTag();
++        if (!this.decorations.equals(PotDecorations.EMPTY)) {
++            compoundTag.store("sherds", PotDecorations.CODEC, this.decorations);
++        }
++        return compoundTag;
++        // Paper end - hide unnecessary update data
+     }
+ 
+     public Direction getDirection() {

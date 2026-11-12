@@ -1,18 +1,20 @@
 --- a/net/minecraft/world/entity/ai/goal/GoalSelector.java
 +++ b/net/minecraft/world/entity/ai/goal/GoalSelector.java
-@@ -24,6 +_,7 @@
+@@ -23,7 +_,9 @@
+     };
      private final Map<Goal.Flag, WrappedGoal> lockedFlags = new EnumMap<>(Goal.Flag.class);
      private final Set<WrappedGoal> availableGoals = new ObjectLinkedOpenHashSet<>();
-     private final EnumSet<Goal.Flag> disabledFlags = EnumSet.noneOf(Goal.Flag.class);
+-    private final EnumSet<Goal.Flag> disabledFlags = EnumSet.noneOf(Goal.Flag.class);
++    private static final Goal.Flag[] GOAL_FLAG_VALUES = Goal.Flag.values(); // Paper - remove streams from GoalSelector
++    private final ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<net.minecraft.world.entity.ai.goal.Goal.Flag> goalTypes = new ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<>(Goal.Flag.class); // Paper - remove streams from GoalSelector
 +    private int curRate; // Paper - EAR 2
  
      public void addGoal(int prio, Goal goal) {
          this.availableGoals.add(new WrappedGoal(prio, goal));
-@@ -32,6 +_,22 @@
-     public void removeAllGoals(Predicate<Goal> predicate) {
+@@ -33,6 +_,22 @@
          this.availableGoals.removeIf(goal -> predicate.test(goal.getGoal()));
      }
-+
+ 
 +    // Paper start - EAR 2
 +    public boolean inactiveTick() {
 +        this.curRate++;
@@ -28,6 +30,78 @@
 +        return false;
 +    }
 +    // Paper end - EAR 2
- 
++
      public void removeGoal(Goal toRemove) {
          for (WrappedGoal availableGoal : this.availableGoals) {
+             if (availableGoal.getGoal() == toRemove && availableGoal.isRunning()) {
+@@ -43,18 +_,18 @@
+         this.availableGoals.removeIf(goal -> goal.getGoal() == toRemove);
+     }
+ 
+-    private static boolean goalContainsAnyFlags(WrappedGoal goal, EnumSet<Goal.Flag> disabledFlags) {
+-        for (Goal.Flag flag : goal.getFlags()) {
+-            if (disabledFlags.contains(flag)) {
+-                return true;
+-            }
+-        }
+-
+-        return false;
++    // Paper start - Perf: optimize goal types
++    private static boolean goalContainsAnyFlags(WrappedGoal goal, ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<Goal.Flag> disabledFlags) {
++        return goal.getFlags().hasCommonElements(disabledFlags);
+     }
+ 
+     private static boolean goalCanBeReplacedForAllFlags(WrappedGoal goal, Map<Goal.Flag, WrappedGoal> lockedFlags) {
+-        for (Goal.Flag flag : goal.getFlags()) {
++        long flagIterator = goal.getFlags().getBackingSet();
++        final int flagSize = goal.getFlags().size();
++        for (int i = 0; i < flagSize; ++i) {
++            final Goal.Flag flag = GOAL_FLAG_VALUES[Long.numberOfTrailingZeros(flagIterator)];
++            flagIterator ^= ca.spottedleaf.dataconverter.util.IntegerUtil.getTrailingBit(flagIterator);
++            // Paper end - Perf: optimize goal types
+             if (!lockedFlags.getOrDefault(flag, NO_GOAL).canBeReplacedBy(goal)) {
+                 return false;
+             }
+@@ -68,7 +_,7 @@
+         profiler.push("goalCleanup");
+ 
+         for (WrappedGoal goal : this.availableGoals) {
+-            if (goal.isRunning() && (goalContainsAnyFlags(goal, this.disabledFlags) || !goal.canContinueToUse())) {
++            if (goal.isRunning() && (goalContainsAnyFlags(goal, this.goalTypes) || !goal.canContinueToUse())) { // Paper - Perf: optimize goal types by removing streams
+                 goal.stop();
+             }
+         }
+@@ -78,11 +_,17 @@
+         profiler.push("goalUpdate");
+ 
+         for (WrappedGoal goalx : this.availableGoals) {
++            // Paper start
+             if (!goalx.isRunning()
+-                && !goalContainsAnyFlags(goalx, this.disabledFlags)
++                && !goalContainsAnyFlags(goalx, this.goalTypes)
+                 && goalCanBeReplacedForAllFlags(goalx, this.lockedFlags)
+                 && goalx.canUse()) {
+-                for (Goal.Flag flag : goalx.getFlags()) {
++                long flagIterator = goalx.getFlags().getBackingSet();
++                int wrappedGoalSize = goalx.getFlags().size();
++                for (int i = 0; i < wrappedGoalSize; ++i) {
++                    final Goal.Flag flag = GOAL_FLAG_VALUES[Long.numberOfTrailingZeros(flagIterator)];
++                    flagIterator ^= ca.spottedleaf.dataconverter.util.IntegerUtil.getTrailingBit(flagIterator);
++                    // Paper end
+                     WrappedGoal currentGoal = this.lockedFlags.getOrDefault(flag, NO_GOAL);
+                     currentGoal.stop();
+                     this.lockedFlags.put(flag, goalx);
+@@ -114,11 +_,11 @@
+     }
+ 
+     public void disableControlFlag(Goal.Flag flag) {
+-        this.disabledFlags.add(flag);
++        this.goalTypes.addUnchecked(flag); // Paper - remove streams from GoalSelector
+     }
+ 
+     public void enableControlFlag(Goal.Flag flag) {
+-        this.disabledFlags.remove(flag);
++        this.goalTypes.removeUnchecked(flag); // Paper - remove streams from GoalSelector
+     }
+ 
+     public void setControlFlag(Goal.Flag flag, boolean enabled) {

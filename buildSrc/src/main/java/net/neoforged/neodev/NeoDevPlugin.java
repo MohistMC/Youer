@@ -300,8 +300,7 @@ public class NeoDevPlugin implements Plugin<Project> {
 
             task.from(project.zipTree(joinedJar.flatMap(AbstractArchiveTask::getArchiveFile)));
             task.exclude("net/minecraft/**");
-            task.exclude("com/**");
-            task.exclude("org/**"); // Youer
+            task.exclude("com/mojang/math/**");
             task.exclude("mcp/**");
             task.from(binaryPatchOutputs, spec -> {
                 spec.into("net/neoforged/neoforge/common/");
@@ -723,6 +722,19 @@ public class NeoDevPlugin implements Plugin<Project> {
             var mainSourceSet = sourceSets.getByName(SourceSet.MAIN_SOURCE_SET_NAME);
             task.from(mainSourceSet.getJava().getClassesDirectory(), spec -> {
                 spec.exclude("net/neoforged/**");
+                spec.exclude("org/**");
+                spec.exclude("io/papermc/**");
+                spec.exclude("com/mohistmc/**");
+                spec.exclude("com/destroystokyo/**");
+                spec.exclude("ca/spottedleaf/**");
+                spec.exclude("alternate/current/wire/**");
+                spec.exclude("co/aikar/util/**");
+                spec.exclude("com/mojang/brigadier/**");
+                spec.exclude("com/mojang/authlib/**");
+                spec.exclude("com/mojang/datafixers/**");
+                spec.exclude("com/mojang/serialization/**");
+                spec.exclude("com/mojang/logging/**");
+                spec.exclude("gg/pufferfish/**");
             });
             if (type == BinaryPatchBaseType.CLIENT || type == BinaryPatchBaseType.JOINED) {
                 var clientSourceSet = sourceSets.getByName("client");

@@ -107,7 +107,7 @@
 +    public boolean captureBlockStates = false;
 +    public boolean captureTreeGeneration = false;
 +    public Map<BlockPos, CapturedBlockState> capturedBlockStates = new java.util.LinkedHashMap<>();
-+    public Map<BlockPos, BlockEntity> capturedTileEntities = new HashMap<>();
++    public Map<BlockPos, BlockEntity> capturedTileEntities = new java.util.LinkedHashMap<>(); // Paper - Retain block place order when capturing blockstates
 +    public List<ItemEntity> captureDrops;
 +    public final it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<SpawnCategory> ticksPerSpawnCategory = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>();
 +    // Paper start - EAR 2
@@ -967,7 +967,7 @@
  
      @Override
      public @Nullable ChunkAccess getChunk(int chunkX, int chunkZ, ChunkStatus status, boolean loadOrGenerate) {
-@@ -213,8 +_,37 @@
+@@ -213,8 +_,41 @@
          return this.setBlock(pos, blockState, updateFlags, 512);
      }
  
@@ -992,6 +992,10 @@
 +        }
 +        // CraftBukkit start - tree generation
 +        if (this.captureTreeGeneration) {
++            // Paper start - Protect Bedrock and End Portal/Frames from being destroyed
++            BlockState type = getBlockState(pos);
++            if (!type.isDestroyable()) return false;
++            // Paper end - Protect Bedrock and End Portal/Frames from being destroyed
 +            CapturedBlockState capturedBlockState = capturedBlockStates.get(pos);
 +            if (capturedBlockState == null) {
 +                capturedBlockState = CapturedBlockState.getTreeBlockState(this, pos, updateFlags);
@@ -1005,7 +1009,7 @@
          if (!this.isInValidBounds(pos)) {
              return false;
          } else if (!this.isClientSide() && this.isDebug()) {
-@@ -222,11 +_,56 @@
+@@ -222,11 +_,62 @@
          } else {
              LevelChunk chunk = this.getChunkAt(pos);
              Block block = blockState.getBlock();
@@ -1018,10 +1022,16 @@
 +            }
 +
 +            // CraftBukkit start - capture blockstates
-+            if (this.captureBlockStates && !this.capturedBlockStates.containsKey(pos)) {
-+                CapturedBlockState capturedBlockState = CapturedBlockState.getBlockState(this, pos, updateFlags);
-+                this.capturedBlockStates.put(pos.immutable(), capturedBlockState);
-+                this.captured.set(true);
++            if (this.captureBlockStates) {
++                final CapturedBlockState snapshot;
++                if (!this.capturedBlockStates.containsKey(pos)) {
++                    snapshot = CapturedBlockState.getBlockState(this, pos, updateFlags);
++                    this.capturedBlockStates.put(pos.immutable(), snapshot);
++                    this.captured.set(true);
++                } else {
++                    snapshot = this.capturedBlockStates.get(pos);
++                }
++                snapshot.setFlags(updateFlags); // Paper - always set the flag of the most recent call to mitigate issues with multiple update at the same pos with different flags
 +            }
 +            // CraftBukkit end
 +
@@ -1075,22 +1085,10 @@
                      if ((updateFlags & 16) == 0 && updateLimit > 0) {
                          int neighbourUpdateFlags = updateFlags & -34;
                          oldState.updateIndirectNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
-+                        if (this instanceof ServerLevel serverLevel) {
-+                            CraftWorld world = serverLevel.getWorld();
-+                            if (world != null) {
-+                                BlockPhysicsEvent event = new BlockPhysicsEvent(world.getBlockAt(pos.getX(), pos.getY(), pos.getZ()), CraftBlockData.createData(newState));
-+                                this.getCraftServer().getPluginManager().callEvent(event);
-+
-+                                if (event.isCancelled()) {
-+                                    return;
-+                                }
-+                            }
-+                        }
-+                        // CraftBukkit end
-                         blockState.updateNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
-                         blockState.updateIndirectNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
-                     }
- 
+-                        blockState.updateNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
+-                        blockState.updateIndirectNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
+-                    }
+-
 -                    this.updatePOIOnBlockStateChange(pos, oldState, newState);
 -                }
 -
@@ -1098,6 +1096,22 @@
 -            }
 -        }
 -    }
++                        boolean cancelledUpdates = false; // Paper - Fix block place logic
++                        if (this instanceof ServerLevel serverLevel) {
++                            CraftWorld world = serverLevel.getWorld();
++                            if (world != null) {
++                                BlockPhysicsEvent event = new BlockPhysicsEvent(world.getBlockAt(pos.getX(), pos.getY(), pos.getZ()), CraftBlockData.createData(newState));
++                                this.getCraftServer().getPluginManager().callEvent(event);
++                                cancelledUpdates = event.isCancelled(); // Paper - Fix block place logic
++                            }
++                        }
++                        // CraftBukkit end
++                        if (!cancelledUpdates) { // Paper - Fix block place logic
++                            blockState.updateNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
++                            blockState.updateIndirectNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
++                        } // Paper - Fix block place logic
++                    }
++
 +                    // CraftBukkit start - SPIGOT-5710
 +                    if (!preventPoiUpdated) {
 +                        this.updatePOIOnBlockStateChange(pos, oldState, newState);
@@ -1135,20 +1149,20 @@
 +
 +                // CraftBukkit start
 +                blockstate1.updateIndirectNeighbourShapes(this, blockpos, k, j - 1); // Don't call an event for the old block to limit event spam
++                boolean cancelledUpdates = false; // Paper - Fix block place logic
 +                if (this instanceof ServerLevel serverLevel) {
 +                    CraftWorld world = serverLevel.getWorld();
 +                    if (world != null) {
 +                        BlockPhysicsEvent event = new BlockPhysicsEvent(world.getBlockAt(blockpos.getX(), blockpos.getY(), blockpos.getZ()), CraftBlockData.createData(blockstate));
 +                        this.getCraftServer().getPluginManager().callEvent(event);
-+
-+                        if (event.isCancelled()) {
-+                            return;
-+                        }
++                        cancelledUpdates = event.isCancelled(); // Paper - Fix block place logic
 +                    }
 +                }
 +                // CraftBukkit end
-+                blockstate.updateNeighbourShapes(this, blockpos, k, j - 1);
-+                blockstate.updateIndirectNeighbourShapes(this, blockpos, k, j - 1);
++                if (!cancelledUpdates) { // Paper - Fix block place logic
++                    blockstate.updateNeighbourShapes(this, blockpos, k, j - 1);
++                    blockstate.updateIndirectNeighbourShapes(this, blockpos, k, j - 1);
++                } // Paper - Fix block place logic
 +            }
 +
 +            // CraftBukkit start - SPIGOT-5710
@@ -1271,7 +1285,7 @@
          if (!this.pendingBlockEntityTickers.isEmpty()) {
              this.blockEntityTickers.addAll(this.pendingBlockEntityTickers);
              this.pendingBlockEntityTickers.clear();
-@@ -465,27 +_,42 @@
+@@ -465,27 +_,40 @@
          Iterator<TickingBlockEntity> iterator = this.blockEntityTickers.iterator();
          boolean tickBlockEntities = this.tickRateManager().runsNormally();
  
@@ -1298,15 +1312,18 @@
          try {
 +            net.neoforged.neoforge.server.timings.TimeTracker.ENTITY_UPDATE.trackStart(entity);
              tick.accept(entity);
-         } catch (Throwable var6) {
-             CrashReport report = CrashReport.forThrowable(var6, "Ticking entity");
-             CrashReportCategory category = report.addCategory("Entity being ticked");
-             entity.fillCrashReportCategory(category);
-+            if (net.neoforged.neoforge.common.config.NeoForgeServerConfig.INSTANCE.removeErroringEntities.get()) {
-+                com.mojang.logging.LogUtils.getLogger().error("{}", report.getFriendlyReport(net.minecraft.ReportType.CRASH));
-+                entity.discard();
-+            } else
-             throw new ReportedException(report);
+-        } catch (Throwable var6) {
+-            CrashReport report = CrashReport.forThrowable(var6, "Ticking entity");
+-            CrashReportCategory category = report.addCategory("Entity being ticked");
+-            entity.fillCrashReportCategory(category);
+-            throw new ReportedException(report);
++        } catch (Throwable t) {
++            // Paper start - Prevent block entity and entity crashes
++            final String msg = String.format("Entity threw exception at %s:%s,%s,%s", io.papermc.paper.util.MCUtil.getLevelName(entity.level()), entity.getX(), entity.getY(), entity.getZ());
++            MinecraftServer.LOGGER.error(msg, t);
++            getCraftServer().getPluginManager().callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerInternalException(msg, t))); // Paper - ServerExceptionEvent
++            entity.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
++            // Paper end - Prevent block entity and entity crashes
 +        } finally {
 +            net.neoforged.neoforge.server.timings.TimeTracker.ENTITY_UPDATE.trackEnd(entity);
          }
@@ -1600,7 +1617,7 @@
      }
 +
 +    // Paper start - allow patching this logic
-+    public final int getEntityCount() {
++    public int getEntityCount() {
 +        return this.moonrise$getEntityLookup().getEntityCount(); // Paper - rewrite chunk system
 +    }
 +    // Paper end - allow patching this logic

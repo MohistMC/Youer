@@ -64,7 +64,7 @@
  
          this.level().broadcastEntityEvent(this, (byte)18);
      }
-@@ -208,15 +_,43 @@
+@@ -208,26 +_,58 @@
  
      public void spawnChildFromBreeding(ServerLevel level, Animal partner) {
          AgeableMob offspring = this.getBreedOffspring(level, partner);
@@ -101,25 +101,33 @@
      }
  
      public void finalizeSpawnChildFromBreeding(ServerLevel level, Animal partner, @Nullable AgeableMob offspring) {
+-        Optional.ofNullable(this.getLoveCause()).or(() -> Optional.ofNullable(partner.getLoveCause())).ifPresent(cause -> {
+-            cause.awardStat(Stats.ANIMALS_BRED);
+-            CriteriaTriggers.BRED_ANIMALS.trigger(cause, this, partner, offspring);
+-        });
 +        // CraftBukkit start
 +        this.finalizeSpawnChildFromBreeding(level, partner, offspring, this.getRandom().nextInt(7) + 1);
 +    }
 +
 +    public void finalizeSpawnChildFromBreeding(ServerLevel level, Animal partner, @Nullable AgeableMob offspring, int experience) {
 +        // CraftBukkit end
-         Optional.ofNullable(this.getLoveCause()).or(() -> Optional.ofNullable(partner.getLoveCause())).ifPresent(cause -> {
-             cause.awardStat(Stats.ANIMALS_BRED);
-             CriteriaTriggers.BRED_ANIMALS.trigger(cause, this, partner, offspring);
-@@ -227,7 +_,11 @@
++        // Paper start - Call EntityBreedEvent
++        ServerPlayer player = this.getLoveCause();
++        if (player == null) player = partner.getLoveCause();
++        if (player != null) {
++            player.awardStat(Stats.ANIMALS_BRED);
++            CriteriaTriggers.BRED_ANIMALS.trigger(player, this, partner, offspring);
++        }
++        // Paper end - Call EntityBreedEvent
+         this.setAge(6000);
+         partner.setAge(6000);
+         this.resetLove();
          partner.resetLove();
          level.broadcastEntityEvent(this, (byte)18);
-         if (level.getGameRules().get(GameRules.MOB_DROPS)) {
+-        if (level.getGameRules().get(GameRules.MOB_DROPS)) {
 -            level.addFreshEntity(new ExperienceOrb(level, this.getX(), this.getY(), this.getZ(), this.getRandom().nextInt(7) + 1));
-+            // CraftBukkit start - use event experience
-+            if (experience > 0) {
-+                level.addFreshEntity(new ExperienceOrb(level, this.getX(), this.getY(), this.getZ(), experience));
-+            }
-+            // CraftBukkit end
++        if (experience > 0 && level.getGameRules().get(GameRules.MOB_DROPS)) { // Paper - Call EntityBreedEvent
++            level.addFreshEntity(new ExperienceOrb(level, this.position(), Vec3.ZERO, experience, org.bukkit.entity.ExperienceOrb.SpawnReason.BREED, player, offspring)); // Paper - Call EntityBreedEvent, add spawn context
          }
      }
  

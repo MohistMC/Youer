@@ -62,12 +62,13 @@
      }
  
      private boolean isInRangeOfGround() {
-@@ -105,10 +_,10 @@
+@@ -105,10 +_,11 @@
      }
  
      public void tick() {
 -        this.gameTicks++;
-+        this.gameTicks = net.minecraft.server.MinecraftServer.currentTick; // CraftBukkit
++        // this.gameTicks = net.minecraft.server.MinecraftServer.currentTick; // CraftBukkit
++        this.gameTicks = (int) this.level.getLagCompensationTick(); // Paper - lag compensate eating
          if (this.hasDelayedDestroy) {
 -            BlockState blockState = this.level.getBlockState(this.delayedDestroyPos);
 -            if (blockState.isAir()) {
@@ -119,7 +120,7 @@
                  if (this.player.blockActionRestricted(this.level, pos, this.gameModeForPlayer)) {
                      this.player.connection.send(new ClientboundBlockUpdatePacket(pos, this.level.getBlockState(pos)));
                      this.debugLogging(pos, false, sequence, "block action restricted");
-@@ -192,6 +_,7 @@
+@@ -192,10 +_,24 @@
                          blockState,
                          item -> this.player.onEquippedItemBroken(item, EquipmentSlot.MAINHAND)
                      );
@@ -127,7 +128,24 @@
                      blockState.attack(this.level, pos, this.player);
                      progress = blockState.getDestroyProgress(this.player, this.player.level(), pos);
                  }
-@@ -236,16 +_,23 @@
+ 
++                // CraftBukkit start
++                // Note that we don't need to resync blocks, block acks will handle it properly for everything but block entities already
++                org.bukkit.event.block.BlockDamageEvent blockEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockDamageEvent(this.player, pos, direction, this.player.getInventory().getSelectedItem(), progress >= 1.0f); // Paper - Add BlockFace to BlockDamageEvent
++
++                if (blockEvent.isCancelled()) {
++                    return;
++                }
++
++                if (blockEvent.getInstaBreak()) {
++                    progress = 2.0f;
++                }
++                // CraftBukkit end
++
+                 if (!blockState.isAir() && progress >= 1.0F) {
+                     this.destroyAndAck(pos, sequence, "insta mine");
+                 } else {
+@@ -236,16 +_,25 @@
                  this.debugLogging(pos, true, sequence, "stopped destroying");
              } else if (action == ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK) {
                  this.isDestroyingBlock = false;
@@ -147,6 +165,8 @@
  
                  this.level.destroyBlockProgress(this.player.getId(), pos, -1);
                  this.debugLogging(pos, true, sequence, "aborted destroying");
++
++                org.bukkit.craftbukkit.event.CraftEventFactory.callBlockDamageAbortEvent(this.player, pos, this.player.getInventory().getSelectedItem()); // CraftBukkit
              }
          }
 +        this.level.chunkPacketBlockController.onPlayerLeftClickBlock(this, pos, action, direction, maxY, sequence); // Paper - Anti-Xray

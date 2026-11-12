@@ -98,9 +98,13 @@ public final class OversizedItemComponentSanitizer {
         return new BundleContents(sanitizedRepresentation);
     }
 
+    // Empty marker interface for encoder cache checks
+    public interface ObfuscationDependantCodec {
+    }
+
     // Codec used to override encoding if sanitization is enabled
     private record DataSanitizationCodec<B, A>(StreamCodec<B, A> delegate,
-                                               UnaryOperator<A> sanitizer) implements StreamCodec<B, A> {
+                                               UnaryOperator<A> sanitizer) implements StreamCodec<B, A>, ObfuscationDependantCodec {
 
         @Override
         public @NonNull A decode(final @NonNull B buf) {

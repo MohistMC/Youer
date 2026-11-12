@@ -1,23 +1,64 @@
 --- a/net/minecraft/world/entity/ai/goal/Goal.java
 +++ b/net/minecraft/world/entity/ai/goal/Goal.java
-@@ -46,6 +_,17 @@
-         return this.flags;
+@@ -7,7 +_,15 @@
+ import net.minecraft.world.level.Level;
+ 
+ public abstract class Goal {
+-    private final EnumSet<Goal.Flag> flags = EnumSet.noneOf(Goal.Flag.class);
++    private final ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<net.minecraft.world.entity.ai.goal.Goal.Flag> goalTypes = new ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<>(Goal.Flag.class); // Paper - remove streams from GoalSelector
++
++    // Paper start - remove streams from GoalSelector; make sure types are not empty
++    protected Goal() {
++        if (this.goalTypes.size() == 0) {
++            this.goalTypes.addUnchecked(Flag.UNKNOWN_BEHAVIOR);
++        }
++    }
++    // Paper end - remove streams from GoalSelector
+ 
+     public abstract boolean canUse();
+ 
+@@ -33,8 +_,13 @@
      }
  
+     public void setFlags(EnumSet<Goal.Flag> requiredControlFlags) {
+-        this.flags.clear();
+-        this.flags.addAll(requiredControlFlags);
++        // Paper start - remove streams from GoalSelector
++        this.goalTypes.clear();
++        this.goalTypes.addAllUnchecked(requiredControlFlags);
++        if (this.goalTypes.size() == 0) {
++            this.goalTypes.addUnchecked(Flag.UNKNOWN_BEHAVIOR);
++        }
++        // Paper end - remove streams from GoalSelector
+     }
+ 
+     @Override
+@@ -42,9 +_,22 @@
+         return this.getClass().getSimpleName();
+     }
+ 
+-    public EnumSet<Goal.Flag> getFlags() {
+-        return this.flags;
+-    }
++    // Paper start - remove streams from GoalSelector
++    public ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<Goal.Flag> getFlags() {
++        return this.goalTypes;
++        // Paper end - remove streams from GoalSelector
++    }
++
 +
 +    // Paper start - Mob Goal API
 +    public boolean hasFlag(final Goal.Flag flag) {
-+        return this.flags.contains(flag);
++        return this.goalTypes.hasElement(flag); // Paper - remove streams from GoalSelector
 +    }
 +
 +    public void addFlag(final Goal.Flag flag) {
-+        this.flags.add(flag);
++        this.goalTypes.addUnchecked(flag); // Paper - remove streams from GoalSelector
 +    }
 +    // Paper end - Mob Goal API
-+
+ 
      protected int adjustedTickDelay(int ticks) {
          return this.requiresUpdateEveryTick() ? ticks : reducedTickDelay(ticks);
-     }
 @@ -62,7 +_,19 @@
          return (ServerLevel)level;
      }

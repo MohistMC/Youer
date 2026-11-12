@@ -812,6 +812,18 @@ public class CraftEventFactory {
         return event;
     }
 
+    public static int callEntityIgniteEvent(Entity entity, int fuseTime) {
+        if (io.papermc.paper.event.entity.EntityIgniteEvent.getHandlerList().getRegisteredListeners().length == 0) {
+            return fuseTime; // No listeners, skip event creation
+        }
+
+        io.papermc.paper.event.entity.EntityIgniteEvent event = new io.papermc.paper.event.entity.EntityIgniteEvent(entity.getBukkitEntity(), fuseTime);
+        if (!event.callEvent()) {
+            return net.minecraft.world.entity.item.PrimedTnt.NO_FUSE;
+        }
+        return event.getFuseTime();
+    }
+
     public static ItemSpawnEvent callItemSpawnEvent(ItemEntity item) {
         org.bukkit.entity.Item entity = (org.bukkit.entity.Item) item.getBukkitEntity();
         CraftServer craftServer = (CraftServer) entity.getServer();

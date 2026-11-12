@@ -11,12 +11,18 @@
  
      public int getSuccessCount() {
          return this.successCount;
-@@ -107,7 +_,7 @@
+@@ -107,7 +_,13 @@
                                      this.successCount++;
                                  }
                              });
 -                        level.getServer().getCommands().performPrefixedCommand(commandSourceStack, this.command);
-+                        level.getServer().getCommands().dispatchServerCommand(commandSourceStack, this.command);
++                        // Paper start - ServerCommandEvent
++                        org.bukkit.event.server.ServerCommandEvent event = new org.bukkit.event.server.ServerCommandEvent(commandSourceStack.getBukkitSender(), net.minecraft.commands.Commands.trimOptionalPrefix(this.command));
++                        if (!event.callEvent()) {
++                            return true;
++                        }
++                        level.getServer().getCommands().dispatchServerCommand(commandSourceStack, event.getCommand());
++                        // Paper end - ServerCommandEvent
                      }
                  } catch (Throwable var7) {
                      CrashReport report = CrashReport.forThrowable(var7, "Executing command block");
