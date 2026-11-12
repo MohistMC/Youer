@@ -903,7 +903,7 @@
          if (this.isDeadOrDying()) {
              return false;
          }
-@@ -1190,25 +_,64 @@
+@@ -1190,25 +_,66 @@
              return false;
          }
  
@@ -941,7 +941,9 @@
          }
  
 +        // Youer start
-+        bukkitEntityDamageEvent = BukkitDamageHooks.handleEntityDamage(this, source, damage, this.lastHurt); // Transmits the mod's modified damage value to the Bukkit event
++        // Paper - fix invulnerability reduction in EntityDamageEvent - only pass lastHurt when invulnerability ticks actually reduce this hit, otherwise BLOCKING is computed on stale reduced damage
++        float invulnerabilityRelatedLastDamage = this.damageCooldownTime > 10.0F && !source.is(DamageTypeTags.BYPASSES_COOLDOWN) && damage > this.lastHurt ? this.lastHurt : 0.0F;
++        bukkitEntityDamageEvent = BukkitDamageHooks.handleEntityDamage(this, source, damage, invulnerabilityRelatedLastDamage); // Transmits the mod's modified damage value to the Bukkit event
 +        if (bukkitEntityDamageEvent == null || bukkitEntityDamageEvent.isCancelled()) {
 +            this.damageContainers.pop();
 +            return false;
