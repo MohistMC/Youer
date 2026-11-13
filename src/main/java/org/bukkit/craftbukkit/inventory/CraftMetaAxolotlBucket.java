@@ -103,7 +103,7 @@ public class CraftMetaAxolotlBucket extends CraftMetaItem implements AxolotlBuck
         }
 
         if (bucketEntityTag != null) {
-            tag.put(CraftMetaAxolotlBucket.ENTITY_TAG, CustomData.of(bucketEntityTag));
+            tag.put(CraftMetaAxolotlBucket.BUCKET_ENTITY_TAG, CustomData.of(bucketEntityTag));
         }
     }
 

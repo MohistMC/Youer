@@ -104,7 +104,7 @@ class CraftMetaTropicalFishBucket extends CraftMetaItem implements TropicalFishB
         }
 
         if (bucketEntityTag != null) {
-            tag.put(CraftMetaTropicalFishBucket.ENTITY_TAG, CustomData.of(bucketEntityTag));
+            tag.put(CraftMetaTropicalFishBucket.BUCKET_ENTITY_TAG, CustomData.of(bucketEntityTag));
         }
     }
 
