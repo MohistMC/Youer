@@ -119,7 +119,7 @@
          BlockUtil.FoundRectangle blockutil$foundrectangle;
          DimensionTransition.PostDimensionTransition dimensiontransition$postdimensiontransition;
          if (optional.isPresent()) {
-@@ -152,16 +_,19 @@
+@@ -152,16 +_,22 @@
                  p_351970_ -> p_350564_.getBlockState(p_351970_) == blockstate
              );
              dimensiontransition$postdimensiontransition = DimensionTransition.PLAY_PORTAL_SOUND.then(p_351967_ -> p_351967_.placePortalTicket(blockpos));
@@ -127,7 +127,10 @@
 +        } else if (getExitPortal$canCreatePortal.getAndSet(false)) {
              Direction.Axis direction$axis = p_350493_.level().getBlockState(p_350379_).getOptionalValue(AXIS).orElse(Direction.Axis.X);
 -            Optional<BlockUtil.FoundRectangle> optional1 = p_350564_.getPortalForcer().createPortal(p_350747_, direction$axis);
-+            Optional<BlockUtil.FoundRectangle> optional1 = p_350564_.getPortalForcer().createPortal(p_350747_, direction$axis, p_350493_, getExitPortal$createRadius.getAndSet(0));
++            // Youer - keep the vanilla createPortal call site so mod mixins can wrap it
++            portalforcer.createPortal$entity.set(p_350493_);
++            portalforcer.createPortal$createRadius.set(getExitPortal$createRadius.getAndSet(0));
++            Optional<BlockUtil.FoundRectangle> optional1 = portalforcer.createPortal(p_350747_, direction$axis);
              if (optional1.isEmpty()) {
 -                LOGGER.error("Unable to create a portal, likely target out of worldborder");
 +                // LOGGER.error("Unable to create a portal, likely target out of worldborder");
