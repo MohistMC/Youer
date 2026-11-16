@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/WorldGenRegion.java
 +++ b/net/minecraft/server/level/WorldGenRegion.java
-@@ -149,6 +_,20 @@
+@@ -149,6 +_,26 @@
          return i < this.generatingStep.directDependencies().size();
      }
  
@@ -18,6 +18,12 @@
 +    }
 +    // Paper end
 +
++    // Youer start - keep the Block.dropResources call site in the bytecode so mod mixins can wrap it
++    private static boolean dropResources$blocked() {
++        return true;
++    }
++    // Youer end
++
      @Override
      public BlockState getBlockState(BlockPos p_9587_) {
          return this.getChunk(SectionPos.blockToSectionCoord(p_9587_.getX()), SectionPos.blockToSectionCoord(p_9587_.getZ())).getBlockState(p_9587_);
@@ -26,7 +32,7 @@
              return false;
          } else {
 -            if (p_9551_) {
-+            if (false) { // CraftBukkit - SPIGOT-6833: Do not drop during world generation
++            if (!dropResources$blocked()) { // CraftBukkit - SPIGOT-6833: Do not drop during world generation
                  BlockEntity blockentity = blockstate.hasBlockEntity() ? this.getBlockEntity(p_9550_) : null;
                  Block.dropResources(blockstate, this.level, p_9550_, blockentity, p_9552_, ItemStack.EMPTY);
              }
