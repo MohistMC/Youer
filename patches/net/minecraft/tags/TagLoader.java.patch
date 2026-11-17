@@ -1,5 +1,13 @@
 --- a/net/minecraft/tags/TagLoader.java
 +++ b/net/minecraft/tags/TagLoader.java
+@@ -39,6 +_,7 @@
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private final TagLoader.ElementLookup<T> elementLookup;
+     private final String directory;
++    private io.papermc.paper.tag.@Nullable TagEventConfig<T, ?> eventConfig; // Youer - consumed by build(Map); set by the 2-arg overload so mod mixins targeting vanilla build(Map)Map run
+ 
+     public TagLoader(TagLoader.ElementLookup<T> elementLookup, String directory) {
+         this.elementLookup = elementLookup;
 @@ -64,6 +_,8 @@
  
                      String sourceId = resource.sourcePackId();
@@ -18,19 +26,19 @@
                  missingElements.add(entry);
              }
          }
-@@ -86,7 +_,10 @@
+@@ -86,7 +_,11 @@
          return missingElements.isEmpty() ? Either.right(List.copyOf(values)) : Either.left(missingElements);
      }
  
--    public Map<Identifier, List<T>> build(Map<Identifier, List<TagLoader.EntryWithSource>> builders) {
-+    // Paper start - fire tag registrar events
-+    public Map<Identifier, List<T>> build(Map<Identifier, List<TagLoader.EntryWithSource>> builders, io.papermc.paper.tag.@Nullable TagEventConfig<T, ?> eventConfig) {
-+        builders = io.papermc.paper.tag.PaperTagListenerManager.INSTANCE.firePreFlattenEvent(builders, eventConfig);
++    // Youer start - vanilla build(Map)Map is the real impl so mod mixins (supermartijn642corelib TagLoaderMixin @At HEAD) land and run; Paper tag events use the eventConfig field
+     public Map<Identifier, List<T>> build(Map<Identifier, List<TagLoader.EntryWithSource>> builders) {
++        // Paper start - fire tag registrar events
++        builders = io.papermc.paper.tag.PaperTagListenerManager.INSTANCE.firePreFlattenEvent(builders, this.eventConfig);
 +        // Paper end
          final Map<Identifier, List<T>> newTags = new HashMap<>();
          TagEntry.Lookup<T> lookup = new TagEntry.Lookup<T>() {
              {
-@@ -111,12 +_,12 @@
+@@ -111,43 +_,70 @@
                      missing -> LOGGER.error(
                          "Couldn't load tag {} as it is missing following references: {}",
                          id,
@@ -41,11 +49,18 @@
                  .ifRight(tag -> newTags.put(id, (List<T>)tag))
          );
 -        return newTags;
-+        return io.papermc.paper.tag.PaperTagListenerManager.INSTANCE.firePostFlattenEvent(newTags, eventConfig); // Paper - fire tag registrar events
-     }
+-    }
++        return io.papermc.paper.tag.PaperTagListenerManager.INSTANCE.firePostFlattenEvent(newTags, this.eventConfig); // Paper - fire tag registrar events
++    }
++
++    public Map<Identifier, List<T>> build(Map<Identifier, List<TagLoader.EntryWithSource>> builders, io.papermc.paper.tag.@Nullable TagEventConfig<T, ?> eventConfig) {
++        this.eventConfig = eventConfig;
++        return this.build(builders);
++    }
++    // Youer end
  
      public static <T> Map<TagKey<T>, List<Holder<T>>> loadTagsFromNetwork(TagNetworkSerialization.NetworkPayload tags, Registry<T> registry) {
-@@ -124,30 +_,51 @@
+         return tags.resolve(registry).tags;
      }
  
      public static List<Registry.PendingTags<?>> loadTagsForExistingRegistries(ResourceManager manager, RegistryAccess layer) {

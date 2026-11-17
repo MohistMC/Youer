@@ -8,7 +8,7 @@
  import net.minecraft.world.flag.FeatureFlagSet;
  import net.minecraft.world.flag.FeatureFlags;
  import org.jspecify.annotations.Nullable;
-@@ -130,13 +_,13 @@
+@@ -130,30 +_,36 @@
          }
      }
  
@@ -24,7 +24,14 @@
              }
          }
      }
-@@ -145,15 +_,15 @@
++
++    // Youer start - mod compat: expose vanilla set(GameRule,T,MinecraftServer) so mod mixins (kubegroovy GameRulesMixin @Shadow + invokevirtual) land; delegate to the per-world ServerLevel overload
++    public <T> void set(GameRule<T> gameRule, T value, @Nullable MinecraftServer server) {
++        this.set(gameRule, value, server == null ? null : server.overworld());
++    }
++    // Youer end
+ 
+     public GameRules copy(FeatureFlagSet enabledFeatures) {
          return new GameRules(enabledFeatures, GameRuleMap.copyOf(this.rules));
      }
  

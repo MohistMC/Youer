@@ -51,7 +51,7 @@
              entity.setAsInsidePortal(this, pos);
          }
      }
-@@ -126,23 +_,47 @@
+@@ -126,19 +_,43 @@
  
      @Override
      public @Nullable TeleportTransition getPortalDestination(ServerLevel currentLevel, Entity entity, BlockPos portalEntryPos) {
@@ -95,33 +95,65 @@
          }
      }
  
++    // Youer - mod compat: vanilla 6-arg getExitPortal keeps the findClosestPortalPosition(BlockPos,boolean,WorldBorder) INVOKE that netherportalfix @ModifyExpressionValue targets; runtime uses the CraftBukkit 7-arg overload below (preserves Paper configurable search radius)
      private @Nullable TeleportTransition getExitPortal(
          ServerLevel newLevel, Entity entity, BlockPos portalEntryPos, BlockPos approximateExitPos, boolean toNether, WorldBorder worldBorder
-+        , org.bukkit.craftbukkit.event.PortalEventResult result // CraftBukkit
      ) {
--        Optional<BlockPos> exitPortalPos = newLevel.getPortalForcer().findClosestPortalPosition(approximateExitPos, toNether, worldBorder);
-+        Optional<BlockPos> exitPortalPos = newLevel.getPortalForcer().findClosestPortalPosition(approximateExitPos, worldBorder, result.searchRadius()); // CraftBukkit
-         BlockUtil.FoundRectangle exitPortal;
-         TeleportTransition.PostTeleportTransition post;
-         if (exitPortalPos.isPresent()) {
-@@ -157,17 +_,22 @@
-                 blockPos -> newLevel.getBlockState(blockPos) == portalState
-             );
+@@ -159,15 +_,53 @@
              post = TeleportTransition.PLAY_PORTAL_SOUND.then(e -> e.placePortalTicket(pos));
--        } else {
-+        } else if (result.canCreatePortal()) { // CraftBukkit
+         } else {
              Direction.Axis sourcePortalAxis = entity.level().getBlockState(portalEntryPos).getOptionalValue(AXIS).orElse(Direction.Axis.X);
 -            Optional<BlockUtil.FoundRectangle> createdExit = newLevel.getPortalForcer().createPortal(approximateExitPos, sourcePortalAxis);
-+            Optional<BlockUtil.FoundRectangle> createdExit = newLevel.getPortalForcer().createPortal(approximateExitPos, sourcePortalAxis, entity, result.createRadius()); // CraftBukkit
-             if (createdExit.isEmpty()) {
+-            if (createdExit.isEmpty()) {
 -                LOGGER.error("Unable to create a portal, likely target out of worldborder");
+-                return null;
+-            }
+-
+-            exitPortal = createdExit.get();
+-            post = TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET);
+-        }
++            Optional<BlockUtil.FoundRectangle> createdExit = newLevel.getPortalForcer().createPortal(approximateExitPos, sourcePortalAxis); // Youer - vanilla 2-arg createPortal INVOKE for ftbchunks @WrapOperation
++            if (createdExit.isEmpty()) {
++                return null;
++            }
++
++            exitPortal = createdExit.get();
++            post = TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET);
++        }
++
++        return getDimensionTransitionFromExit(entity, portalEntryPos, exitPortal, newLevel, post);
++    }
++
++    private @Nullable TeleportTransition getExitPortal(
++        ServerLevel newLevel, Entity entity, BlockPos portalEntryPos, BlockPos approximateExitPos, boolean toNether, WorldBorder worldBorder
++        , org.bukkit.craftbukkit.event.PortalEventResult result // CraftBukkit
++    ) {
++        Optional<BlockPos> exitPortalPos = newLevel.getPortalForcer().findClosestPortalPosition(approximateExitPos, worldBorder, result.searchRadius()); // CraftBukkit
++        BlockUtil.FoundRectangle exitPortal;
++        TeleportTransition.PostTeleportTransition post;
++        if (exitPortalPos.isPresent()) {
++            BlockPos pos = exitPortalPos.get();
++            BlockState portalState = newLevel.getBlockState(pos);
++            exitPortal = BlockUtil.getLargestRectangleAround(
++                pos,
++                portalState.getValue(BlockStateProperties.HORIZONTAL_AXIS),
++                21,
++                Direction.Axis.Y,
++                21,
++                blockPos -> newLevel.getBlockState(blockPos) == portalState
++            );
++            post = TeleportTransition.PLAY_PORTAL_SOUND.then(e -> e.placePortalTicket(pos));
++        } else if (result.canCreatePortal()) { // CraftBukkit
++            Direction.Axis sourcePortalAxis = entity.level().getBlockState(portalEntryPos).getOptionalValue(AXIS).orElse(Direction.Axis.X);
++            Optional<BlockUtil.FoundRectangle> createdExit = newLevel.getPortalForcer().createPortal(approximateExitPos, sourcePortalAxis, entity, result.createRadius()); // CraftBukkit
++            if (createdExit.isEmpty()) {
 +                // LOGGER.error("Unable to create a portal, likely target out of worldborder"); // CraftBukkit
-                 return null;
-             }
- 
-             exitPortal = createdExit.get();
-             post = TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET);
-         }
++                return null;
++            }
++
++            exitPortal = createdExit.get();
++            post = TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET);
++        }
 +        // CraftBukkit start
 +        else {
 +            return null;

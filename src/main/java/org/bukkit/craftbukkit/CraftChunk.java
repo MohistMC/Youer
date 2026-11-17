@@ -53,7 +53,7 @@ public class CraftChunk implements Chunk {
     private static final byte[] EMPTY_LIGHT = new byte[2048];
 
     public CraftChunk(net.minecraft.world.level.chunk.LevelChunk chunk) {
-        this.level = chunk.level;
+        this.level = (ServerLevel) chunk.level;
         this.x = chunk.getPos().x();
         this.z = chunk.getPos().z();
     }

@@ -21,19 +21,18 @@
      @Override
      protected void defineSynchedData(SynchedEntityData.Builder entityData) {
          super.defineSynchedData(entityData);
-@@ -72,10 +_,10 @@
+@@ -72,9 +_,11 @@
                      this.spawnAtLocation(level, this.getPickupItem(), 0.1F);
                  }
  
--                this.discard();
-+                this.discard(EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
++                this.removeReason(EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
+                 this.discard();
              } else {
                  if (!(currentOwner instanceof Player) && this.position().distanceTo(currentOwner.getEyePosition()) < currentOwner.getBbWidth() + 1.0) {
--                    this.discard();
-+                    this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                    this.removeReason(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                     this.discard();
                      return;
                  }
- 
 @@ -104,6 +_,20 @@
          return this.entityData.get(ID_FOIL);
      }

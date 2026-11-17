@@ -57,7 +57,7 @@
  
      @Override
      public boolean dampensVibrations() {
-@@ -104,20 +_,51 @@
+@@ -104,20 +_,53 @@
          return 0.04;
      }
  
@@ -79,7 +79,8 @@
 +                return;
 +            }
 +            // CraftBukkit end
-+            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++            this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++            this.discard();
 +        }
 +    }
 +    // Paper end - EAR 2
@@ -88,8 +89,8 @@
      public void tick() {
 +        if (getItem().onEntityItemUpdate(this)) return;
          if (this.getItem().isEmpty()) {
--            this.discard();
-+            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++            this.removeReason(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+             this.discard();
          } else {
              super.tick();
 -            if (this.pickupDelay > 0 && this.pickupDelay != 32767) {
@@ -136,12 +137,11 @@
                  }
  
                  this.setDeltaMovement(this.getDeltaMovement().multiply(friction, 0.98, friction));
-@@ -174,8 +_,22 @@
+@@ -174,7 +_,23 @@
                  }
              }
  
 -            if (!this.level().isClientSide() && this.age >= 6000) {
--                this.discard();
 +            ItemStack item = this.getItem();
 +            if (!this.level().isClientSide() && this.age >= lifespan) {
 +            	  // Clamping to MAX_VALUE -1 as age is a Short and going above that would produce an infinite lifespan implicitly (accidentally)
@@ -151,16 +151,17 @@
 +                    if (CraftEventFactory.callItemDespawnEvent(this).isCancelled()) {
 +                        this.age = 0;
 +                    } else {
-+                        this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                        this.removeReason(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                        this.discard();
 +                    }
 +                    // CraftBukkit end
 +                }
 +            }
 +            if (item.isEmpty() && !this.isRemoved()) {
-+                this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                this.removeReason(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                 this.discard();
              }
          }
-     }
 @@ -200,9 +_,18 @@
  
      private void mergeWithNeighbours() {
@@ -198,7 +199,7 @@
                  merge(this, thisItemStack, other, otherItemStack);
              } else {
                  merge(other, otherItemStack, this, thisItemStack);
-@@ -248,11 +_,16 @@
+@@ -248,10 +_,16 @@
      }
  
      private static void merge(ItemEntity toItem, ItemStack toStack, ItemEntity fromItem, ItemStack fromStack) {
@@ -211,12 +212,11 @@
          toItem.pickupDelay = Math.max(toItem.pickupDelay, fromItem.pickupDelay);
          toItem.age = Math.min(toItem.age, fromItem.age);
          if (fromStack.isEmpty()) {
--            fromItem.discard();
-+            fromItem.discard(EntityRemoveEvent.Cause.MERGE); // CraftBukkit - add Bukkit remove cause);
++            fromItem.removeReason(EntityRemoveEvent.Cause.MERGE); // CraftBukkit - add Bukkit remove cause
+             fromItem.discard();
          }
      }
- 
-@@ -280,12 +_,17 @@
+@@ -280,11 +_,17 @@
          } else if (!this.getItem().canBeHurtBy(source)) {
              return false;
          } else {
@@ -231,12 +231,11 @@
              this.gameEvent(GameEvent.ENTITY_DAMAGE, source.getEntity());
              if (this.health <= 0) {
 -                this.getItem().onDestroyed(this);
--                this.discard();
 +                this.getItem().onDestroyed(this, source);
-+                this.discard(EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
++                this.removeReason(EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
+                 this.discard();
              }
  
-             return true;
 @@ -302,11 +_,17 @@
          output.putShort("Health", (short)this.health);
          output.putShort("Age", (short)this.age);

@@ -15,7 +15,7 @@
  public class PiglinAi {
      public static final int REPELLENT_DETECTION_RANGE_HORIZONTAL = 8;
      public static final int REPELLENT_DETECTION_RANGE_VERTICAL = 4;
-@@ -338,23 +_,29 @@
+@@ -338,23 +_,30 @@
      protected static void pickUpItem(ServerLevel level, Piglin body, ItemEntity itemEntity) {
          stopWalking(body);
          ItemStack taken;
@@ -25,9 +25,9 @@
 +            body.onItemPickup(itemEntity); // Paper - EntityPickupItemEvent fixes; call prior to item entity modification
              body.take(itemEntity, itemEntity.getItem().getCount());
              taken = itemEntity.getItem();
--            itemEntity.discard();
++            itemEntity.removeReason(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+             itemEntity.discard();
 -        } else {
-+            itemEntity.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
 +        } else if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(body, itemEntity, itemEntity.getItem().getCount() - 1, false).isCancelled()) {
 +            body.onItemPickup(itemEntity); // Paper - EntityPickupItemEvent fixes; call prior to item entity modification
              body.take(itemEntity, 1);
@@ -60,15 +60,14 @@
          }
  
          body.holdInOffHand(itemStack);
-@@ -373,7 +_,7 @@
+@@ -373,6 +_,7 @@
          ItemStack sourceStack = itemEntity.getItem();
          ItemStack removedStack = sourceStack.split(1);
          if (sourceStack.isEmpty()) {
--            itemEntity.discard();
-+            itemEntity.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
++            itemEntity.removeReason(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+             itemEntity.discard();
          } else {
              itemEntity.setItem(sourceStack);
-         }
 @@ -385,23 +_,28 @@
          ItemStack itemStack = body.getItemInHand(InteractionHand.OFF_HAND);
          body.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);

@@ -9,7 +9,7 @@
  
  public abstract class AbstractThrownPotion extends ThrowableItemProjectile {
      public static final double SPLASH_RANGE = 4.0;
-@@ -67,54 +_,101 @@
+@@ -67,54 +_,102 @@
      @Override
      protected void onHit(HitResult hitResult) {
          super.onHit(hitResult);
@@ -34,12 +34,12 @@
  
 -            int type = potion.potion().isPresent() && potion.potion().get().value().hasInstantEffects() ? 2007 : 2002;
 -            level.levelEvent(type, this.blockPosition(), potion.getColor());
--            this.discard();
 +            if (showParticles) { // Paper - Fix potions splash events
 +                int type = potion.potion().isPresent() && potion.potion().get().value().hasInstantEffects() ? 2007 : 2002;
 +                level.levelEvent(type, this.blockPosition(), potion.getColor());
 +            } // Paper - Fix potions splash events
-+            this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
++            this.removeReason(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+             this.discard();
          }
      }
  

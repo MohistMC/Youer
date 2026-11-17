@@ -17,7 +17,7 @@
          if (this.customParticle != null) {
              this.entityData.set(DATA_PARTICLE, this.customParticle);
          } else {
-@@ -140,6 +_,16 @@
+@@ -140,6 +_,17 @@
          this.duration = duration;
      }
  
@@ -26,7 +26,8 @@
 +    public void inactiveTick() {
 +        super.inactiveTick();
 +        if (this.duration != INFINITE_DURATION && this.tickCount - this.waitTime >= this.duration) {
-+            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++            this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++            this.discard();
 +        }
 +    }
 +    // Paper end - EAR 2
@@ -34,25 +35,23 @@
      @Override
      public void tick() {
          super.tick();
-@@ -189,7 +_,7 @@
+@@ -189,6 +_,7 @@
  
      private void serverTick(ServerLevel serverLevel) {
          if (this.duration != -1 && this.tickCount - this.waitTime >= this.duration) {
--            this.discard();
-+            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++            this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+             this.discard();
          } else {
              boolean isWaiting = this.isWaiting();
-             boolean shouldWait = this.tickCount < this.waitTime;
-@@ -202,7 +_,7 @@
+@@ -202,6 +_,7 @@
                  if (this.radiusPerTick != 0.0F) {
                      radius += this.radiusPerTick;
                      if (radius < 0.5F) {
--                        this.discard();
-+                        this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                        this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                         this.discard();
                          return;
                      }
- 
-@@ -218,39 +_,52 @@
+@@ -218,39 +_,54 @@
                          this.potionContents.forEachEffect(allEffects::add, this.potionDurationScale);
                          List<LivingEntity> entities = this.level().getEntitiesOfClass(LivingEntity.class, this.getBoundingBox());
                          if (!entities.isEmpty()) {
@@ -122,7 +121,8 @@
 +                                            if (this.radiusOnUse != 0.0F) {
 +                                                radius += this.radiusOnUse;
 +                                                if (radius < 0.5F) {
-+                                                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                                                    this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                                                    this.discard();
 +                                                    return;
 +                                                }
 +
@@ -132,7 +132,8 @@
 +                                            if (this.durationOnUse != 0 && this.duration != -1) {
 +                                                this.duration = this.duration + this.durationOnUse;
 +                                                if (this.duration <= 0) {
-+                                                    this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                                                    this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                                                    this.discard();
 +                                                    return;
 +                                                }
                                              }

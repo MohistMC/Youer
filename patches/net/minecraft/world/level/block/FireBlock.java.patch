@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/block/FireBlock.java
 +++ b/net/minecraft/world/level/block/FireBlock.java
+@@ -5,6 +_,7 @@
+ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+ import java.util.Map;
+ import java.util.Map.Entry;
++import java.util.concurrent.atomic.AtomicReference;
+ import java.util.function.Function;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
 @@ -27,6 +_,14 @@
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
@@ -15,6 +23,14 @@
  public class FireBlock extends BaseFireBlock {
      public static final MapCodec<FireBlock> CODEC = simpleCodec(FireBlock::new);
      public static final int MAX_AGE = 15;
+@@ -52,6 +_,7 @@
+     private static final int BURN_HARD = 5;
+     public final Object2IntMap<Block> igniteOdds = new Object2IntOpenHashMap<>();
+     private final Object2IntMap<Block> burnOdds = new Object2IntOpenHashMap<>();
++    private final AtomicReference<BlockPos> checkBurnOut$sourceposition = new AtomicReference<>(BlockPos.ZERO); // Youer - mod compat: carry fire source position so checkBurnOut keeps the vanilla 6-arg descriptor (the_bumblezone FireBlockMixin)
+ 
+     @Override
+     public MapCodec<FireBlock> codec() {
 @@ -99,7 +_,24 @@
          BlockState neighbourState,
          RandomSource random
@@ -91,7 +107,7 @@
              } else {
                  int newAge = Math.min(15, age + random.nextInt(3) / 2);
                  if (age != newAge) {
-@@ -161,26 +_,28 @@
+@@ -161,26 +_,36 @@
                      if (!this.isValidFireLocation(level, pos)) {
                          BlockPos below = pos.below();
                          if (!level.getBlockState(below).isFaceSturdy(level, below, Direction.UP) || age > 3) {
@@ -119,12 +135,20 @@
 -                this.checkBurnOut(level, pos.north(), 300 + extra, random, age);
 -                this.checkBurnOut(level, pos.south(), 300 + extra, random, age);
 +                // CraftBukkit start - add source blockposition to burn calls
-+                this.checkBurnOut(level, pos.east(), 300 + extra, random, age, Direction.WEST, pos);
-+                this.checkBurnOut(level, pos.west(), 300 + extra, random, age, Direction.EAST, pos);
-+                this.checkBurnOut(level, pos.below(), 250 + extra, random, age, Direction.UP, pos);
-+                this.checkBurnOut(level, pos.above(), 250 + extra, random, age, Direction.DOWN, pos);
-+                this.checkBurnOut(level, pos.north(), 300 + extra, random, age, Direction.SOUTH, pos);
-+                this.checkBurnOut(level, pos.south(), 300 + extra, random, age, Direction.NORTH, pos);
++                // Youer start - mod compat: keep vanilla 6-arg checkBurnOut(...,Direction) descriptor (the_bumblezone FireBlockMixin @Inject); source position via field instead of a 7th param
++                this.checkBurnOut$sourceposition.set(pos);
++                this.checkBurnOut(level, pos.east(), 300 + extra, random, age, Direction.WEST);
++                this.checkBurnOut$sourceposition.set(pos);
++                this.checkBurnOut(level, pos.west(), 300 + extra, random, age, Direction.EAST);
++                this.checkBurnOut$sourceposition.set(pos);
++                this.checkBurnOut(level, pos.below(), 250 + extra, random, age, Direction.UP);
++                this.checkBurnOut$sourceposition.set(pos);
++                this.checkBurnOut(level, pos.above(), 250 + extra, random, age, Direction.DOWN);
++                this.checkBurnOut$sourceposition.set(pos);
++                this.checkBurnOut(level, pos.north(), 300 + extra, random, age, Direction.SOUTH);
++                this.checkBurnOut$sourceposition.set(pos);
++                this.checkBurnOut(level, pos.south(), 300 + extra, random, age, Direction.NORTH);
++                // Youer end
 +                // CraftBukkit end
                  BlockPos.MutableBlockPos testPos = new BlockPos.MutableBlockPos();
  
@@ -145,7 +169,7 @@
                                      }
                                  }
                              }
-@@ -221,33 +_,56 @@
+@@ -221,33 +_,57 @@
              || level.isRainingAt(testPos.south());
      }
  
@@ -165,12 +189,13 @@
  
 -    private void checkBurnOut(Level level, BlockPos pos, int chance, RandomSource random, int age) {
 -        int odds = this.getBurnOdds(level.getBlockState(pos));
-+    private void checkBurnOut(Level level, BlockPos pos, int chance, RandomSource random, int age, Direction face, BlockPos sourceposition) { // CraftBukkit add sourceposition
++    private void checkBurnOut(Level level, BlockPos pos, int chance, RandomSource random, int age, Direction face) { // CraftBukkit add sourceposition // Youer - vanilla 6-arg descriptor for the_bumblezone FireBlockMixin; source position via checkBurnOut$sourceposition field
 +        int odds = level.getBlockState(pos).getFlammability(level, pos, face);
          if (random.nextInt(chance) < odds) {
              BlockState oldState = level.getBlockState(pos);
 +            // CraftBukkit start
 +            org.bukkit.block.Block theBlock = level.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
++            BlockPos sourceposition = checkBurnOut$sourceposition.getAndSet(BlockPos.ZERO); // Youer - mod compat: was 7th param
 +            org.bukkit.block.Block sourceBlock = level.getWorld().getBlockAt(sourceposition.getX(), sourceposition.getY(), sourceposition.getZ());
 +
 +            BlockBurnEvent event = new BlockBurnEvent(theBlock, sourceBlock);

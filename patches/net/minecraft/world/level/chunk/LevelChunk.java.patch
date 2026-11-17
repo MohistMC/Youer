@@ -14,7 +14,7 @@
      private final Map<BlockPos, LevelChunk.RebindableTickingBlockEntityWrapper> tickersInLevel = Maps.newHashMap();
      public boolean loaded;
 -    public final Level level;
-+    public final ServerLevel level; // CraftBukkit - type
++    public final Level level; // CraftBukkit - type; Youer - keep vanilla Level descriptor so mod @Shadow Level level lands (refurbished_furniture LevelChunkMixin); ServerLevel use sites cast
      private @Nullable Supplier<FullChunkStatus> fullStatus;
      private LevelChunk.@Nullable PostLoadProcessor postLoad;
      private final Int2ObjectMap<GameEventListenerRegistry> gameEventListenerRegistrySections;
@@ -23,7 +23,7 @@
      ) {
          super(pos, upgradeData, level, level.palettedContainerFactory(), inhabitedTime, sections, blendingData);
 -        this.level = level;
-+        this.level = (ServerLevel) level; // CraftBukkit - type
++        this.level = level; // CraftBukkit - type
          this.gameEventListenerRegistrySections = new Int2ObjectOpenHashMap<>();
  
          for (Heightmap.Types type : Heightmap.Types.values()) {
@@ -342,10 +342,10 @@
 +            if (this.needsDecoration) {
 +                this.needsDecoration = false;
 +                java.util.Random random = new java.util.Random();
-+                random.setSeed(this.level.getSeed());
++                random.setSeed(((ServerLevel)this.level).getSeed());
 +                long xRand = random.nextLong() / 2L * 2L + 1L;
 +                long zRand = random.nextLong() / 2L * 2L + 1L;
-+                random.setSeed((long)this.chunkPos.x() * xRand + (long)this.chunkPos.z() * zRand ^ this.level.getSeed());
++                random.setSeed((long)this.chunkPos.x() * xRand + (long)this.chunkPos.z() * zRand ^ ((ServerLevel)this.level).getSeed());
 +
 +                org.bukkit.World world = this.level.getWorld();
 +                if (world != null) {

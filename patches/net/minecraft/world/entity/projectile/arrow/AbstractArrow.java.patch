@@ -135,17 +135,16 @@
      }
  
      public boolean isInGround() {
-@@ -366,8 +_,8 @@
+@@ -366,7 +_,8 @@
  
      protected void tickDespawn() {
          this.life++;
 -        if (this.life >= 1200) {
--            this.discard();
 +        if (this.life >= (this.pickup == Pickup.CREATIVE_ONLY ? this.level().paperConfig().entities.spawning.creativeArrowDespawnRate.value() : (this.pickup == Pickup.DISALLOWED ? this.level().paperConfig().entities.spawning.nonPlayerArrowDespawnRate.value() : ((this instanceof ThrownTrident) ? this.level().spigotConfig.tridentDespawnRate : this.level().spigotConfig.arrowDespawnRate)))) { // Spigot // Paper - Configurable non-player arrow despawn rate; TODO: Extract this to init?
-+            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++            this.removeReason(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+             this.discard();
          }
      }
- 
 @@ -401,9 +_,9 @@
      }
  
@@ -158,15 +157,14 @@
          }
      }
  
-@@ -430,7 +_,7 @@
+@@ -430,6 +_,7 @@
              }
  
              if (this.piercingIgnoreEntityIds.size() >= this.getPierceLevel() + 1) {
--                this.discard();
-+                this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
++                this.removeReason(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+                 this.discard();
                  return;
              }
- 
 @@ -446,10 +_,18 @@
              livingOwner.setLastHurtMob(entity);
          }
@@ -187,24 +185,22 @@
          }
  
          if (entity.hurtOrSimulate(damageSource, damage)) {
-@@ -487,7 +_,7 @@
+@@ -487,6 +_,7 @@
  
              this.playSound(this.soundEvent, 1.0F, 1.2F / (this.random.nextFloat() * 0.2F + 0.9F));
              if (this.getPierceLevel() <= 0) {
--                this.discard();
-+                this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
++                this.removeReason(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+                 this.discard();
              }
          } else {
-             entity.setRemainingFireTicks(remainingFireTicks);
-@@ -498,7 +_,7 @@
+@@ -498,6 +_,7 @@
                      this.spawnAtLocation(level, this.getPickupItem(), 0.1F);
                  }
  
--                this.discard();
-+                this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
++                this.removeReason(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+                 this.discard();
              }
          }
-     }
 @@ -511,7 +_,7 @@
              double knockbackResistance = Math.max(0.0, 1.0 - mob.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE));
              Vec3 movement = this.getDeltaMovement().multiply(1.0, 0.0, 1.0).normalize().scale(knockback * 0.6 * knockbackResistance);
@@ -238,7 +234,7 @@
  
          this.pickup = switch (owner) {
              case Player ignored when this.pickup == AbstractArrow.Pickup.DISALLOWED -> AbstractArrow.Pickup.ALLOWED;
-@@ -634,17 +_,32 @@
+@@ -634,17 +_,33 @@
      @Override
      public void playerTouch(Player player) {
          if (!this.level().isClientSide() && (this.isInGround() || this.isNoPhysics()) && this.shakeTime <= 0) {
@@ -260,8 +256,8 @@
 +            if (this.tryPickup(player, itemstack)) {
 +                // CraftBukkit end
                  player.take(this, 1);
--                this.discard();
-+                this.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
++                this.removeReason(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+                 this.discard();
              }
          }
      }

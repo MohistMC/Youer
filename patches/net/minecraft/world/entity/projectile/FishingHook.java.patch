@@ -40,21 +40,20 @@
      }
  
      public FishingHook(EntityType<? extends FishingHook> type, Level level) {
-@@ -151,12 +_,12 @@
+@@ -151,11 +_,13 @@
          super.tick();
          Player owner = this.getPlayerOwner();
          if (owner == null) {
--            this.discard();
-+            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++            this.removeReason(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+             this.discard();
          } else if (this.level().isClientSide() || !this.shouldStopFishing(owner)) {
              if (this.onGround()) {
                  this.life++;
                  if (this.life >= 1200) {
--                    this.discard();
-+                    this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                    this.removeReason(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                     this.discard();
                      return;
                  }
-             } else {
 @@ -174,12 +_,14 @@
              if (this.currentState == FishingHook.FishHookState.FLYING) {
                  if (this.hookedIn != null) {
@@ -78,7 +77,7 @@
                              this.currentState = FishingHook.FishHookState.FLYING;
                          }
                      }
-@@ -253,20 +_,21 @@
+@@ -253,20 +_,22 @@
          if (owner.canInteractWithLevel()) {
              ItemStack selectedItem = owner.getMainHandItem();
              ItemStack selectedItemOffHand = owner.getOffhandItem();
@@ -91,8 +90,8 @@
              }
          }
  
--        this.discard();
-+        this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++        this.removeReason(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+         this.discard();
          return true;
      }
  
@@ -255,7 +254,7 @@
                      if (itemStack.is(ItemTags.FISHES)) {
                          owner.awardStat(Stats.FISH_CAUGHT, 1);
                      }
-@@ -482,10 +_,28 @@
+@@ -482,10 +_,29 @@
              }
  
              if (this.onGround()) {
@@ -279,8 +278,8 @@
 +            }
 +            // CraftBukkit end
  
--            this.discard();
-+            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++            this.removeReason(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+             this.discard();
 +            if (event != null) return event.getRodDamage();
              return dmg;
          } else {

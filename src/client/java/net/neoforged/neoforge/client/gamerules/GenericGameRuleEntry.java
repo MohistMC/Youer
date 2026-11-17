@@ -33,7 +33,7 @@ public class GenericGameRuleEntry<T> extends GameRuleEntry {
             if (value.isSuccess()) {
                 input.setTextColor(CommonColors.TEXT_GRAY);
                 screen.clearInvalid(this);
-                screen.gameRules.set(gameRule, value.getOrThrow(), null);
+                screen.gameRules.set(gameRule, value.getOrThrow(), (net.minecraft.server.level.ServerLevel) null); // Youer - cast disambiguates the mod-compat MinecraftServer set overload
             } else {
                 input.setTextColor(CommonColors.RED);
                 screen.markInvalid(this);

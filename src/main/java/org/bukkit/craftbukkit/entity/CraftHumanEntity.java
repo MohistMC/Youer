@@ -773,7 +773,7 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
     @Override
     public boolean dropItem(boolean dropAll) {
         if (!(this.getHandle() instanceof ServerPlayer player)) return false;
-        boolean success = player.drop(dropAll);
+        boolean success = player.drop0(dropAll); // Youer - drop(boolean) restored to vanilla void for ae2wtlib mixin; boolean success worker is drop0
         if (!success) {
             return false;
         }

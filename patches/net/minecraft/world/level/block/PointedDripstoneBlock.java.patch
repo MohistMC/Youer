@@ -60,7 +60,7 @@
                              } else {
                                  BlockPos cauldronPos = findFillableCauldronBelowStalactiteTip(level, stalactiteTipPos, fluid);
                                  if (cauldronPos != null) {
-@@ -359,17 +_,17 @@
+@@ -359,17 +_,22 @@
          if (isUnmergedTipWithDirection(existingStateAtTargetPos, growToDirection.getOpposite())) {
              createMergedTips(existingStateAtTargetPos, level, targetPos);
          } else if (existingStateAtTargetPos.isAir() || existingStateAtTargetPos.is(Blocks.WATER)) {
@@ -69,7 +69,11 @@
          }
      }
  
--    private static void createDripstone(LevelAccessor level, BlockPos pos, Direction direction, DripstoneThickness thickness) {
++    // Youer - mod compat: aether_ii PointedDripstoneBlockMixin @WrapMethod createDripstone targets vanilla createDripstone(LevelAccessor,BlockPos,Direction,DripstoneThickness)V; CraftBukkit added a 5th BlockPos source param for BlockSpreadEvent, so restore the vanilla 4-arg signature as the mixin target (delegates to the CraftBukkit 5-arg overload below). Runtime callers use the 5-arg version.
+     private static void createDripstone(LevelAccessor level, BlockPos pos, Direction direction, DripstoneThickness thickness) {
++        createDripstone(level, pos, direction, thickness, pos);
++    }
++
 +    private static void createDripstone(LevelAccessor level, BlockPos pos, Direction direction, DripstoneThickness thickness, BlockPos source) { // CraftBukkit
          BlockState state = Blocks.POINTED_DRIPSTONE
              .defaultBlockState()

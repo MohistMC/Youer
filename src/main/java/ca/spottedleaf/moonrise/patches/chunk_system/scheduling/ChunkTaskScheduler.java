@@ -757,7 +757,6 @@ public final class ChunkTaskScheduler {
 
         if (unGeneratedNeighbours) {
             // can't schedule, but neighbour completion will schedule for us when they're ALL done
-
             // propagate our priority to neighbours
             chunkHolder.recalculateNeighbourPriorities();
             return null;

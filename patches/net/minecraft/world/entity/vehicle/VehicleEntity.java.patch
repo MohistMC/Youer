@@ -28,11 +28,10 @@
              this.setHurtDir(-this.getHurtDir());
              this.setHurtTime(10);
              this.markHurt();
-@@ -46,9 +_,23 @@
+@@ -46,9 +_,24 @@
              boolean creativePlayer = source.getEntity() instanceof Player player && player.getAbilities().instabuild;
              if ((creativePlayer || !(this.getDamage() > 40.0F)) && !this.shouldSourceDestroy(source)) {
                  if (creativePlayer) {
--                    this.discard();
 +                    // CraftBukkit start
 +                    VehicleDestroyEvent destroyEvent = new VehicleDestroyEvent(vehicle, damageSourceBukkit, attacker);
 +                    if (!destroyEvent.callEvent()) {
@@ -40,7 +39,8 @@
 +                        return true;
 +                    }
 +                    // CraftBukkit end
-+                    this.discard(EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
++                    this.removeReason(EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
+                     this.discard();
                  }
              } else {
 +                // CraftBukkit start

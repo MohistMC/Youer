@@ -34,7 +34,7 @@
          this.setDeltaMovement(-Math.sin(rot) * 0.02, 0.2F, -Math.cos(rot) * 0.02);
          this.setFuse(80);
          this.xo = x;
-@@ -92,10 +_,17 @@
+@@ -92,10 +_,18 @@
  
      @Override
      public void tick() {
@@ -45,14 +45,15 @@
          this.applyEffectsFromBlocks();
 +        // Paper start - Configurable TNT height nerf
 +        if (this.level().paperConfig().fixes.tntEntityHeightNerf.test(v -> this.getY() > v)) {
-+            this.discard(EntityRemoveEvent.Cause.OUT_OF_WORLD);
++            this.removeReason(EntityRemoveEvent.Cause.OUT_OF_WORLD);
++            this.discard();
 +            return;
 +        }
 +        // Paper end - Configurable TNT height nerf
          this.setDeltaMovement(this.getDeltaMovement().scale(0.98));
          if (this.onGround()) {
              this.setDeltaMovement(this.getDeltaMovement().multiply(0.7, -0.5, 0.7));
-@@ -104,20 +_,34 @@
+@@ -104,20 +_,35 @@
          int fuse = this.getFuse() - 1;
          this.setFuse(fuse);
          if (fuse <= 0) {
@@ -62,7 +63,8 @@
              if (!this.level().isClientSide()) {
                  this.explode();
              }
-+            this.discard(EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
++            this.removeReason(EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
++            this.discard();
 +            // CraftBukkit end
          } else {
              this.updateFluidInteraction();

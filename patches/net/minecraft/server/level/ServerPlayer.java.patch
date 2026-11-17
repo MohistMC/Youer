@@ -581,10 +581,10 @@
          if (this.timeEntitySatOnShoulder + 20L < this.level().getGameTime()) {
 -            this.respawnEntityOnShoulder(this.getShoulderEntityLeft());
 +            // CraftBukkit start
-+            if (this.respawnEntityOnShoulder(this.getShoulderEntityLeft())) {
++            if (this.respawnEntityOnShoulder0(this.getShoulderEntityLeft()) != null) {
 +                this.setShoulderEntityLeft(new CompoundTag());
 +            }
-+            if (this.respawnEntityOnShoulder(this.getShoulderEntityRight())) {
++            if (this.respawnEntityOnShoulder0(this.getShoulderEntityRight()) != null) {
 +                this.setShoulderEntityRight(new CompoundTag());
 +            }
 +            // CraftBukkit end
@@ -606,9 +606,12 @@
 +        if (entity != null) {
              this.setShoulderEntityRight(new CompoundTag());
          }
--    }
--
--    private void respawnEntityOnShoulder(CompoundTag tag) {
++        return entity;
+     }
++    // Paper end - release entity api
+ 
++    // Youer - mod compat: witchery ServerPlayerShoulderMixin @Shadow + invokevirtual targets the vanilla respawnEntityOnShoulder(CompoundTag)V; CraftBukkit widened it to boolean, so restore the vanilla void signature (delegates to the Paper worker) as the mixin target. removeEntitiesOnShoulder's CraftBukkit conditional-clear callers use respawnEntityOnShoulder0(...) != null directly.
+     private void respawnEntityOnShoulder(CompoundTag tag) {
 -        ServerLevel reporter = this.level();
 -        if (reporter instanceof ServerLevel) {
 -            ServerLevel serverLevel = reporter;
@@ -626,17 +629,11 @@
 -                            serverLevel.addWithUUID(entity);
 -                        });
 -                }
-+        return entity;
++        this.respawnEntityOnShoulder0(tag);
 +    }
-+    // Paper end - release entity api
 +
-+    private boolean respawnEntityOnShoulder(CompoundTag tag) { // CraftBukkit void->boolean
-+    // Paper start - release entity api - return entity - overload
-+        return this.respawnEntityOnShoulder0(tag) != null;
-+    }
 +    @Nullable
-+    private Entity respawnEntityOnShoulder0(CompoundTag tag) { // CraftBukkit void->boolean
-+    // Paper end - release entity api - return entity - overload
++    private Entity respawnEntityOnShoulder0(CompoundTag tag) { // Paper - release entity api - return entity
 +        if (this.level() instanceof ServerLevel serverLevel && !tag.isEmpty()) {
 +            try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(this.problemPath(), LOGGER)) {
 +                return EntityType.create( // Paper - release entity api
@@ -881,13 +878,20 @@
      }
  
      @Override
-@@ -1015,22 +_,98 @@
+@@ -1015,22 +_,105 @@
          return this.level().isPvpAllowed();
      }
  
 -    public TeleportTransition findRespawnPositionAndUseSpawnBlock(boolean consumeSpawnBlock, TeleportTransition.PostTeleportTransition postTeleportTransition) {
 +    // Paper start
 +    public record RespawnResult(TeleportTransition transition, boolean isBedSpawn, boolean isAnchorSpawn) {
++    }
++
++    // Youer - mod compat: witchery ServerPlayerMixin @Inject respawnAtSleeping targets vanilla findRespawnPositionAndUseSpawnBlock(boolean,PostTeleportTransition) at HEAD; CraftBukkit added a 3rd RespawnReason param, so restore the vanilla 2-arg signature as the mixin target (delegates to the CraftBukkit 3-arg overload below). Runtime callers use the 3-arg version.
++    public @Nullable TeleportTransition findRespawnPositionAndUseSpawnBlock(
++        final boolean consumeSpawnBlock, final TeleportTransition.PostTeleportTransition postTeleportTransition
++    ) {
++        return this.findRespawnPositionAndUseSpawnBlock(consumeSpawnBlock, postTeleportTransition, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.DEATH);
 +    }
 +
 +    public @Nullable TeleportTransition findRespawnPositionAndUseSpawnBlock(
@@ -2085,23 +2089,49 @@
          GameType forcedGameType = this.server.getForcedGameType();
          if (forcedGameType != null) {
              return forcedGameType;
-@@ -2067,8 +_,10 @@
+@@ -2067,17 +_,50 @@
          super.updateUsingItem(useItem);
      }
  
 -    public void drop(boolean all) {
-+    public boolean drop(final boolean all) { // Paper - add back success return // Paper - add back success return
-         Inventory inventory = this.getInventory();
+-        Inventory inventory = this.getInventory();
+-        ItemStack removed = inventory.removeFromSelected(all);
+-        this.containerMenu
+-            .findSlot(inventory, inventory.getSelectedSlot())
+-            .ifPresent(slotIndex -> this.containerMenu.setRemoteSlot(slotIndex, inventory.getSelectedItem()));
+-        if (this.useItem.isEmpty()) {
+-            this.stopUsingItem();
+-        }
+-
+-        this.drop(removed, false, true);
++    // Youer - mod compat: ae2wtlib ServerPlayerMixin @Inject restockDrop targets vanilla drop(Z)V at TAIL with @Local(name="selected"); Paper widened the return to boolean for the CraftBukkit dropItem API, so restore the vanilla void signature (full body keeps the selected local live at TAIL) as the mixin target + runtime Q-drop path. The boolean success worker drop0 below mirrors this body and is used by CraftHumanEntity#dropItem(boolean).
++    public void drop(final boolean all) {
++        Inventory inventory = this.getInventory();
++        ItemStack selected = inventory.getSelectedItem();
++        if (selected.isEmpty() || !selected.onDroppedByPlayer(this)) return;
++        ItemStack removed = inventory.removeFromSelected(all);
++        this.containerMenu
++            .findSlot(inventory, inventory.getSelectedSlot())
++            .ifPresent(slotIndex -> this.containerMenu.setRemoteSlot(slotIndex, inventory.getSelectedItem()));
++        if (this.useItem.isEmpty()) {
++            this.stopUsingItem();
++        }
++
++        net.neoforged.neoforge.common.CommonHooks.onPlayerTossEvent(this, removed, false, true);
++    }
++
++    public boolean drop0(final boolean all) { // Paper - add back success return
++        Inventory inventory = this.getInventory();
 +        ItemStack selected = inventory.getSelectedItem();
 +        if (selected.isEmpty() || !selected.onDroppedByPlayer(this)) return false;
-         ItemStack removed = inventory.removeFromSelected(all);
-         this.containerMenu
-             .findSlot(inventory, inventory.getSelectedSlot())
-@@ -2077,7 +_,22 @@
-             this.stopUsingItem();
-         }
- 
--        this.drop(removed, false, true);
++        ItemStack removed = inventory.removeFromSelected(all);
++        this.containerMenu
++            .findSlot(inventory, inventory.getSelectedSlot())
++            .ifPresent(slotIndex -> this.containerMenu.setRemoteSlot(slotIndex, inventory.getSelectedItem()));
++        if (this.useItem.isEmpty()) {
++            this.stopUsingItem();
++        }
++
 +        return net.neoforged.neoforge.common.CommonHooks.onPlayerTossEvent(this, removed, false, true) != null; // Paper - add back success return
 +    }
 +

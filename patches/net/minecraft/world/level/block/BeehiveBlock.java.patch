@@ -32,13 +32,17 @@
                      bee.setTarget(angerTarget);
                  }
              }
-@@ -140,8 +_,20 @@
+@@ -140,8 +_,24 @@
          boolean hiveEmptied = false;
          if (honeyLevel >= 5) {
              Item item = itemStack.getItem();
 -            if (level instanceof ServerLevel serverLevel && itemStack.is(Items.SHEARS)) {
 -                dropHoneycomb(serverLevel, itemStack, state, level.getBlockEntity(pos), player, pos);
 +            if (level instanceof ServerLevel serverLevel && itemStack.canPerformAction(net.neoforged.neoforge.common.ItemAbilities.SHEARS_HARVEST)) {
++                // Youer - mod compat: the_bumblezone BeehiveMixin @Inject combDropIncrease targets the dropHoneycomb INVOKE in useItemOn; Paper inlined the drop into PlayerShearBlockEvent below, so keep a runtime-disabled dropHoneycomb call as the mixin target (default off, Paper event path unchanged)
++                if (Boolean.getBoolean("youer.compat.bumblezone.dropHoneycomb")) {
++                    dropHoneycomb(serverLevel, itemStack, state, level.getBlockEntity(pos), player, pos);
++                }
 +                // Paper start - Add PlayerShearBlockEvent
 +                java.util.List<org.bukkit.inventory.ItemStack> shearedDrops = new java.util.ArrayList<>();
 +                dropFromBlockInteractLootTable(

@@ -1285,7 +1285,7 @@
          if (!this.pendingBlockEntityTickers.isEmpty()) {
              this.blockEntityTickers.addAll(this.pendingBlockEntityTickers);
              this.pendingBlockEntityTickers.clear();
-@@ -465,27 +_,40 @@
+@@ -465,27 +_,41 @@
          Iterator<TickingBlockEntity> iterator = this.blockEntityTickers.iterator();
          boolean tickBlockEntities = this.tickRateManager().runsNormally();
  
@@ -1322,7 +1322,8 @@
 +            final String msg = String.format("Entity threw exception at %s:%s,%s,%s", io.papermc.paper.util.MCUtil.getLevelName(entity.level()), entity.getX(), entity.getY(), entity.getZ());
 +            MinecraftServer.LOGGER.error(msg, t);
 +            getCraftServer().getPluginManager().callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerInternalException(msg, t))); // Paper - ServerExceptionEvent
-+            entity.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
++            entity.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
++            entity.discard();
 +            // Paper end - Prevent block entity and entity crashes
 +        } finally {
 +            net.neoforged.neoforge.server.timings.TimeTracker.ENTITY_UPDATE.trackEnd(entity);

@@ -61,10 +61,10 @@ class TimeSpeedCommand {
         var gameRules = source.getLevel().getGameRules();
         final var advanceTime = gameRules.get(GameRules.ADVANCE_TIME);
         if (!advanceTime && speed > 0) {
-            gameRules.set(GameRules.ADVANCE_TIME, true, null);
+            gameRules.set(GameRules.ADVANCE_TIME, true, (net.minecraft.server.level.ServerLevel) null); // Youer - cast disambiguates the mod-compat MinecraftServer set overload
             source.sendSuccess(() -> CommandUtils.makeTranslatableWithFallback("commands.gamerule.set", GameRules.ADVANCE_TIME.id(), gameRules.getAsString(GameRules.ADVANCE_TIME)), true);
         } else if (advanceTime && speed == 0) {
-            gameRules.set(GameRules.ADVANCE_TIME, false, null);
+            gameRules.set(GameRules.ADVANCE_TIME, false, (net.minecraft.server.level.ServerLevel) null); // Youer - cast disambiguates the mod-compat MinecraftServer set overload
             source.sendSuccess(() -> CommandUtils.makeTranslatableWithFallback("commands.gamerule.set", GameRules.ADVANCE_TIME.id(), gameRules.getAsString(GameRules.ADVANCE_TIME)), true);
             return Command.SINGLE_SUCCESS;
         }

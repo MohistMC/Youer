@@ -12,7 +12,7 @@
  import org.jspecify.annotations.Nullable;
  
  public abstract class Raider extends PatrollingMonster {
-@@ -214,17 +_,24 @@
+@@ -214,16 +_,24 @@
          if (this.hasActiveRaid()
              && !hasRaidLeader
              && ItemStack.matches(itemStack, Raid.getOminousBannerInstance(this.registryAccess().lookupOrThrow(Registries.BANNER_PATTERN)))) {
@@ -33,11 +33,10 @@
              this.onItemPickup(entity);
              this.setItemSlot(slot, itemStack);
              this.take(entity, itemStack.getCount());
--            entity.discard();
-+            entity.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
++            entity.removeReason(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+             entity.discard();
              this.getCurrentRaid().setLeader(this.getWave(), this);
              this.setPatrolLeader(true);
-         } else {
 @@ -297,7 +_,7 @@
  
              for (Raider entity : getServerLevel(this.mob)

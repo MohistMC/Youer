@@ -131,26 +131,50 @@
              return chunk;
          }
      }
-@@ -411,8 +_,8 @@
+@@ -410,38 +_,11 @@
+     }
  
      protected void saveAllChunks(boolean flushStorage) {
-         if (flushStorage) {
+-        if (flushStorage) {
 -            List<ChunkHolder> chunksToSave = this.visibleChunkMap
 -                .values()
-+            List<ChunkHolder> chunksToSave = ca.spottedleaf.moonrise.common.PlatformHooks.get().getVisibleChunkHolders(this.level) // Paper - moonrise
-+                //.values() // Paper - moonrise
-                 .stream()
-                 .filter(ChunkHolder::wasAccessibleSinceLastSave)
-                 .peek(ChunkHolder::refreshAccessibility)
-@@ -438,7 +_,7 @@
-             this.nextChunkSaveTime.clear();
-             long now = Util.getMillis();
- 
+-                .stream()
+-                .filter(ChunkHolder::wasAccessibleSinceLastSave)
+-                .peek(ChunkHolder::refreshAccessibility)
+-                .toList();
+-            MutableBoolean didWork = new MutableBoolean();
+-
+-            do {
+-                didWork.setFalse();
+-                chunksToSave.stream()
+-                    .map(chunkx -> {
+-                        this.mainThreadExecutor.managedBlock(chunkx::isReadyForSaving);
+-                        return chunkx.getLatestChunk();
+-                    })
+-                    .filter(chunkAccess -> chunkAccess instanceof ImposterProtoChunk || chunkAccess instanceof LevelChunk)
+-                    .filter(this::save)
+-                    .forEach(c -> didWork.setTrue());
+-            } while (didWork.isTrue());
+-
+-            this.poiManager.flushAll();
+-            this.processUnloads(() -> true);
+-            this.synchronize(true).join();
+-        } else {
+-            this.nextChunkSaveTime.clear();
+-            long now = Util.getMillis();
+-
 -            for (ChunkHolder chunk : this.visibleChunkMap.values()) {
-+            for (ChunkHolder chunk : ca.spottedleaf.moonrise.common.PlatformHooks.get().getVisibleChunkHolders(this.level)) { // Paper
-                 this.saveChunkIfNeeded(chunk, now);
-             }
-         }
+-                this.saveChunkIfNeeded(chunk, now);
+-            }
+-        }
++        // Paper start - rewrite chunk system
++        ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler().chunkHolderManager.saveAllChunks(
++                flushStorage, false, false, false
++        );
++        // Paper end - rewrite chunk system
+     }
+ 
+     protected void tick(BooleanSupplier haveTime) {
 @@ -459,6 +_,7 @@
      public boolean hasWork() {
          return this.lightEngine.hasLightWork()
@@ -159,38 +183,85 @@
              || !this.updatingChunkMap.isEmpty()
              || this.poiManager.hasWork()
              || !this.toDrop.isEmpty()
-@@ -517,20 +_,29 @@
-                 this.scheduleUnload(pos, chunkHolder);
-             } else {
-                 ChunkAccess chunk = chunkHolder.getLatestChunk();
+@@ -469,74 +_,16 @@
+     }
+ 
+     private void processUnloads(BooleanSupplier haveTime) {
+-        for (LongIterator iterator = this.toDrop.iterator(); iterator.hasNext(); iterator.remove()) {
+-            long pos = iterator.nextLong();
+-            ChunkHolder chunkHolder = this.updatingChunkMap.get(pos);
+-            if (chunkHolder != null) {
+-                this.updatingChunkMap.remove(pos);
+-                this.pendingUnloads.put(pos, chunkHolder);
+-                this.modified = true;
+-                this.scheduleUnload(pos, chunkHolder);
+-            }
+-        }
+-
+-        int minimalNumberOfChunksToProcess = Math.max(0, this.unloadQueue.size() - 2000);
+-
+-        Runnable unloadTask;
+-        while ((minimalNumberOfChunksToProcess > 0 || haveTime.getAsBoolean()) && (unloadTask = this.unloadQueue.poll()) != null) {
+-            minimalNumberOfChunksToProcess--;
+-            unloadTask.run();
+-        }
+-
+-        this.saveChunksEagerly(haveTime);
++        ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler().chunkHolderManager.processUnloads(); // Paper - rewrite chunk system
++        ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler().chunkHolderManager.autoSave(); // Paper - rewrite chunk system
+     }
+ 
+     private void saveChunksEagerly(BooleanSupplier haveTime) {
+-        long now = Util.getMillis();
+-        int eagerlySavedCount = 0;
+-        LongIterator iterator = this.chunksToEagerlySave.iterator();
+-
+-        while (eagerlySavedCount < 20 && this.activeChunkWrites.get() < 128 && haveTime.getAsBoolean() && iterator.hasNext()) {
+-            long chunkPos = iterator.nextLong();
+-            ChunkHolder chunkHolder = this.visibleChunkMap.get(chunkPos);
+-            ChunkAccess latestChunk = chunkHolder != null ? chunkHolder.getLatestChunk() : null;
+-            if (latestChunk == null || !latestChunk.isUnsaved()) {
+-                iterator.remove();
+-            } else if (this.saveChunkIfNeeded(chunkHolder, now)) {
+-                eagerlySavedCount++;
+-                iterator.remove();
+-            }
+-        }
++        throw new UnsupportedOperationException(); // Paper - rewrite chunk system
+     }
+ 
+     private void scheduleUnload(long pos, ChunkHolder chunkHolder) {
+-        CompletableFuture<?> saveSyncFuture = chunkHolder.getSaveSyncFuture();
+-        saveSyncFuture.thenRunAsync(() -> {
+-            CompletableFuture<?> currentFuture = chunkHolder.getSaveSyncFuture();
+-            if (currentFuture != saveSyncFuture) {
+-                this.scheduleUnload(pos, chunkHolder);
+-            } else {
+-                ChunkAccess chunk = chunkHolder.getLatestChunk();
 -                if (this.pendingUnloads.remove(pos, chunkHolder) && chunk != null) {
-+                // Paper start
-+                boolean removed;
-+                if ((removed = this.pendingUnloads.remove(pos, chunkHolder)) && chunk != null) {
-+                    ca.spottedleaf.moonrise.common.PlatformHooks.get().onChunkHolderDelete(this.level, chunkHolder);
-+                    // Paper end
-+                    net.neoforged.neoforge.common.CommonHooks.onChunkUnload(this.poiManager, chunk); // Neo: Must be called for all chunk unloading. Not just LevelChunks.
-+                    this.chunkTypeCache.remove(chunk.getPos().pack()); // Neo: Prevent chunk type cache from permanently retaining data for unloaded chunks
-                     if (chunk instanceof LevelChunk levelChunk) {
-                         levelChunk.setLoaded(false);
-                     }
- 
-                     this.save(chunk);
-                     if (chunk instanceof LevelChunk levelChunk) {
-+                        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.ChunkEvent.Unload(levelChunk));
-                         this.level.unload(levelChunk);
-                     }
- 
-                     this.lightEngine.updateChunkStatus(chunk.getPos());
-                     this.lightEngine.tryScheduleUpdate();
-                     this.nextChunkSaveTime.remove(chunk.getPos().pack());
+-                    if (chunk instanceof LevelChunk levelChunk) {
+-                        levelChunk.setLoaded(false);
+-                    }
+-
+-                    this.save(chunk);
+-                    if (chunk instanceof LevelChunk levelChunk) {
+-                        this.level.unload(levelChunk);
+-                    }
+-
+-                    this.lightEngine.updateChunkStatus(chunk.getPos());
+-                    this.lightEngine.tryScheduleUpdate();
+-                    this.nextChunkSaveTime.remove(chunk.getPos().pack());
 -                }
-+                } else if (removed) { // Paper start
-+                    ca.spottedleaf.moonrise.common.PlatformHooks.get().onChunkHolderDelete(this.level, chunkHolder);
-+                } // Paper end
-             }
-         }, this.unloadQueue::add).whenComplete((ignored, throwable) -> {
-             if (throwable != null) {
+-            }
+-        }, this.unloadQueue::add).whenComplete((ignored, throwable) -> {
+-            if (throwable != null) {
+-                LOGGER.error("Failed to save chunk {}", chunkHolder.getPos(), throwable);
+-            }
+-        });
++        throw new UnsupportedOperationException(); // Paper - rewrite chunk system
+     }
+ 
+     protected boolean promoteChunkMap() {
 @@ -566,6 +_,7 @@
                  Profiler.get().incrementCounter("chunkLoad");
                  if (chunkData.isPresent()) {
@@ -199,14 +270,103 @@
                      this.markPosition(pos, chunk.getPersistedStatus().getChunkType());
                      return chunk;
                  } else {
-@@ -759,6 +_,7 @@
-                 Profiler.get().incrementCounter("chunkSave");
-                 this.activeChunkWrites.incrementAndGet();
-                 SerializableChunkData data = SerializableChunkData.copyOf(this.level, chunk);
-+                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.ChunkDataEvent.Save(chunk, this.level, data));
-                 CompletableFuture<CompoundTag> encodedData = CompletableFuture.supplyAsync(data::write, Util.backgroundExecutor());
-                 this.write(pos, encodedData::join).handle((ignored, throwable) -> {
-                     if (throwable != null) {
+@@ -711,93 +_,15 @@
+     }
+ 
+     private boolean saveChunkIfNeeded(ChunkHolder chunk, long now) {
+-        if (chunk.wasAccessibleSinceLastSave() && chunk.isReadyForSaving()) {
+-            ChunkAccess chunkAccess = chunk.getLatestChunk();
+-            if (!(chunkAccess instanceof ImposterProtoChunk) && !(chunkAccess instanceof LevelChunk)) {
+-                return false;
+-            } else if (!chunkAccess.isUnsaved()) {
+-                return false;
+-            } else {
+-                long chunkPos = chunkAccess.getPos().pack();
+-                long nextSaveTime = this.nextChunkSaveTime.getOrDefault(chunkPos, -1L);
+-                if (now < nextSaveTime) {
+-                    return false;
+-                } else {
+-                    boolean saved = this.save(chunkAccess);
+-                    chunk.refreshAccessibility();
+-                    if (saved) {
+-                        this.nextChunkSaveTime.put(chunkPos, now + 10000L);
+-                    }
+-
+-                    return saved;
+-                }
+-            }
+-        } else {
+-            return false;
+-        }
++        throw new UnsupportedOperationException(); // Paper - rewrite chunk system
+     }
+ 
+     public boolean save(ChunkAccess chunk) {
+-        this.poiManager.flush(chunk.getPos());
+-        if (!chunk.tryMarkSaved()) {
+-            return false;
+-        } else {
+-            ChunkPos pos = chunk.getPos();
+-
+-            try {
+-                ChunkStatus status = chunk.getPersistedStatus();
+-                if (status.getChunkType() != ChunkType.LEVELCHUNK) {
+-                    if (this.isExistingChunkFull(pos)) {
+-                        return false;
+-                    }
+-
+-                    if (status == ChunkStatus.EMPTY && chunk.getAllStarts().values().stream().noneMatch(StructureStart::isValid)) {
+-                        return false;
+-                    }
+-                }
+-
+-                Profiler.get().incrementCounter("chunkSave");
+-                this.activeChunkWrites.incrementAndGet();
+-                SerializableChunkData data = SerializableChunkData.copyOf(this.level, chunk);
+-                CompletableFuture<CompoundTag> encodedData = CompletableFuture.supplyAsync(data::write, Util.backgroundExecutor());
+-                this.write(pos, encodedData::join).handle((ignored, throwable) -> {
+-                    if (throwable != null) {
+-                        this.level.getServer().reportChunkSaveFailure(throwable, this.storageInfo(), pos);
+-                    }
+-
+-                    this.activeChunkWrites.decrementAndGet();
+-                    return null;
+-                });
+-                this.markPosition(pos, status.getChunkType());
+-                return true;
+-            } catch (Exception var6) {
+-                this.level.getServer().reportChunkSaveFailure(var6, this.storageInfo(), pos);
+-                return false;
+-            }
+-        }
++        throw new UnsupportedOperationException(); // Paper - rewrite chunk system
+     }
+ 
+     private boolean isExistingChunkFull(ChunkPos pos) {
+-        byte cachedChunkType = this.chunkTypeCache.get(pos.pack());
+-        if (cachedChunkType != 0) {
+-            return cachedChunkType == 1;
+-        } else {
+-            CompoundTag currentTag;
+-            try {
+-                currentTag = this.readChunk(pos).join().orElse(null);
+-                if (currentTag == null) {
+-                    this.markPositionReplaceable(pos);
+-                    return false;
+-                }
+-            } catch (Exception var5) {
+-                LOGGER.error("Failed to read chunk {}", pos, var5);
+-                this.markPositionReplaceable(pos);
+-                return false;
+-            }
+-
+-            ChunkType chunkType = SerializableChunkData.getChunkStatusFromTag(currentTag).getChunkType();
+-            return this.markPosition(pos, chunkType) == 1;
+-        }
++        throw new UnsupportedOperationException(); // Paper - rewrite chunk system
+     }
+ 
+     public void setServerViewDistance(int newViewDistance) {
 @@ -825,9 +_,11 @@
  
      private static void markChunkPendingToSend(ServerPlayer player, LevelChunk chunk) {

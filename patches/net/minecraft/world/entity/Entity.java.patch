@@ -343,7 +343,7 @@
      }
  
      public boolean removeTag(String tag) {
-@@ -397,20 +_,223 @@
+@@ -397,20 +_,226 @@
      }
  
      public void kill(ServerLevel level) {
@@ -353,7 +353,10 @@
      }
  
      public final void discard() {
-+        this.removeReason(null); // CraftBukkit - add Bukkit remove cause
++        // Youer - mod compat: keep the pending removeReason instead of clearing it, so callers can use removeReason(Cause) + discard()
++        // and EntityRemoveEvent still reports that cause (Entity#setRemoved falls back to this.removeReason when no explicit cause is
++        // passed). The no-arg discard() call is also the injection point NeoForge mod mixins anchor on (e.g. clumps MixinExperienceOrb
++        // @At(value="INVOKE", target="net/minecraft/world/entity/ExperienceOrb.discard()V")), so it must stay the call shape used there.
          this.remove(Entity.RemovalReason.DISCARDED);
      }
  
@@ -627,13 +630,14 @@
          this.setYRot(yRot % 360.0F);
          this.setXRot(xRot % 360.0F);
      }
-@@ -499,12 +_,28 @@
+@@ -499,12 +_,29 @@
      }
  
      public void tick() {
 +        // Paper start - entity despawn time limit
 +        if (this.despawnTime >= 0 && this.totalEntityAge >= this.despawnTime) {
-+            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN);
++            this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN);
++            this.discard();
 +            return;
 +        }
 +        // Paper end - entity despawn time limit
@@ -938,7 +942,7 @@
 +
 +        final double stepHeight;
 +
-+        if ((!collidedDownwards && !this.onGround) || (!collidedX && !collidedZ) || (stepHeight = (double)this.maxUpStep()) <= 0.0) {
++        if ((!collidedDownwards && !this.onGround()) || (!collidedX && !collidedZ) || (stepHeight = (double)this.maxUpStep()) <= 0.0) { // Youer - mod compat: onGround() getter (vanilla INVOKE) instead of Moonrise field read so aether_ii EntityMixin @ModifyExpressionValue(collide, onGround()Z) lands; JIT-inlined, behaviour identical
 +            return collided;
 +        }
 +

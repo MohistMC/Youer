@@ -17,13 +17,14 @@
  
      public MinecartTNT(EntityType<? extends MinecartTNT> type, Level level) {
          super(type, level);
-@@ -52,6 +_,12 @@
+@@ -52,6 +_,13 @@
      public void tick() {
          super.tick();
          if (this.fuse > 0) {
 +            // Paper start - Configurable TNT height nerf
 +            if (this.level().paperConfig().fixes.tntEntityHeightNerf.test(v -> this.getY() > v)) {
-+                this.discard(EntityRemoveEvent.Cause.OUT_OF_WORLD);
++                this.removeReason(EntityRemoveEvent.Cause.OUT_OF_WORLD);
++                this.discard();
 +                return;
 +            }
 +            // Paper end - Configurable TNT height nerf
@@ -40,7 +41,7 @@
              }
          }
      }
-@@ -103,20 +_,18 @@
+@@ -103,19 +_,19 @@
          if (this.level() instanceof ServerLevel level) {
              if (level.getGameRules().get(GameRules.TNT_EXPLODES)) {
                  double speed = Math.min(Math.sqrt(speedSqr), 5.0);
@@ -55,7 +56,6 @@
 -                    false,
 -                    Level.ExplosionInteraction.TNT
 -                );
--                this.discard();
 +                // CraftBukkit start
 +                ExplosionPrimeEvent event = new ExplosionPrimeEvent(this.getBukkitEntity(), (float)(this.explosionPowerBase + this.explosionSpeedFactor * this.random.nextDouble() * 1.5 * speed), this.isIncendiary);
 +                level.getCraftServer().getPluginManager().callEvent(event);
@@ -65,13 +65,13 @@
 +                }
 +                level.explode(this, damageSource, null, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.TNT);
 +                // CraftBukkit end
-+                this.discard(EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
++                this.removeReason(EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
+                 this.discard();
              } else if (this.isPrimed()) {
--                this.discard();
-+                this.discard(EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
++                this.removeReason(EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
+                 this.discard();
              }
          }
-     }
 @@ -148,8 +_,20 @@
      }
  

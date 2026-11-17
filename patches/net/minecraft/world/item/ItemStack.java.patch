@@ -416,12 +416,16 @@
              return lines;
          }
      }
-@@ -851,7 +_,16 @@
+@@ -851,7 +_,20 @@
      public void addDetailsToTooltip(
          Item.TooltipContext context, TooltipDisplay display, @Nullable Player player, TooltipFlag tooltipFlag, Consumer<Component> builder
      ) {
 +        net.neoforged.neoforge.common.tooltip.ItemTooltipHandler.addDetailsToTooltipHead(this, context, display, player, tooltipFlag, builder);
          this.getItem().appendHoverText(this, context, display, builder, tooltipFlag);
++        // Youer - mod compat: artifacts ItemStackMixin @Inject addAttributeTooltips targets the addAttributeTooltips(Consumer,TooltipDisplay,Player) INVOKE inside addDetailsToTooltip (shift=AFTER); NeoForge 26.1.2 moved component tooltips to the ItemTooltipHandler appender system, leaving that call only in the legacy addDetailsToTooltipComponents, so keep a runtime-disabled call here as the mixin target (default off, NeoForge tooltip path unchanged)
++        if (Boolean.getBoolean("youer.compat.artifacts.addAttributeTooltips")) {
++            this.addAttributeTooltips(builder, display, player);
++        }
 +        net.neoforged.neoforge.common.tooltip.ItemTooltipHandler.addDetailsToTooltipMiddle(this, context, display, player, tooltipFlag, builder);
 +        this.addDetailsToTooltipTail(context, display, player, tooltipFlag, builder);
 +        net.neoforged.neoforge.common.tooltip.ItemTooltipHandler.addDetailsToTooltipTail(this, context, display, player, tooltipFlag, builder);

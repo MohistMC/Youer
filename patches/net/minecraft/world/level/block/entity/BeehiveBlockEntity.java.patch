@@ -101,20 +101,26 @@
              bee.stopRiding();
              bee.ejectPassengers();
              bee.dropLeash();
-@@ -190,7 +_,7 @@
+@@ -190,6 +_,7 @@
                  this.level.gameEvent(GameEvent.BLOCK_CHANGE, blockPos, GameEvent.Context.of(bee, this.getBlockState()));
              }
  
--            bee.discard();
-+            bee.discard(EntityRemoveEvent.Cause.ENTER_BLOCK); // CraftBukkit - add Bukkit remove cause
++            bee.removeReason(EntityRemoveEvent.Cause.ENTER_BLOCK); // CraftBukkit - add Bukkit remove cause
+             bee.discard();
              super.setChanged();
          }
-     }
-@@ -208,8 +_,14 @@
+@@ -208,8 +_,21 @@
          BeehiveBlockEntity.BeeReleaseStatus releaseStatus,
          @Nullable BlockPos savedFlowerPos
      ) {
 -        if (level.environmentAttributes().getValue(EnvironmentAttributes.BEES_STAY_IN_HIVE, blockPos)
++        // Youer - mod compat: productivelib BeeHiveReleaseEventMixin @Inject postBeeRelease targets the vanilla Level.addFreshEntity(Entity) INVOKE in releaseOccupant; CraftBukkit's 8-arg worker uses the 2-arg SpawnReason.BEEHIVE overload, so keep a runtime-disabled 1-arg addFreshEntity call here as the mixin target (BEEHIVE runtime path unchanged)
++        if (Boolean.getBoolean("youer.compat.productivelib.beeRelease")) {
++            Entity compatEntity = beeData.createEntity(level, blockPos);
++            if (compatEntity != null) {
++                level.addFreshEntity(compatEntity);
++            }
++        }
 +        // CraftBukkit start - This allows us to bypass the night/rain/emergency check
 +        return releaseOccupant(level, blockPos, state, beeData, spawned, releaseStatus, savedFlowerPos, false);
 +    }

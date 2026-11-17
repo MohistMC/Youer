@@ -43,10 +43,48 @@
      public static ItemStack getHeldProjectile(LivingEntity entity, Predicate<ItemStack> valid) {
          if (valid.test(entity.getItemInHand(InteractionHand.OFF_HAND))) {
              return entity.getItemInHand(InteractionHand.OFF_HAND);
-@@ -50,6 +_,7 @@
-         float uncertainty,
-         boolean isCrit,
-         @Nullable LivingEntity targetOverride
+@@ -40,16 +_,35 @@
+ 
+     public abstract int getDefaultProjectileRange();
+ 
+-    protected void shoot(
+-        ServerLevel level,
+-        LivingEntity shooter,
+-        InteractionHand hand,
+-        ItemStack weapon,
+-        List<ItemStack> projectiles,
+-        float power,
+-        float uncertainty,
+-        boolean isCrit,
+-        @Nullable LivingEntity targetOverride
++    // Youer - mod compat: aether_ii ProjectileWeaponItemMixin @WrapOperation shoot targets the vanilla 9-arg shoot and wraps the processProjectileSpread INVOKE; Paper added a 10th drawStrength param, so restore the vanilla 9-arg signature as the mixin target with a runtime-disabled processProjectileSpread call (default off), delegating to the Paper 10-arg overload below. Runtime callers (BowItem/CrossbowItem) use the 10-arg version.
++    protected void shoot(
++        ServerLevel level,
++        LivingEntity shooter,
++        InteractionHand hand,
++        ItemStack weapon,
++        List<ItemStack> projectiles,
++        float power,
++        float uncertainty,
++        boolean isCrit,
++        @Nullable LivingEntity targetOverride
++    ) {
++        if (Boolean.getBoolean("youer.compat.aether_ii.shoot")) {
++            EnchantmentHelper.processProjectileSpread(level, weapon, shooter, 0.0F);
++        }
++        this.shoot(level, shooter, hand, weapon, projectiles, power, uncertainty, isCrit, targetOverride, 1.0F);
++    }
++
++    protected void shoot(
++        ServerLevel level,
++        LivingEntity shooter,
++        InteractionHand hand,
++        ItemStack weapon,
++        List<ItemStack> projectiles,
++        float power,
++        float uncertainty,
++        boolean isCrit,
++        @Nullable LivingEntity targetOverride
 +        , final float drawStrength // Paper - Pass draw strength
      ) {
          float maxAngle = EnchantmentHelper.processProjectileSpread(level, weapon, shooter, 0.0F);
@@ -83,7 +121,7 @@
                  weapon.hurtAndBreak(this.getDurabilityUse(projectile), shooter, hand.asEquipmentSlot());
                  if (weapon.isEmpty()) {
                      break;
-@@ -97,10 +_,16 @@
+@@ -97,10 +_,20 @@
              arrowx.setCritArrow(true);
          }
  
@@ -93,6 +131,10 @@
  
      protected static List<ItemStack> draw(ItemStack weapon, ItemStack projectile, LivingEntity shooter) {
 +        // Paper start
++        // Youer - mod compat: aether_ii ProjectileWeaponItemMixin @WrapOperation draw wraps the processProjectileCount INVOKE inside the 3-arg draw; Paper moved the body to the 4-arg overload, so keep a runtime-disabled call here as the mixin target (default off, Paper draw path unchanged)
++        if (Boolean.getBoolean("youer.compat.aether_ii.draw") && shooter.level() instanceof ServerLevel serverLevel) {
++            EnchantmentHelper.processProjectileCount(serverLevel, weapon, shooter, 1);
++        }
 +        return draw(weapon, projectile, shooter, true);
 +    }
 +

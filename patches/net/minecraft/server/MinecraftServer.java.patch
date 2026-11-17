@@ -143,14 +143,18 @@
      private int tickCount;
      private int ticksUntilAutosave = 6000;
      protected final Proxy proxy;
-@@ -248,12 +_,19 @@
+@@ -248,12 +_,23 @@
      private int playerIdleTimeout;
      private final long[] tickTimesNanos = new long[100];
      private long aggregatedTickTimesNanos = 0L;
 +    // Paper start - Moonrise MSPT tracking
++    public final ca.spottedleaf.moonrise.common.time.TickData tickTimes1s = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(1L));
 +    public final ca.spottedleaf.moonrise.common.time.TickData tickTimes5s = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(5L));
 +    public final ca.spottedleaf.moonrise.common.time.TickData tickTimes10s = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(10L));
++    public final ca.spottedleaf.moonrise.common.time.TickData tickTimes15s = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(15L));
 +    public final ca.spottedleaf.moonrise.common.time.TickData tickTimes1m = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.MINUTES.toNanos(1L));
++    public final ca.spottedleaf.moonrise.common.time.TickData tickTimes5m = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.MINUTES.toNanos(5L));
++    public final ca.spottedleaf.moonrise.common.time.TickData tickTimes15m = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.MINUTES.toNanos(15L));
 +    private long previousTickStartNanos = ca.spottedleaf.concurrentutil.util.TimeUtil.DEADLINE_NOT_SET;
 +    // Paper end - Moonrise MSPT tracking
      private @Nullable KeyPair keyPair;
@@ -181,7 +185,7 @@
      private final ServerFunctionManager functionManager;
      private boolean enforceWhitelist;
      private boolean usingWhitelist;
-@@ -288,16 +_,135 @@
+@@ -288,16 +_,133 @@
      public PotionBrewing potionBrewing;
      private FuelValues fuelValues;
      private int emptyTicks;
@@ -189,10 +193,8 @@
 +    public boolean isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
 +    private final java.util.Set<String> pluginsBlockingSleep = new java.util.HashSet<>(); // Paper - API to allow/disallow tick sleeping
 +    public static final long SERVER_INIT = System.nanoTime(); // Paper - Lag compensation
-+    private static final long[] TPS_WINDOW_NANOS = {60L * 1_000_000_000L, 5L * 60L * 1_000_000_000L, 15L * 60L * 1_000_000_000L};
-+    private final long[] tpsWindowStartNanos = new long[TPS_WINDOW_NANOS.length];
-+    private final int[] tpsWindowTicks = new int[TPS_WINDOW_NANOS.length];
-+    private final double[] tps = new double[TPS_WINDOW_NANOS.length];
++    private final Object statsLock = new Object(); // Paper - Moonrise MSPT tracking
++    private double @Nullable [] tps; // Paper - Moonrise MSPT tracking
 +    // Paper end
      private volatile boolean isSaving;
      private final SuppressedExceptionCollector suppressedExceptions = new SuppressedExceptionCollector();
@@ -438,7 +440,7 @@
          if (profiledDuration != null) {
              profiledDuration.finish(true);
          }
-@@ -425,65 +_,261 @@
+@@ -425,65 +_,262 @@
      protected void forceDifficulty() {
      }
  
@@ -606,7 +608,7 @@
 +                    return true;
 +                }, registryaccess_frozen, options.has("recreateRegionFiles"));
 +            }
-+            SavedDataStorage dimensiondatastorage = new SavedDataStorage(worldSession.getLevelPath(LevelResource.DATA), this.getFixerUpper(), this.registryAccess());
++            SavedDataStorage dimensiondatastorage = new SavedDataStorage(worldSession.getDimensionPath(Level.OVERWORLD).resolve(LevelResource.DATA.id()), this.getFixerUpper(), this.registryAccess()); // Paper - dimension scoped data, match readExistingSavedData load path
 +
 +            ServerLevelData serverleveldata = worlddata.overworldData();
 +            boolean flag = worlddata.isDebugWorld();
@@ -746,6 +748,7 @@
 +    private void initWorldBorder(ServerLevel serverlevel1) {
 +        {
 +            // CraftBukkit end
++            serverlevel1.getWorldBorder().world = serverlevel1; // CraftBukkit - set after applyInitialSettings so border events don't re-enter getWorldBorder
 +            serverlevel1.getWorldBorder().setAbsoluteMaxSize(this.getAbsoluteMaxWorldSize());
 +            this.getPlayerList().addWorldborderListener(serverlevel1);
 +        }
@@ -1063,13 +1066,12 @@
          long nano = Util.getNanos();
          int emptyTickThreshold = this.pauseWhenEmptySeconds() * 20;
          if (emptyTickThreshold > 0) {
-@@ -986,29 +_,64 @@
+@@ -986,29 +_,61 @@
              }
          }
  
 +        new com.destroystokyo.paper.event.server.ServerTickStartEvent(this.tickCount+1).callEvent(); // Paper - Server Tick Events
          this.tickCount++;
-+        this.updateTickTimeStatistics(); // Paper - TPS tracking
 +        net.neoforged.neoforge.event.EventHooks.fireServerTickPre(haveTime, this);
          this.tickRateManager.tick();
          this.tickChildren(haveTime);
@@ -1120,9 +1122,7 @@
 +        final ca.spottedleaf.moonrise.common.time.TickTime tickTimeData = new ca.spottedleaf.moonrise.common.time.TickTime(
 +            this.previousTickStartNanos, nano, nano, 0L, nano + tickTime, 0L, 0L, 0L, false);
 +        this.previousTickStartNanos = nano;
-+        this.tickTimes5s.addDataFrom(tickTimeData);
-+        this.tickTimes10s.addDataFrom(tickTimeData);
-+        this.tickTimes1m.addDataFrom(tickTimeData);
++        this.addTickTime(tickTimeData);
 +        // Paper end - Moonrise MSPT tracking
          this.smoothedTickTimeMillis = this.smoothedTickTimeMillis * 0.8F + (float)tickTime / (float)TimeUtil.NANOSECONDS_PER_MILLISECOND * 0.19999999F;
          this.logTickMethodTime(nano);
@@ -1329,7 +1329,7 @@
      public int getScaledTrackingDistance(int baseRange) {
          return baseRange;
      }
-@@ -1382,6 +_,51 @@
+@@ -1382,6 +_,76 @@
          this.motd = motd;
      }
  
@@ -1357,24 +1357,49 @@
 +        }
 +    }
 +
-+    public double[] getTPS() {
-+        return this.tps.clone();
++    private void addTickTime(final ca.spottedleaf.moonrise.common.time.TickTime time) {
++        synchronized (this.statsLock) {
++            this.tickTimes1s.addDataFrom(time);
++            this.tickTimes5s.addDataFrom(time);
++            this.tickTimes10s.addDataFrom(time);
++            this.tickTimes15s.addDataFrom(time);
++            this.tickTimes1m.addDataFrom(time);
++            this.tickTimes5m.addDataFrom(time);
++            this.tickTimes15m.addDataFrom(time);
++            this.clearTickTimeStatistics();
++        }
 +    }
 +
-+    private void updateTickTimeStatistics() {
-+        final long now = Util.getNanos();
-+        for (int i = 0; i < TPS_WINDOW_NANOS.length; i++) {
-+            if (this.tpsWindowStartNanos[i] == 0L) {
-+                this.tpsWindowStartNanos[i] = now;
-+            }
-+            this.tpsWindowTicks[i]++;
-+            final long elapsed = now - this.tpsWindowStartNanos[i];
-+            if (elapsed >= TPS_WINDOW_NANOS[i]) {
-+                this.tps[i] = Math.min(20.0D, ((double)this.tpsWindowTicks[i] * 1.0E9D) / (double)elapsed);
-+                this.tpsWindowStartNanos[i] = now;
-+                this.tpsWindowTicks[i] = 0;
-+            }
++    private void clearTickTimeStatistics() {
++        this.tps = null;
++    }
++
++    private static double getTPS(final ca.spottedleaf.moonrise.common.time.TickData tickData, final long tickInterval) {
++        final Double avg = tickData.getTPSAverage(null, tickInterval);
++        if (avg == null) {
++            return 1.0E9 / (double)tickInterval;
 +        }
++        return avg;
++    }
++
++    public double[] getTPS() {
++        synchronized (this.statsLock) {
++            double @Nullable [] tps = this.tps;
++            if (tps == null) {
++                tps = this.computeTPS();
++                this.tps = tps;
++            }
++            return tps.clone();
++        }
++    }
++
++    public double[] computeTPS() {
++        final long interval = this.tickRateManager().nanosecondsPerTick();
++        return new double[] {
++            getTPS(this.tickTimes1m, interval),
++            getTPS(this.tickTimes5m, interval),
++            getTPS(this.tickTimes15m, interval)
++        };
 +    }
 +    // Paper end
 +

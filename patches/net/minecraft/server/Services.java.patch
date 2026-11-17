@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/Services.java
 +++ b/net/minecraft/server/Services.java
-@@ -18,15 +_,51 @@
+@@ -18,15 +_,68 @@
      GameProfileRepository profileRepository,
      UserNameToIdResolver nameToIdCache,
      ProfileResolver profileResolver
@@ -23,7 +23,24 @@
 +    }
 +    // Paper end - add paper configuration files
 +
++    // Youer start - mod compat: let server Main call the vanilla 2-arg create so mixins targeting Services.create(YggdrasilAuthenticationService,File) land
++    private static joptsimple.OptionSet bootstrapOptions;
++    private static File bootstrapUserCacheFile;
++
++    public static void setBootstrapContext(final joptsimple.OptionSet options, final File userCacheFile) {
++        bootstrapOptions = options;
++        bootstrapUserCacheFile = userCacheFile;
++    }
++    // Youer end
++
      public static Services create(YggdrasilAuthenticationService serviceAccess, File nameCacheDir) {
++        if (bootstrapOptions != null) { // Youer - server boot delegates to Paper 4-arg overload; client leaves context null
++            try {
++                return create(serviceAccess, nameCacheDir, bootstrapUserCacheFile, bootstrapOptions);
++            } catch (final Exception ex) {
++                throw new RuntimeException("Failed to create services with Paper configuration", ex);
++            }
++        }
 +        // Paper start - add paper configuration files
          MinecraftSessionService sessionService = serviceAccess.createMinecraftSessionService();
          GameProfileRepository profileRepository = serviceAccess.createProfileRepository();

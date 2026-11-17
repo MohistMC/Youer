@@ -17,45 +17,66 @@
  
      public FallingBlockEntity(EntityType<? extends FallingBlockEntity> type, Level level) {
          super(type, level);
-@@ -89,6 +_,12 @@
+@@ -89,17 +_,39 @@
      }
  
      public static FallingBlockEntity fall(Level level, BlockPos pos, BlockState state) {
-+        // CraftBukkit start
-+        return fall(level, pos, state, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT);
+-        FallingBlockEntity entity = new FallingBlockEntity(
+-            level,
+-            pos.getX() + 0.5,
+-            pos.getY(),
+-            pos.getZ() + 0.5,
+-            state.hasProperty(BlockStateProperties.WATERLOGGED) ? state.setValue(BlockStateProperties.WATERLOGGED, false) : state
+-        );
+-        level.setBlock(pos, state.getFluidState().createLegacyBlock(), 3);
+-        level.addFreshEntity(entity);
+-        return entity;
+-    }
++        // CraftBukkit start - Youer: inline body (not delegate) so the vanilla 3-arg fall keeps the setBlock INVOKE that mod mixins target (kubegroovy FallingBlockEntityMixin)
++        FallingBlockEntity entity = new FallingBlockEntity(
++            level,
++            pos.getX() + 0.5,
++            pos.getY(),
++            pos.getZ() + 0.5,
++            state.hasProperty(BlockStateProperties.WATERLOGGED) ? state.setValue(BlockStateProperties.WATERLOGGED, false) : state
++        );
++        if (!CraftEventFactory.callEntityChangeBlockEvent(entity, pos, state.getFluidState().createLegacyBlock())) return entity; // CraftBukkit
++
++        level.setBlock(pos, state.getFluidState().createLegacyBlock(), 3);
++        level.addFreshEntity(entity, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT); // CraftBukkit
++        return entity;
++        // CraftBukkit end
 +    }
 +
 +    public static FallingBlockEntity fall(Level level, BlockPos pos, BlockState state, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason spawnReason) {
 +        // CraftBukkit end
-         FallingBlockEntity entity = new FallingBlockEntity(
-             level,
-             pos.getX() + 0.5,
-@@ -96,11 +_,15 @@
-             pos.getZ() + 0.5,
-             state.hasProperty(BlockStateProperties.WATERLOGGED) ? state.setValue(BlockStateProperties.WATERLOGGED, false) : state
-         );
++        FallingBlockEntity entity = new FallingBlockEntity(
++            level,
++            pos.getX() + 0.5,
++            pos.getY(),
++            pos.getZ() + 0.5,
++            state.hasProperty(BlockStateProperties.WATERLOGGED) ? state.setValue(BlockStateProperties.WATERLOGGED, false) : state
++        );
 +        if (!CraftEventFactory.callEntityChangeBlockEvent(entity, pos, state.getFluidState().createLegacyBlock())) return entity; // CraftBukkit
 +
-         level.setBlock(pos, state.getFluidState().createLegacyBlock(), 3);
--        level.addFreshEntity(entity);
++        level.setBlock(pos, state.getFluidState().createLegacyBlock(), 3);
 +        level.addFreshEntity(entity, spawnReason); // CraftBukkit
-         return entity;
-     }
++        return entity;
++    }
++
++
  
-+
-+
      @Override
      public boolean isAttackable() {
-         return false;
-@@ -146,18 +_,27 @@
+@@ -146,6 +_,7 @@
      @Override
      public void tick() {
          if (this.blockState.isAir()) {
--            this.discard();
-+            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++            this.removeReason(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+             this.discard();
          } else {
              Block block = this.blockState.getBlock();
-             this.time++;
+@@ -153,11 +_,21 @@
              this.applyGravity();
              this.move(MoverType.SELF, this.getDeltaMovement());
              this.applyEffectsFromBlocks();
@@ -64,7 +85,8 @@
 +                if (this.dropItem && this.level() instanceof final ServerLevel serverLevel && serverLevel.getGameRules().get(GameRules.ENTITY_DROPS)) {
 +                    this.spawnAtLocation(serverLevel, block);
 +                }
-+                this.discard(EntityRemoveEvent.Cause.OUT_OF_WORLD);
++                this.removeReason(EntityRemoveEvent.Cause.OUT_OF_WORLD);
++                this.discard();
 +                return;
 +            }
 +            // Paper end - Configurable falling blocks height nerf
@@ -77,7 +99,7 @@
                  double moveVec = this.getDeltaMovement().lengthSqr();
                  if (isConcrete && moveVec > 1.0) {
                      BlockHitResult clip = this.level()
-@@ -166,19 +_,19 @@
+@@ -166,18 +_,19 @@
                                  new Vec3(this.xo, this.yo, this.zo), this.position(), ClipContext.Block.COLLIDER, ClipContext.Fluid.SOURCE_ONLY, this
                              )
                          );
@@ -95,18 +117,18 @@
                              this.spawnAtLocation(serverLevel, block);
                          }
  
--                        this.discard();
-+                        this.discard(EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
++                        this.removeReason(EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
+                         this.discard();
                      }
                  } else {
-                     BlockState currentState = this.level().getBlockState(pos);
-@@ -195,11 +_,17 @@
+@@ -195,10 +_,18 @@
                                      this.blockState = this.blockState.setValue(BlockStateProperties.WATERLOGGED, true);
                                  }
  
 +                                // CraftBukkit start
 +                                if (!CraftEventFactory.callEntityChangeBlockEvent(this, pos, this.blockState)) {
-+                                    this.discard(EntityRemoveEvent.Cause.DESPAWN); // SPIGOT-6586 called before the event in previous versions
++                                    this.removeReason(EntityRemoveEvent.Cause.DESPAWN); // SPIGOT-6586 called before the event in previous versions
++                                    this.discard();
 +                                    return;
 +                                }
 +                                // CraftBukkit end
@@ -114,34 +136,32 @@
                                      serverLevel.getChunkSource()
                                          .chunkMap
                                          .sendToTrackingPlayers(this, new ClientboundBlockUpdatePacket(pos, this.level().getBlockState(pos)));
--                                    this.discard();
-+                                    this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                                    this.removeReason(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                                     this.discard();
                                      if (block instanceof Fallable fallable) {
                                          fallable.onLand(this.level(), pos, this.blockState, currentState, this);
-                                     }
-@@ -224,19 +_,19 @@
+@@ -224,11 +_,13 @@
                                          }
                                      }
                                  } else if (this.dropItem && serverLevel.getGameRules().get(GameRules.ENTITY_DROPS)) {
--                                    this.discard();
-+                                    this.discard(EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
++                                    this.removeReason(EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
+                                     this.discard();
                                      this.callOnBrokenAfterFall(block, pos);
                                      this.spawnAtLocation(serverLevel, block);
                                  }
                              } else {
--                                this.discard();
-+                                this.discard(EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
++                                this.removeReason(EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
+                                 this.discard();
                                  if (this.dropItem && serverLevel.getGameRules().get(GameRules.ENTITY_DROPS)) {
                                      this.callOnBrokenAfterFall(block, pos);
-                                     this.spawnAtLocation(serverLevel, block);
+@@ -236,6 +_,7 @@
                                  }
                              }
                          } else {
--                            this.discard();
-+                            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                            this.removeReason(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                             this.discard();
                              this.callOnBrokenAfterFall(block, pos);
                          }
-                     }
 @@ -244,6 +_,9 @@
              }
  

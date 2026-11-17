@@ -8,13 +8,19 @@
  
  public record ClearAllStatusEffectsConsumeEffect() implements ConsumeEffect {
      public static final ClearAllStatusEffectsConsumeEffect INSTANCE = new ClearAllStatusEffectsConsumeEffect();
-@@ -18,7 +_,8 @@
+@@ -17,8 +_,15 @@
+         return ConsumeEffect.Type.CLEAR_ALL_EFFECTS;
      }
  
++    // Youer - mod compat: the_bumblezone ClearAllStatusEffectsConsumeEffectMixin @WrapOperation bumblezone$doNotClearWrath targets the vanilla 3-arg apply and wraps the removeAllEffects() INVOKE; CraftBukkit widened apply to 4-arg (Cause). Restore the 3-arg as the mixin target and delegate the 4-arg to it so the Wrath-preservation wrap applies on the runtime path (Consumable calls 4-arg). removeAllEffects getAndSet(UNKNOWN) keeps the 3-arg default cause identical to the prior interface-default path.
      @Override
--    public boolean apply(Level level, ItemStack stack, LivingEntity user) {
+     public boolean apply(Level level, ItemStack stack, LivingEntity user) {
+         return user.removeAllEffects();
++    }
++
++    @Override
 +    public boolean apply(Level level, ItemStack stack, LivingEntity user, EntityPotionEffectEvent.Cause cause) {
 +        user.removeAllEffects$cause(cause);
-         return user.removeAllEffects();
++        return this.apply(level, stack, user);
      }
  }

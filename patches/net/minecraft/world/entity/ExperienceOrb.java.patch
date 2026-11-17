@@ -96,12 +96,12 @@
              }
  
              this.setDeltaMovement(this.getDeltaMovement().scale(friction));
-@@ -146,14 +_,15 @@
+@@ -146,14 +_,16 @@
  
              this.age++;
              if (this.age >= 6000) {
--                this.discard();
-+                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++                this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+                 this.discard();
              }
          }
      }
@@ -165,7 +165,7 @@
          List<ExperienceOrb> orbs = level.getEntities(EntityTypeTest.forClass(ExperienceOrb.class), box, orbx -> canMerge(orbx, id, value));
          if (!orbs.isEmpty()) {
              ExperienceOrb orb = orbs.get(0);
-@@ -219,13 +_,18 @@
+@@ -219,12 +_,19 @@
      }
  
      private static boolean canMerge(ExperienceOrb orb, int id, int value) {
@@ -181,21 +181,20 @@
 +        // Paper end - call orb merge event
          this.count = this.count + orb.count;
          this.age = Math.min(this.age, orb.age);
--        orb.discard();
-+        orb.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.MERGE); // CraftBukkit - add Bukkit remove cause
++        // Youer - mod compat: clumps MixinExperienceOrb @Inject(method="merge(Lnet/minecraft/world/entity/ExperienceOrb;)V") anchors on the vanilla orb.discard()V INVOKE inside merge (@At(value="INVOKE", target="net/minecraft/world/entity/ExperienceOrb.discard()V", shift=BEFORE)) and cancels the merge afterwards; CraftBukkit widened that call to discard(EntityRemoveEvent.Cause), so the injection point vanished and the whole clumps mixin failed to apply (boot abort: "expected 1 invocation(s) but 0 succeeded. Scanned 0 target(s)"). Restore the vanilla no-arg discard() call as the mixin target and carry the CraftBukkit MERGE remove-cause in the pending removeReason field instead (Entity#setRemoved falls back to it when no explicit cause is passed), so EntityRemoveEvent still reports Cause.MERGE.
++        orb.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.MERGE);
+         orb.discard();
      }
  
-     private void setUnderwaterMovement() {
-@@ -250,7 +_,7 @@
+@@ -250,6 +_,7 @@
              this.markHurt();
              this.health = (int)(this.health - damage);
              if (this.health <= 0) {
--                this.discard();
-+                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
++                this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
+                 this.discard();
              }
  
-             return true;
-@@ -261,32 +_,35 @@
+@@ -261,31 +_,35 @@
      protected void addAdditionalSaveData(ValueOutput output) {
          output.putShort("Health", (short)this.health);
          output.putShort("Age", (short)this.age);
@@ -232,11 +231,10 @@
  
                  this.count--;
                  if (this.count == 0) {
--                    this.discard();
-+                    this.discard(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
++                    this.removeReason(EntityRemoveEvent.Cause.PICKUP); // CraftBukkit - add Bukkit remove cause
+                     this.discard();
                  }
              }
-         }
 @@ -296,12 +_,23 @@
          Optional<EnchantedItemInUse> selected = EnchantmentHelper.getRandomItemWith(EnchantmentEffectComponents.REPAIR_WITH_XP, player, ItemStack::isDamaged);
          if (selected.isPresent()) {

@@ -139,12 +139,14 @@
      ) {
          this.level = level;
          this.mainThreadProcessor = new ServerChunkCache.MainThreadExecutor(level);
-@@ -99,7 +_,7 @@
+@@ -99,7 +_,9 @@
              LOGGER.error("Failed to create dimension data storage directory", (Throwable)var14);
          }
  
 -        this.savedDataStorage = new SavedDataStorage(dataFolder, fixerUpper, level.registryAccess());
 +        this.savedDataStorage = savedDataStorage; // Paper - initialize SavedDataStorage earlier
++        // Youer: Make level context available to SavedDataType factories that depend on it
++        savedDataStorage.setLevel(level);
          this.ticketStorage = this.savedDataStorage.computeIfAbsent(TicketStorage.TYPE);
          this.chunkMap = new ChunkMap(
              level,
@@ -680,16 +682,15 @@
      }
  
      public String getChunkDebugData(ChunkPos pos) {
-@@ -618,12 +_,8 @@
- 
-         @Override
+@@ -620,10 +_,10 @@
          protected boolean pollTask() {
--            if (ServerChunkCache.this.runDistanceManagerUpdates()) {
--                return true;
+             if (ServerChunkCache.this.runDistanceManagerUpdates()) {
+                 return true;
 -            } else {
 -                ServerChunkCache.this.lightEngine.tryScheduleUpdate();
 -                return super.pollTask();
--            }
+             }
++
 +            // Paper - rewrite chunk system
 +            return super.pollTask() | ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)ServerChunkCache.this.level).moonrise$getChunkTaskScheduler().executeMainThreadTask(); // Paper - rewrite chunk system
          }

@@ -24,7 +24,7 @@
      protected BlockPos pos;
  
      protected BlockAttachedEntity(EntityType<? extends BlockAttachedEntity> type, Level level) {
-@@ -39,10 +_,28 @@
+@@ -39,9 +_,28 @@
      public void tick() {
          if (this.level() instanceof ServerLevel level) {
              this.checkBelowWorld();
@@ -32,7 +32,6 @@
 +            if (this.checkInterval++ == this.level().spigotConfig.hangingTickFrequency) { // Spigot
                  this.checkInterval = 0;
                  if (!this.isRemoved() && !this.survives()) {
--                    this.discard();
 +                    // CraftBukkit start - fire break events
 +                    BlockState material = this.level().getBlockState(this.blockPosition());
 +                    HangingBreakEvent.RemoveCause cause;
@@ -51,10 +50,10 @@
 +                        return;
 +                    }
 +                    // CraftBukkit end
-+                    this.discard(EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
++                    this.removeReason(EntityRemoveEvent.Cause.DROP); // CraftBukkit - add Bukkit remove cause
+                     this.discard();
                      this.dropItem(level, null);
                  }
-             }
 @@ -78,6 +_,22 @@
              return false;
          } else {

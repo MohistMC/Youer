@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/inventory/AbstractCraftingMenu.java
 +++ b/net/minecraft/world/inventory/AbstractCraftingMenu.java
-@@ -13,14 +_,17 @@
+@@ -13,14 +_,26 @@
  public abstract class AbstractCraftingMenu extends RecipeBookMenu {
      private final int width;
      private final int height;
@@ -8,12 +8,19 @@
 +    public final TransientCraftingContainer craftSlots; // CraftBukkit
      public final ResultContainer resultSlots = new ResultContainer();
  
--    public AbstractCraftingMenu(MenuType<?> menuType, int containerId, int width, int height) {
-+    public AbstractCraftingMenu(MenuType<?> menuType, int containerId, int width, int height, Inventory playerInventory) { // CraftBukkit
++    // Youer - mod compat: vanilla 4-arg ctor keeps the 3-arg TransientCraftingContainer NEW that fastbench MixinAbstractCraftingMenu @Redirect makeExtInv targets (mirrors 26.2); runtime subclasses still use the CraftBukkit 5-arg ctor below
+     public AbstractCraftingMenu(MenuType<?> menuType, int containerId, int width, int height) {
          super(menuType, containerId);
          this.width = width;
          this.height = height;
--        this.craftSlots = new TransientCraftingContainer(this, width, height);
+         this.craftSlots = new TransientCraftingContainer(this, width, height);
++        this.craftSlots.resultInventory = this.resultSlots; // CraftBukkit - let CraftingContainer know about its result slot
++    }
++
++    public AbstractCraftingMenu(MenuType<?> menuType, int containerId, int width, int height, Inventory playerInventory) { // CraftBukkit
++        super(menuType, containerId);
++        this.width = width;
++        this.height = height;
 +        // CraftBukkit start
 +        this.craftSlots = new TransientCraftingContainer(this, width, height, playerInventory.player);
 +        this.craftSlots.resultInventory = this.resultSlots; // let CraftingContainer know about its result slot

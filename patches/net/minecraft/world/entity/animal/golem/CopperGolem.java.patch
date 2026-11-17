@@ -43,7 +43,7 @@
                  this.gameEvent(GameEvent.SHEAR, player);
                  itemStack.hurtAndBreak(1, player, hand);
              }
-@@ -279,20 +_,24 @@
+@@ -279,19 +_,24 @@
  
      private void turnToStatue(ServerLevel level) {
          BlockPos pos = this.blockPosition();
@@ -73,12 +73,11 @@
              copperGolemStatueBlockEntity.createStatue(this);
 +            this.forceDrops = true; // CraftBukkit
              this.dropPreservedEquipment(level);
--            this.discard();
 +            this.forceDrops = false; // CraftBukkkit
-+            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++            this.removeReason(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+             this.discard();
              this.playSound(SoundEvents.COPPER_GOLEM_BECOME_STATUE);
              if (this.isLeashed()) {
-                 if (level.getGameRules().get(GameRules.ENTITY_DROPS)) {
 @@ -421,13 +_,34 @@
          return 3.0;
      }

@@ -26,7 +26,7 @@
                      this.selectedDirection = Direction.getRandom(random);
                      BlockPos pos = BlockPos.containing(this.mob.getX(), this.mob.getY() + 0.5, this.mob.getZ()).relative(this.selectedDirection);
                      BlockState blockState = this.mob.level().getBlockState(pos);
-@@ -168,9 +_,14 @@
+@@ -168,8 +_,14 @@
                  BlockPos pos = BlockPos.containing(this.mob.getX(), this.mob.getY() + 0.5, this.mob.getZ()).relative(this.selectedDirection);
                  BlockState blockState = level.getBlockState(pos);
                  if (InfestedBlock.isCompatibleHostBlock(blockState)) {
@@ -37,11 +37,10 @@
 +                    // CraftBukkit end
                      level.setBlock(pos, InfestedBlock.infestedStateByHost(blockState), 3);
                      this.mob.spawnAnim();
--                    this.mob.discard();
-+                    this.mob.discard(EntityRemoveEvent.Cause.ENTER_BLOCK); // CraftBukkit - add Bukkit remove cause
++                    this.mob.removeReason(EntityRemoveEvent.Cause.ENTER_BLOCK); // CraftBukkit - add Bukkit remove cause
+                     this.mob.discard();
                  }
              }
-         }
 @@ -210,7 +_,14 @@
                              BlockState blockState = level.getBlockState(testPos);
                              Block block = blockState.getBlock();

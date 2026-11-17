@@ -19,49 +19,66 @@
                  if (result == null) {
                      throw new DecoderException("Expected non-null compound tag");
                  } else {
-@@ -370,6 +_,48 @@
+@@ -370,6 +_,65 @@
          };
      }
  
 +    // Paper start - Track codec depth
++    // Youer - mod compat: named nested classes (not anonymous) so they don't consume the ByteBufCodecs$N index sequence, keeping lenientJson at vanilla $34 for nochatreports MixinJsonByteBufCodec.
 +    static <B extends FriendlyByteBuf, V> StreamCodec<B, V> trackDepth(final StreamCodec<B, V> codec) {
-+        return new StreamCodec<>() {
-+            @Override
-+            public V decode(B buffer) {
-+                buffer.trackCodecDepth = true;
-+                try {
-+                    return codec.decode(buffer);
-+                } finally {
-+                    buffer.trackCodecDepth = false;
-+                    buffer.codecDepth = 0;
-+                }
-+            }
-+
-+            @Override
-+            public void encode(B buffer, V value) {
-+                codec.encode(buffer, value);
-+            }
-+        };
++        return new TrackDepthCodec<>(codec);
 +    }
 +
 +    static <B extends FriendlyByteBuf, V> StreamCodec<B, V> increaseDepth(final StreamCodec<B, V> codec) {
-+        return new StreamCodec<>() {
-+            @Override
-+            public V decode(B buffer) {
-+                if (!buffer.trackCodecDepth) {
-+                    return codec.decode(buffer);
-+                }
-+                if (++buffer.codecDepth > 64) {
-+                    throw new DecoderException("Too deep");
-+                }
++        return new IncreaseDepthCodec<>(codec);
++    }
++
++    final class TrackDepthCodec<B extends FriendlyByteBuf, V> implements StreamCodec<B, V> {
++        private final StreamCodec<B, V> codec;
++
++        TrackDepthCodec(StreamCodec<B, V> codec) {
++            this.codec = codec;
++        }
++
++        @Override
++        public V decode(B buffer) {
++            buffer.trackCodecDepth = true;
++            try {
++                return codec.decode(buffer);
++            } finally {
++                buffer.trackCodecDepth = false;
++                buffer.codecDepth = 0;
++            }
++        }
++
++        @Override
++        public void encode(B buffer, V value) {
++            codec.encode(buffer, value);
++        }
++    }
++
++    final class IncreaseDepthCodec<B extends FriendlyByteBuf, V> implements StreamCodec<B, V> {
++        private final StreamCodec<B, V> codec;
++
++        IncreaseDepthCodec(StreamCodec<B, V> codec) {
++            this.codec = codec;
++        }
++
++        @Override
++        public V decode(B buffer) {
++            if (!buffer.trackCodecDepth) {
 +                return codec.decode(buffer);
 +            }
-+
-+            @Override
-+            public void encode(B buffer, V value) {
-+                codec.encode(buffer, value);
++            if (++buffer.codecDepth > 64) {
++                throw new DecoderException("Too deep");
 +            }
-+        };
++            return codec.decode(buffer);
++        }
++
++        @Override
++        public void encode(B buffer, V value) {
++            codec.encode(buffer, value);
++        }
 +    }
 +    // Paper end - Track codec depth
 +
