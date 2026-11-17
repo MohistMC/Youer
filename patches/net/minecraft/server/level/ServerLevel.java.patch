@@ -74,9 +74,11 @@
  import net.minecraft.world.level.levelgen.WorldGenSettings;
  import net.minecraft.world.level.levelgen.WorldOptions;
  import net.minecraft.world.level.levelgen.structure.BoundingBox;
-@@ -170,8 +_,10 @@
+@@ -169,9 +_,12 @@
+ import net.minecraft.world.level.saveddata.maps.MapIndex;
  import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
  import net.minecraft.world.level.storage.LevelData;
++import net.minecraft.world.level.storage.LevelResource;
  import net.minecraft.world.level.storage.LevelStorageSource;
 +import net.minecraft.world.level.storage.PrimaryLevelData;
  import net.minecraft.world.level.storage.SavedDataStorage;
@@ -122,7 +124,7 @@
      private final SleepStatus sleepStatus;
      private int emptyTime;
      private final PortalForcer portalForcer;
-@@ -215,44 +_,342 @@
+@@ -215,12 +_,282 @@
      private boolean handlingTick;
      private final List<CustomSpawner> customSpawners;
      private @Nullable EnderDragonFight dragonFight;
@@ -132,6 +134,7 @@
      private final StructureCheck structureCheck;
      private final boolean tickTime;
      private final LevelDebugSynchronizers debugSynchronizers = new LevelDebugSynchronizers(this);
+-
 +    // NeoForge: If present, this level uses its own seed instead of the server's global seed
 +    private final java.util.OptionalLong seedOverride;
 +    /// {@return the override for the seed, specified in the [LevelStem] this level was constructed from}, if any
@@ -395,22 +398,74 @@
 +        }
 +    }
 +    // Paper end - rewrite chunk system
- 
++
++    // Youer - mod compat: AE2's MinecraftServerMixin creates its spatial storage dimension with
++    // vanilla's 10-arg ServerLevel constructor; the Paper port widened the constructor to 14 args
++    // (per-world SavedDataStorage, WorldGenSettings and the Bukkit generator hooks), so the mixin
++    // ran into a NoSuchMethodError at runtime. Restore the vanilla signature as an overload so the
++    // mixin links again and fill the Paper-only arguments in: a SavedDataStorage scoped to this
++    // dimension (like the per-world loader does), the overworld's world gen settings, a CUSTOM
++    // Bukkit environment and no Bukkit chunk generator or biome provider.
      public ServerLevel(
          MinecraftServer server,
          Executor executor,
-         LevelStorageSource.LevelStorageAccess levelStorage,
--        ServerLevelData levelData,
-+        PrimaryLevelData levelData,
-         ResourceKey<Level> dimension,
-         LevelStem levelStem,
-         boolean isDebug,
-         long biomeZoomSeed,
+@@ -233,26 +_,113 @@
          List<CustomSpawner> customSpawners,
--        boolean tickTime
-+        boolean tickTime, SavedDataStorage savedDataStorage, WorldGenSettings worldGenSettings, org.bukkit.World.Environment env, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider
+         boolean tickTime
      ) {
 -        super(levelData, dimension, server.registryAccess(), levelStem.type(), false, isDebug, biomeZoomSeed, server.getMaxChainedNeighborUpdates());
++        this(
++            server,
++            executor,
++            levelStorage,
++            toPrimaryLevelData(server, levelData),
++            dimension,
++            levelStem,
++            isDebug,
++            biomeZoomSeed,
++            customSpawners,
++            tickTime,
++            new SavedDataStorage(
++                levelStorage.getDimensionPath(dimension).resolve(LevelResource.DATA.id()),
++                server.getFixerUpper(),
++                server.registryAccess()
++            ),
++            server.getWorldGenSettings(),
++            org.bukkit.World.Environment.CUSTOM,
++            null,
++            null
++        );
++    }
++
++    // Youer - mod compat: helper for the vanilla shaped constructor above - the Paper port binds a
++    // level to a PrimaryLevelData while vanilla accepts any ServerLevelData. Vanilla's
++    // DerivedLevelData only delegates to the overworld data, so build an independent
++    // PrimaryLevelData from the overworld's level settings (PrimaryLevelData copies them).
++    private static PrimaryLevelData toPrimaryLevelData(MinecraftServer server, ServerLevelData levelData) {
++        if (levelData instanceof PrimaryLevelData primaryLevelData) {
++            return primaryLevelData;
++        }
++
++        var worldData = server.getWorldData();
++        return new PrimaryLevelData(
++            worldData.getLevelSettings(),
++            PrimaryLevelData.SpecialWorldProperty.NONE,
++            worldData.worldGenSettingsLifecycle()
++        );
++    }
++
++    public ServerLevel(
++        MinecraftServer server,
++        Executor executor,
++        LevelStorageSource.LevelStorageAccess levelStorage,
++        PrimaryLevelData levelData,
++        ResourceKey<Level> dimension,
++        LevelStem levelStem,
++        boolean isDebug,
++        long biomeZoomSeed,
++        List<CustomSpawner> customSpawners,
++        boolean tickTime, SavedDataStorage savedDataStorage, WorldGenSettings worldGenSettings, org.bukkit.World.Environment env, org.bukkit.generator.ChunkGenerator gen, org.bukkit.generator.BiomeProvider biomeProvider
++    ) {
 +        // NeoForge: set seed override asap because things like the chunk cache constructor check level.getSeed()
 +        this.seedOverride = levelStem.seedOverride();
 +        biomeZoomSeed = net.minecraft.util.ExtraCodecs.fromOptionalLong.apply(levelStem.seedOverride()).map(net.minecraft.world.level.biome.BiomeManager::obfuscateSeed).orElse(biomeZoomSeed);

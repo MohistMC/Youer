@@ -137,7 +137,10 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
             return (CraftEntity) entityTypeData.convertFunction().apply(server, entity);
         }
 
-        throw new AssertionError("Unknown entity " + (entity == null ? null : entity.getClass()));
+        // Youer - mod compat: entity types registered by mods have no Bukkit EntityType constant and therefore no
+        // CraftEntityTypes data either. Wrap them in a generic CraftEntity instead of aborting the server with an
+        // AssertionError while a structure or a mod spawns one of them.
+        return new CraftModdedEntity(server, entity);
     }
 
     public Entity getHandle() {

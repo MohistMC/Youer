@@ -105,18 +105,23 @@
          return result;
      }
  
-@@ -141,10 +_,24 @@
+@@ -141,10 +_,29 @@
          Validatable.validate(context, "functions", this.functions);
      }
  
 +    public AtomicBoolean fill$plugin = new AtomicBoolean(false);
++    // Youer - mod compat: CraftBukkit moved the body of the vanilla fill(Container, LootParams, long) into an
++    // extra fill(Container, LootParams, RandomSource, boolean) overload and left the vanilla-shaped method as a
++    // pure delegate, so mods that anchor "fill" by name only (e.g. lootr MixinLootTable @Inject at
++    // LootTable.shuffleAndSplitItems) bind to the delegate, find no injection point and abort server startup.
++    // Keep the body in the vanilla-named method; the overload hands over its explicit RandomSource through this
++    // field - the same idiom CraftBukkit already uses for fill$plugin.
++    private RandomSource fill$randomSource;
      public void fill(Container container, LootParams params, long optionalRandomSeed) {
 -        LootContext context = new LootContext.Builder(params).withOptionalRandomSeed(optionalRandomSeed).create(this.randomSequence);
 +        // CraftBukkit start
-+        this.fill(container, params, optionalRandomSeed == 0L ? null : RandomSource.create(optionalRandomSeed), this.fill$plugin.getAndSet(false));
-+    }
-+
-+    public void fill(Container container, LootParams params, RandomSource randomSource, boolean plugin) {
++        RandomSource randomSource = this.fill$randomSource != null ? this.fill$randomSource : (optionalRandomSeed == 0L ? null : RandomSource.create(optionalRandomSeed));
++        boolean plugin = this.fill$plugin.getAndSet(false);
 +        // CraftBukkit end
 +        LootContext context = new LootContext.Builder(params).withOptionalRandomSource(randomSource).create(this.randomSequence);
          ObjectArrayList<ItemStack> itemStacks = this.getRandomItems(context);
@@ -131,10 +136,23 @@
          List<Integer> availableSlots = this.getAvailableSlots(container, random);
          this.shuffleAndSplitItems(itemStacks, availableSlots.size(), random);
  
-@@ -162,6 +_,11 @@
+@@ -162,6 +_,24 @@
          }
      }
  
++    // Youer - mod compat: thin wrapper only, so that fill(Container, LootParams, long) stays the single
++    // implementation (see the note above it).
++    public void fill(Container container, LootParams params, RandomSource randomSource, boolean plugin) {
++        RandomSource previous = this.fill$randomSource;
++        this.fill$randomSource = randomSource;
++        this.fill$plugin.set(plugin);
++        try {
++            this.fill(container, params, 0L);
++        } finally {
++            this.fill$randomSource = previous;
++        }
++    }
++
 +    public void fillInventory(Container container, LootParams params, long optionalRandomSeed, boolean plugin) {
 +        fill$plugin.set(plugin);
 +        fill(container, params, optionalRandomSeed);

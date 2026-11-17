@@ -96,17 +96,17 @@
          this.setDeltaMovement(Mth.clamp(movement.x, -maxSpeed, maxSpeed), movement.y, Mth.clamp(movement.z, -maxSpeed, maxSpeed));
          if (this.onGround()) {
 -            this.setDeltaMovement(this.getDeltaMovement().scale(0.5));
-+            // CraftBukkit start - replace magic numbers with our variables
-+            this.setDeltaMovement(new Vec3(this.getDeltaMovement().x * this.derailedX, this.getDeltaMovement().y * this.derailedY, this.getDeltaMovement().z * this.derailedZ));
-+            // CraftBukkit end
++            // Youer - mod compat: railcraft AbstractMinecartMixin @Redirect railcraft$fixScale targets the 2nd Vec3.scale(double) INVOKE of comeOffTrack (ordinal=1, the airborne drag) and replaces it with Vec3.scale(AIR_DRAG); CraftBukkit had rewritten both vanilla scale(0.5)/scale(0.95) into per-axis multiplies, leaving 0 Vec3.scale INVOKEs so the redirect found no target and aborted server startup. Restore the vanilla call shape and re-apply the CraftBukkit per-axis modifiers as a relative correction on top of it: scale(0.5) then *(derailedX/0.5, derailedY/0.5, derailedZ/0.5), scale(0.95) then *(flyingX/0.95, flyingY/0.95, flyingZ/0.95). With the default modifiers the correction factors are exactly 1.0, so the resulting movement stays bit-identical to vanilla and to CraftBukkit.
++            Vec3 derailed = this.getDeltaMovement().scale(0.5);
++            this.setDeltaMovement(new Vec3(derailed.x * (this.derailedX / 0.5), derailed.y * (this.derailedY / 0.5), derailed.z * (this.derailedZ / 0.5)));
          }
  
          this.move(MoverType.SELF, this.getDeltaMovement());
          if (!this.onGround()) {
 -            this.setDeltaMovement(this.getDeltaMovement().scale(0.95));
-+            // CraftBukkit start - replace magic numbers with our variables
-+            this.setDeltaMovement(new Vec3(this.getDeltaMovement().x * this.flyingX, this.getDeltaMovement().y * this.flyingY, this.getDeltaMovement().z * this.flyingZ));
-+            // CraftBukkit end
++            // Youer - mod compat: second half of the railcraft fix above - this scale(0.95) is the call railcraft redirects (ordinal=1); its handler returns Vec3.scale(AIR_DRAG) instead of Vec3.scale(0.95).
++            Vec3 flying = this.getDeltaMovement().scale(0.95);
++            this.setDeltaMovement(new Vec3(flying.x * (this.flyingX / 0.95), flying.y * (this.flyingY / 0.95), flying.z * (this.flyingZ / 0.95)));
          }
      }
  

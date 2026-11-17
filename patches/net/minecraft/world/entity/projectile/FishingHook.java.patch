@@ -178,17 +178,21 @@
  
      public boolean calculateOpenWater(BlockPos blockPos) {
          FishingHook.OpenWaterType previousLayer = FishingHook.OpenWaterType.INVALID;
-@@ -443,36 +_,73 @@
+@@ -443,36 +_,77 @@
      protected void readAdditionalSaveData(ValueInput input) {
      }
  
-+    // Paper start - Add hand parameter to PlayerFishEvent
-+    @Deprecated @io.papermc.paper.annotation.DoNotUse
-     public int retrieve(ItemStack rod) {
-+        return this.retrieve(rod, net.minecraft.world.InteractionHand.MAIN_HAND);
-+    }
++    // Youer - mod compat: Paper moved the body of the vanilla retrieve(ItemStack) into a new
++    // retrieve(ItemStack, InteractionHand) overload and left the vanilla-shaped method as a pure delegate.
++    // Mods that anchor "retrieve" by name only (e.g. artifacts FishingHookMixin @Inject at
++    // LootTable.getRandomItems) then bind to the delegate, find no injection point and abort server startup
++    // ("0/1 succeeded. Scanned 0 target(s)"). Keep the body in the vanilla-named method and carry the hand
++    // in a transient field, so both the NMS call shape and the Paper hand parameter keep working.
++    private net.minecraft.world.InteractionHand retrieveHand = net.minecraft.world.InteractionHand.MAIN_HAND;
 +
-+    public int retrieve(ItemStack rod, net.minecraft.world.InteractionHand hand) {
++    // Paper start - Add hand parameter to PlayerFishEvent
+     public int retrieve(ItemStack rod) {
++        net.minecraft.world.InteractionHand hand = this.retrieveHand;
 +        // Paper end - Add hand parameter to PlayerFishEvent
          Player owner = this.getPlayerOwner();
          if (!this.level().isClientSide() && owner != null && !this.shouldStopFishing(owner)) {
@@ -254,7 +258,7 @@
                      if (itemStack.is(ItemTags.FISHES)) {
                          owner.awardStat(Stats.FISH_CAUGHT, 1);
                      }
-@@ -482,10 +_,29 @@
+@@ -482,16 +_,47 @@
              }
  
              if (this.onGround()) {
@@ -284,6 +288,24 @@
              return dmg;
          } else {
              return 0;
+         }
+     }
+ 
++    // Youer - mod compat: keep this overload as a thin wrapper only (see the note above retrieve(ItemStack)),
++    // so the vanilla-named method stays the single implementation mods can anchor.
++    public int retrieve(ItemStack rod, net.minecraft.world.InteractionHand hand) {
++        net.minecraft.world.InteractionHand previous = this.retrieveHand;
++        this.retrieveHand = hand;
++        try {
++            return this.retrieve(rod);
++        } finally {
++            this.retrieveHand = previous;
++        }
++    }
++
+     @Override
+     public void handleEntityEvent(byte id) {
+         if (id == 31 && this.level().isClientSide() && this.hookedIn instanceof Player player && player.isLocalPlayer()) {
 @@ -516,8 +_,15 @@
  
      @Override

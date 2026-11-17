@@ -19,9 +19,23 @@ public class CraftEntityType {
         Preconditions.checkArgument(minecraft != null);
 
         net.minecraft.core.Registry<net.minecraft.world.entity.EntityType<?>> registry = CraftRegistry.getMinecraftRegistry(Registries.ENTITY_TYPE);
-        EntityType bukkit = Registry.ENTITY_TYPE.get(CraftNamespacedKey.fromMinecraft(registry.getResourceKey(minecraft).orElseThrow().identifier()));
+        // Youer - mod compat: mod entity types are added to the (mod aware) minecraft registry long after the Bukkit
+        // EntityType enum was generated, so they have no constant to map to. Throwing here brought the whole server
+        // down whenever a mod spawned or loaded one of its own entities (mahoutsukai RealityMarbleSpellEffect via
+        // CraftEventFactory#doEntityAddEventCalling, the_bumblezone structure mobs via EntityAirChangeEvent while
+        // Entity#load ran). Report them as UNKNOWN so Bukkit events can still fire - a plugin simply cannot name an
+        // entity type the enum does not contain.
+        net.minecraft.resources.ResourceKey<net.minecraft.world.entity.EntityType<?>> key = registry.getResourceKey(minecraft).orElse(null);
 
-        Preconditions.checkArgument(bukkit != null);
+        if (key == null) {
+            return EntityType.UNKNOWN;
+        }
+
+        EntityType bukkit = Registry.ENTITY_TYPE.get(CraftNamespacedKey.fromMinecraft(key.identifier()));
+
+        if (bukkit == null) {
+            return EntityType.UNKNOWN;
+        }
 
         return bukkit;
     }

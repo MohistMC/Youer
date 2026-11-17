@@ -167,12 +167,17 @@
      private final NotificationManager notificationManager;
      private final ServerActivityMonitor serverActivityMonitor;
      private long lastServerStatus;
-@@ -266,13 +_,13 @@
+@@ -266,13 +_,18 @@
      private long delayedTasksMaxNextTickTimeNanos;
      private boolean mayHaveDelayedTasks;
      private final PackRepository packRepository;
 -    private final WorldGenSettings worldGenSettings;
-+    // private final WorldGenSettings worldGenSettings; // CraftBukkit - per world
++    // Youer - mod compat: AE2's MinecraftServerMixin @Shadow's this.worldGenSettings and reads
++    // options().seed() from it to seed its spatial storage dimension. CraftBukkit dropped the
++    // field because world gen settings became per-world; keep it (holding the world stem's
++    // settings, i.e. the overworld's) so the @Shadow resolves. The per-world value is still
++    // served by getWorldGenSettings().
++    protected WorldGenSettings worldGenSettings;
      private final ServerScoreboard scoreboard = new ServerScoreboard(this);
      private @Nullable Stopwatches stopwatches;
      private @Nullable CommandStorage commandStorage;
@@ -337,9 +342,8 @@
 -            this.savedDataStorage = new SavedDataStorage(storageSource.getLevelPath(LevelResource.DATA), fixerUpper, this.registries.compositeAccess());
 +            //this.savedDataStorage = new SavedDataStorage(storageSource.getLevelPath(LevelResource.DATA), fixerUpper, this.registries.compositeAccess());
              this.worldData = worldStem.worldDataAndGenSettings().data();
--            this.worldGenSettings = worldStem.worldDataAndGenSettings().genSettings();
+             this.worldGenSettings = worldStem.worldDataAndGenSettings().genSettings();
 -            this.savedDataStorage.set(WorldGenSettings.TYPE, this.worldGenSettings);
-+            //this.worldGenSettings = worldStem.worldDataAndGenSettings().genSettings();
 +            //this.savedDataStorage.set(WorldGenSettings.TYPE, this.worldGenSettings);
              this.proxy = proxy;
              this.packRepository = packRepository;
@@ -433,18 +437,27 @@
              && JvmProfiler.INSTANCE.start(Environment.from(this));
          ProfiledDuration profiledDuration = JvmProfiler.INSTANCE.onWorldLoadedStarted();
 -        this.worldData.setModdedInfo(this.getServerModName(), this.getModdedStatus().shouldReportAsModified());
--        this.createLevels();
+         this.createLevels();
 -        this.forceDifficulty();
 -        this.prepareLevels();
-+        this.loadWorld0(storageSource.getLevelId()); // CraftBukkit
          if (profiledDuration != null) {
              profiledDuration.finish(true);
          }
-@@ -425,65 +_,262 @@
-     protected void forceDifficulty() {
+@@ -422,68 +_,280 @@
+         }
      }
  
--    protected void createLevels() {
+-    protected void forceDifficulty() {
+-    }
+-
++    // Youer - mod compat: AE2's MinecraftServerMixin @Inject(method="createLevels", at=@At("TAIL"))
++    // adds AE2's spatial storage dimension to this server once the levels exist. CraftBukkit
++    // replaced vanilla's createLevels() with the per-world loader loadWorld0(), so the anchor
++    // vanished and the whole mixin failed to apply (boot abort: "could not find any targets
++    // matching 'createLevels' in net.minecraft.server.MinecraftServer"). Restore the vanilla
++    // method name and keep it doing exactly what loadLevel() used to do, so the mixin's TAIL
++    // injection still runs after the dimensions have been created.
+     protected void createLevels() {
 -        ServerLevelData levelData = this.worldData.overworldData();
 -        boolean isDebug = this.worldData.isDebugWorld();
 -        Registry<LevelStem> dimensions = this.registries.compositeAccess().lookupOrThrow(Registries.LEVEL_STEM);
@@ -463,6 +476,16 @@
 -        this.commandStorage = new CommandStorage(this.savedDataStorage);
 -        this.stopwatches = this.savedDataStorage.computeIfAbsent(Stopwatches.TYPE);
 -        if (!levelData.isInitialized()) {
++        this.loadWorld0(storageSource.getLevelId()); // CraftBukkit
++        // Youer - mod compat: CraftBukkit's addLevel() replaces `levels` with an unmodifiable
++        // copy, but AE2 adds its dimension by putting straight into the map. Hand out a mutable
++        // map for that injection; addLevel()/removeLevel() re-wrap it on the next change.
++        this.levels = Maps.newLinkedHashMap(this.levels);
++    }
++
++    protected void forceDifficulty() {
++    }
++
 +    // CraftBukkit start
 +    private void loadWorld0(String s) {
 +        LevelStorageSource.LevelStorageAccess worldSession = this.storageSource;
