@@ -65,14 +65,6 @@
  import net.minecraft.world.Difficulty;
  import net.minecraft.world.RandomSequences;
  import net.minecraft.world.Stopwatches;
-@@ -163,6 +_,7 @@
- import net.minecraft.world.level.chunk.status.ChunkStatus;
- import net.minecraft.world.level.chunk.storage.ChunkIOErrorReporter;
- import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
-+import net.minecraft.world.level.dimension.DimensionType;
- import net.minecraft.world.level.dimension.LevelStem;
- import net.minecraft.world.level.gamerules.GameRule;
- import net.minecraft.world.level.gamerules.GameRuleMap;
 @@ -171,32 +_,47 @@
  import net.minecraft.world.level.levelgen.Heightmap;
  import net.minecraft.world.level.levelgen.PatrolSpawner;
@@ -443,7 +435,7 @@
          if (profiledDuration != null) {
              profiledDuration.finish(true);
          }
-@@ -422,68 +_,280 @@
+@@ -422,68 +_,258 @@
          }
      }
  
@@ -516,49 +508,20 @@
 +
 +            String worldType = (dimension == -999) ? dimensionKey.identifier().getNamespace() + "_" + dimensionKey.identifier().getPath() : org.bukkit.World.Environment.getEnvironment(dimension).toString().toLowerCase(Locale.ROOT);
 +            String name = (dimensionKey == LevelStem.OVERWORLD) ? s : s + "_" + worldType;
-+            if (dimension != 0) {
-+                File newWorldFolder = new File(name);
-+                File newWorld = LevelStorageSource.getPre261StorageFolder(newWorldFolder.toPath(), dimensionKey).toFile();
-+                File oldWorld = LevelStorageSource.getPre261StorageFolder(new File(s).toPath(), dimensionKey).toFile();
-+                if (!oldWorld.isDirectory()) {
-+                    newWorld = DimensionType.getStorageFolder(Registries.levelStemToLevel(dimensionKey), new File(name).toPath()).toFile();
-+                    oldWorld = DimensionType.getStorageFolder(Registries.levelStemToLevel(dimensionKey), new File(s).toPath()).toFile();
-+                }
-+                File oldLevelDat = new File(new File(s), "level.dat"); // The data folders exist on first run as they are created in the PersistentCollection constructor above, but the level.dat won't
-+
-+                if (!newWorldFolder.isDirectory() && !newWorld.isDirectory() && oldWorld.isDirectory() && oldLevelDat.isFile()) {
-+                    MinecraftServer.LOGGER.info("---- Migration of old " + worldType + " folder required ----");
-+                    MinecraftServer.LOGGER.info("Unfortunately due to the way that Minecraft implemented multiworld support in 1.6, Bukkit requires that you move your " + worldType + " folder to a new location in order to operate correctly.");
-+                    MinecraftServer.LOGGER.info("We will move this folder for you, but it will mean that you need to move it back should you wish to stop using Bukkit in the future.");
-+                    MinecraftServer.LOGGER.info("Attempting to move " + oldWorld + " to " + newWorld + "...");
-+
-+                    if (newWorld.exists()) {
-+                        MinecraftServer.LOGGER.warn("A file or folder already exists at " + newWorld + "!");
-+                        MinecraftServer.LOGGER.info("---- Migration of old " + worldType + " folder failed ----");
-+                    } else if (newWorld.getParentFile().mkdirs()) {
-+                        if (oldWorld.renameTo(newWorld)) {
-+                            MinecraftServer.LOGGER.info("Success! To restore " + worldType + " in the future, simply move " + newWorld + " to " + oldWorld);
-+                            // Migrate world data too.
-+                            try {
-+                                com.google.common.io.Files.copy(oldLevelDat, new File(new File(name), "level.dat"));
-+                                org.apache.commons.io.FileUtils.copyDirectory(new File(new File(s), "data"), new File(new File(name), "data"));
-+                            } catch (IOException exception) {
-+                                MinecraftServer.LOGGER.warn("Unable to migrate world data.");
-+                            }
-+                            MinecraftServer.LOGGER.info("---- Migration of old " + worldType + " folder complete ----");
-+                        } else {
-+                            MinecraftServer.LOGGER.warn("Could not move folder " + oldWorld + " to " + newWorld + "!");
-+                            MinecraftServer.LOGGER.info("---- Migration of old " + worldType + " folder failed ----");
-+                        }
-+                    } else {
-+                        MinecraftServer.LOGGER.warn("Could not create path for " + newWorld + "!");
-+                        MinecraftServer.LOGGER.info("---- Migration of old " + worldType + " folder failed ----");
-+                    }
-+                }
-+
++            ResourceKey<Level> worldKey = ResourceKey.create(Registries.DIMENSION, dimensionKey.identifier());
++            if (dimensionKey != LevelStem.OVERWORLD) {
++                // Youer - mod compat: Paper keeps every dimension inside the level root
++                // (world/dimensions/<namespace>/<path>) instead of giving each one its own folder next to world/.
++                // CraftBukkit's per-world storage access "<level>_<worldtype>" is what dropped dimensions into the
++                // server root (world_nether, world_twilightforest_twilight_forest, ...) and nested the dimension a
++                // second time inside it. Run Paper's startup migration, which imports such a leftover legacy folder
++                // into world/dimensions and deletes it, and then load every dimension from the shared level root -
++                // LevelStorageAccess#getDimensionPath resolves the per-dimension sub folder on its own. The overworld
++                // is already migrated by Main before the world stem is built.
 +                try {
-+                    worldSession = LevelStorageSource.createDefault(server.getWorldContainer().toPath()).validateAndCreateAccess(name, dimensionKey);
-+                } catch (IOException | ContentValidationException ex) {
++                    io.papermc.paper.world.migration.WorldFolderMigration.migrateStartupWorld(
++                        this.storageSource, this.registryAccess(), name, dimensionKey, worldKey);
++                } catch (IOException ex) {
 +                    throw new RuntimeException(ex);
 +                }
 +            }
@@ -625,13 +588,18 @@
 +                dataAndSettings = new LevelDataAndDimensions.WorldDataAndGenSettings(primaryleveldata, new WorldGenSettings(worldoptions, worlddimensions));
 +            }
 +            PrimaryLevelData worlddata = (PrimaryLevelData) dataAndSettings.data();
-+            worlddata.checkName(name); // CraftBukkit - Migration did not rewrite the level.dat; This forces 1.8 to take the last loaded world as respawn (in this case the end)
++            // Youer - mod compat: with a shared level root every dimension reads the same level.dat, so only the
++            // overworld may rename it - a per-dimension checkName() would otherwise keep rewriting the level name
++            // to world_nether / world_<namespace>_<path>.
++            if (dimensionKey == LevelStem.OVERWORLD) {
++                worlddata.checkName(name); // CraftBukkit - Migration did not rewrite the level.dat; This forces 1.8 to take the last loaded world as respawn (in this case the end)
++            }
 +            if (options.has("forceUpgrade")) {
 +                net.minecraft.server.Main.forceUpgrade(worldSession, DataFixers.getDataFixer(), options.has("eraseCache"), () -> {
 +                    return true;
 +                }, registryaccess_frozen, options.has("recreateRegionFiles"));
 +            }
-+            SavedDataStorage dimensiondatastorage = new SavedDataStorage(worldSession.getDimensionPath(Level.OVERWORLD).resolve(LevelResource.DATA.id()), this.getFixerUpper(), this.registryAccess()); // Paper - dimension scoped data, match readExistingSavedData load path
++            SavedDataStorage dimensiondatastorage = new SavedDataStorage(worldSession.getDimensionPath(worldKey).resolve(LevelResource.DATA.id()), this.getFixerUpper(), this.registryAccess()); // Paper - dimension scoped data, match readExistingSavedData load path
 +
 +            ServerLevelData serverleveldata = worlddata.overworldData();
 +            boolean flag = worlddata.isDebugWorld();
@@ -641,12 +609,14 @@
 +            List<CustomSpawner> list = ImmutableList.of(new PhantomSpawner(), new PatrolSpawner(), new CatSpawner(), new VillageSiege(), new WanderingTraderSpawner(dimensiondatastorage));
 +            LevelStem levelstem = (LevelStem) dimensions.getValue(dimensionKey);
 +
-+            org.bukkit.generator.WorldInfo worldInfo = new org.bukkit.craftbukkit.generator.CraftWorldInfo(name, org.bukkit.craftbukkit.util.CraftNamespacedKey.fromMinecraft(dimensionKey.identifier()), worldoptions.seed(), worlddata.enabledFeatures(), org.bukkit.World.Environment.getEnvironment(dimension), levelstem.type().value(), levelstem.generator(), registryaccess_frozen, org.bukkit.craftbukkit.util.WorldUUID.getUUID(worldSession.levelDirectory.path().toFile()));
++            // Youer - mod compat: dimensions now share the level root, so the world UUID cannot be derived from the
++            // access folder any more (all of them would be identical). Paper keeps it per dimension in the
++            // dimension scoped PaperWorldMetadata data, and the startup migration carries the legacy uid.dat over.
++            io.papermc.paper.world.PaperWorldLoader.LoadedWorldData loadedWorldData = io.papermc.paper.world.PaperWorldLoader.loadWorldData(this, worldKey, name);
++            org.bukkit.generator.WorldInfo worldInfo = new org.bukkit.craftbukkit.generator.CraftWorldInfo(name, org.bukkit.craftbukkit.util.CraftNamespacedKey.fromMinecraft(dimensionKey.identifier()), worldoptions.seed(), worlddata.enabledFeatures(), org.bukkit.World.Environment.getEnvironment(dimension), levelstem.type().value(), levelstem.generator(), registryaccess_frozen, loadedWorldData.uuid());
 +            if (biomeProvider == null && gen != null) {
 +                biomeProvider = gen.getDefaultBiomeProvider(worldInfo);
 +            }
-+
-+            ResourceKey<Level> worldKey = ResourceKey.create(Registries.DIMENSION, dimensionKey.identifier());
 +
 +            if (dimensionKey == LevelStem.OVERWORLD) {
 +                this.worldData = worlddata;
@@ -1438,82 +1408,197 @@
      }
  
      public boolean isReady() {
-@@ -1515,11 +_,20 @@
+@@ -1515,56 +_,141 @@
          return this.functionManager;
      }
  
 +    // Paper start - Add ServerResourcesReloadedEvent
 +    @Deprecated @io.papermc.paper.annotation.DoNotUse
      public CompletableFuture<Void> reloadResources(Collection<String> packsToEnable) {
-+        return this.reloadResources(packsToEnable, io.papermc.paper.event.server.ServerResourcesReloadedEvent.Cause.PLUGIN);
+-        CompletableFuture<Void> result = CompletableFuture.<ImmutableList>supplyAsync(
+-                () -> packsToEnable.stream()
+-                    .map(this.packRepository::getPack)
+-                    .filter(Objects::nonNull)
+-                    .map(Pack::open)
+-                    .collect(ImmutableList.toImmutableList()),
+-                this
+-            )
+-            .thenCompose(
+-                packsToLoad -> {
+-                    CloseableResourceManager resources = new MultiPackResourceManager(PackType.SERVER_DATA, packsToLoad);
+-                    List<Registry.PendingTags<?>> postponedTags = TagLoader.loadTagsForExistingRegistries(resources, this.registries.compositeAccess());
+-                    return ReloadableServerResources.loadResources(
+-                            resources,
+-                            this.registries,
+-                            postponedTags,
+-                            this.worldData.enabledFeatures(),
+-                            this.isDedicatedServer() ? Commands.CommandSelection.DEDICATED : Commands.CommandSelection.INTEGRATED,
+-                            this.getFunctionCompilationPermissions(),
+-                            this.executor,
+-                            this
+-                        )
+-                        .whenComplete((unit, throwable) -> {
+-                            if (throwable != null) {
+-                                resources.close();
+-                            }
+-                        })
+-                        .thenApply(managers -> new MinecraftServer.ReloadableResources(resources, managers));
+-                }
+-            )
+-            .thenAcceptAsync(newResources -> {
+-                this.resources.close();
+-                this.resources = newResources;
+-                this.packRepository.setSelected(packsToEnable);
+-                WorldDataConfiguration newConfig = new WorldDataConfiguration(getSelectedPacks(this.packRepository, true), this.worldData.enabledFeatures());
+-                this.worldData.setDataConfiguration(newConfig);
+-                this.resources.managers.updateComponentsAndStaticRegistryTags();
+-                this.resources.managers.getRecipeManager().finalizeRecipeLoading(this.worldData.enabledFeatures());
+-                this.getPlayerList().saveAll();
+-                this.getPlayerList().reloadResources();
+-                this.functionManager.replaceLibrary(this.resources.managers.getFunctionLibrary());
+-                this.structureTemplateManager.onResourceManagerReload(this.resources.resourceManager);
+-                this.fuelValues = FuelValues.vanillaBurnTimes(this.registries.compositeAccess(), this.worldData.enabledFeatures());
+-            }, this);
+-        if (this.isSameThread()) {
+-            this.managedBlock(result::isDone);
+-        }
+-
+-        return result;
++        // Youer - mod compat: mods anchor their injection points inside the body of the vanilla
++        // reloadResources(Collection) method: modernfix core.MinecraftServerMixin @ModifyExpressionValue wraps
++        // its CompletableFuture.thenAcceptAsync(Consumer, Executor) stage (active reload tracking) and
++        // kubegroovy MinecraftServerMixin @WrapOperation wraps the "new MultiPackResourceManager(PackType, List)"
++        // allocation. Paper had turned the vanilla method into a plain delegate of the new
++        // reloadResources(Collection, Cause) overload, so both anchors were gone, the injectors found 0 targets
++        // and aborted server startup. Keep the vanilla shaped reload chain here - that is the shape vanilla
++        // callers and mods expect - while the Cause carrying overload below serves the Paper API call sites.
++        // Both share the post reload work through applyReloadedResources().
++        CompletableFuture<Void> result = CompletableFuture.<ImmutableList>supplyAsync(
++                () -> this.packRepository
++                    .rebuildSelected(packsToEnable)
++                    .stream()
++                    .map(Pack::open)
++                    .collect(ImmutableList.toImmutableList()),
++                this
++            )
++            .thenCompose(
++                packsToLoad -> {
++                    CloseableResourceManager resources = new MultiPackResourceManager(PackType.SERVER_DATA, packsToLoad);
++                    List<Registry.PendingTags<?>> postponedTags = TagLoader.loadTagsForExistingRegistries(resources, this.registries.compositeAccess(), io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.RELOAD); // Paper - tag lifecycle - add cause
++                    return ReloadableServerResources.loadResources(
++                            resources,
++                            this.registries,
++                            postponedTags,
++                            this.worldData.enabledFeatures(),
++                            this.isDedicatedServer() ? Commands.CommandSelection.DEDICATED : Commands.CommandSelection.INTEGRATED,
++                            this.getFunctionCompilationPermissions(),
++                            this.executor,
++                            this
++                        )
++                        .whenComplete((unit, throwable) -> {
++                            if (throwable != null) {
++                                resources.close();
++                            }
++                        })
++                        .thenApply(managers -> new MinecraftServer.ReloadableResources(resources, managers));
++                }
++            )
++            .thenAcceptAsync(
++                newResources -> this.applyReloadedResources(
++                    newResources, packsToEnable, io.papermc.paper.event.server.ServerResourcesReloadedEvent.Cause.PLUGIN
++                ),
++                this
++            );
++        if (this.isSameThread()) {
++            this.managedBlock(result::isDone);
++        }
++
++        return result;
 +    }
 +
 +    public CompletableFuture<Void> reloadResources(
 +        final Collection<String> packsToEnable, final io.papermc.paper.event.server.ServerResourcesReloadedEvent.Cause cause
 +    ) {
 +        // Paper end - Add ServerResourcesReloadedEvent
-         CompletableFuture<Void> result = CompletableFuture.<ImmutableList>supplyAsync(
--                () -> packsToEnable.stream()
--                    .map(this.packRepository::getPack)
--                    .filter(Objects::nonNull)
++        CompletableFuture<Void> result = CompletableFuture.<ImmutableList>supplyAsync(
 +                () -> this.packRepository
 +                    .rebuildSelected(packsToEnable)
 +                    .stream()
-                     .map(Pack::open)
-                     .collect(ImmutableList.toImmutableList()),
-                 this
-@@ -1527,7 +_,7 @@
-             .thenCompose(
-                 packsToLoad -> {
-                     CloseableResourceManager resources = new MultiPackResourceManager(PackType.SERVER_DATA, packsToLoad);
--                    List<Registry.PendingTags<?>> postponedTags = TagLoader.loadTagsForExistingRegistries(resources, this.registries.compositeAccess());
++                    .map(Pack::open)
++                    .collect(ImmutableList.toImmutableList()),
++                this
++            )
++            .thenCompose(
++                packsToLoad -> {
++                    CloseableResourceManager resources = new MultiPackResourceManager(PackType.SERVER_DATA, packsToLoad);
 +                    List<Registry.PendingTags<?>> postponedTags = TagLoader.loadTagsForExistingRegistries(resources, this.registries.compositeAccess(), io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.RELOAD); // Paper - tag lifecycle - add cause
-                     return ReloadableServerResources.loadResources(
-                             resources,
-                             this.registries,
-@@ -1547,18 +_,39 @@
-                 }
-             )
-             .thenAcceptAsync(newResources -> {
-+                io.papermc.paper.command.brigadier.PaperBrigadier.moveBukkitCommands(this.resources.managers.getCommands(), newResources.managers.getCommands()); // Paper
-                 this.resources.close();
-                 this.resources = newResources;
--                this.packRepository.setSelected(packsToEnable);
-+                this.server.syncCommands(); // SPIGOT-5884: Lost on reload
-+                this.packRepository.setSelected(packsToEnable, false); // Paper - add pendingReload flag to determine required pack loading - false as this is *after* a reload (see above)
-                 WorldDataConfiguration newConfig = new WorldDataConfiguration(getSelectedPacks(this.packRepository, true), this.worldData.enabledFeatures());
-                 this.worldData.setDataConfiguration(newConfig);
-                 this.resources.managers.updateComponentsAndStaticRegistryTags();
-                 this.resources.managers.getRecipeManager().finalizeRecipeLoading(this.worldData.enabledFeatures());
--                this.getPlayerList().saveAll();
-+                this.potionBrewing = this.potionBrewing.reload(this.worldData.enabledFeatures()); // Paper - Custom Potion Mixes
-+                if (Thread.currentThread() != this.serverThread) return; // Paper
-+                // Paper start - we don't need to save everything, just advancements
-+                // this.getPlayerList().saveAll();
-+                for (final ServerPlayer player : this.getPlayerList().getPlayers()) {
-+                    player.getAdvancements().save();
++                    return ReloadableServerResources.loadResources(
++                            resources,
++                            this.registries,
++                            postponedTags,
++                            this.worldData.enabledFeatures(),
++                            this.isDedicatedServer() ? Commands.CommandSelection.DEDICATED : Commands.CommandSelection.INTEGRATED,
++                            this.getFunctionCompilationPermissions(),
++                            this.executor,
++                            this
++                        )
++                        .whenComplete((unit, throwable) -> {
++                            if (throwable != null) {
++                                resources.close();
++                            }
++                        })
++                        .thenApply(managers -> new MinecraftServer.ReloadableResources(resources, managers));
 +                }
-+                // Paper end - we don't need to save everything, just advancements
-                 this.getPlayerList().reloadResources();
-                 this.functionManager.replaceLibrary(this.resources.managers.getFunctionLibrary());
-                 this.structureTemplateManager.onResourceManagerReload(this.resources.resourceManager);
--                this.fuelValues = FuelValues.vanillaBurnTimes(this.registries.compositeAccess(), this.worldData.enabledFeatures());
-+                this.fuelValues = net.neoforged.neoforge.common.DataMapHooks.populateFuelValues(this.registries.compositeAccess(), this.worldData.enabledFeatures());
-+                org.bukkit.craftbukkit.block.data.CraftBlockData.reloadCache(); // Paper - cache block data strings; they can be defined by datapacks so refresh it here
-+                // Paper start - brigadier command API
-+                io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.setValid(); // reset invalid state for event fire below
-+                io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner.INSTANCE.callReloadableRegistrarEvent(io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents.COMMANDS, io.papermc.paper.command.brigadier.PaperCommands.INSTANCE, org.bukkit.plugin.Plugin.class, io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.RELOAD); // call commands event for regular plugins
-+                final org.bukkit.craftbukkit.help.SimpleHelpMap helpMap = (org.bukkit.craftbukkit.help.SimpleHelpMap) this.server.getHelpMap();
-+                helpMap.clear();
-+                helpMap.initializeGeneralTopics();
-+                helpMap.initializeCommands();
-+                this.server.syncCommands(); // Refresh commands after event
-+                // Paper end
-+                new io.papermc.paper.event.server.ServerResourcesReloadedEvent(cause).callEvent(); // Paper - Add ServerResourcesReloadedEvent; fire after everything has been reloaded
-+                this.getPlayerList().getPlayers().forEach(this.getPlayerList()::sendPlayerPermissionLevel); //Forge: Fix newly added/modified commands not being sent to the client when commands reload.
-             }, this);
-         if (this.isSameThread()) {
-             this.managedBlock(result::isDone);
++            )
++            .thenAcceptAsync(newResources -> this.applyReloadedResources(newResources, packsToEnable, cause), this);
++        if (this.isSameThread()) {
++            this.managedBlock(result::isDone);
++        }
++
++        return result;
++    }
++
++    // Youer: post reload work shared by both reloadResources overloads, which only differ in the Paper event cause
++    private void applyReloadedResources(
++        final MinecraftServer.ReloadableResources newResources, final Collection<String> packsToEnable,
++        final io.papermc.paper.event.server.ServerResourcesReloadedEvent.Cause cause
++    ) {
++        io.papermc.paper.command.brigadier.PaperBrigadier.moveBukkitCommands(this.resources.managers.getCommands(), newResources.managers.getCommands()); // Paper
++        this.resources.close();
++        this.resources = newResources;
++        this.server.syncCommands(); // SPIGOT-5884: Lost on reload
++        this.packRepository.setSelected(packsToEnable, false); // Paper - add pendingReload flag to determine required pack loading - false as this is *after* a reload (see above)
++        WorldDataConfiguration newConfig = new WorldDataConfiguration(getSelectedPacks(this.packRepository, true), this.worldData.enabledFeatures());
++        this.worldData.setDataConfiguration(newConfig);
++        this.resources.managers.updateComponentsAndStaticRegistryTags();
++        this.resources.managers.getRecipeManager().finalizeRecipeLoading(this.worldData.enabledFeatures());
++        this.potionBrewing = this.potionBrewing.reload(this.worldData.enabledFeatures()); // Paper - Custom Potion Mixes
++        if (Thread.currentThread() != this.serverThread) return; // Paper
++        // Paper start - we don't need to save everything, just advancements
++        // this.getPlayerList().saveAll();
++        for (final ServerPlayer player : this.getPlayerList().getPlayers()) {
++            player.getAdvancements().save();
++        }
++        // Paper end - we don't need to save everything, just advancements
++        this.getPlayerList().reloadResources();
++        this.functionManager.replaceLibrary(this.resources.managers.getFunctionLibrary());
++        this.structureTemplateManager.onResourceManagerReload(this.resources.resourceManager);
++        this.fuelValues = net.neoforged.neoforge.common.DataMapHooks.populateFuelValues(this.registries.compositeAccess(), this.worldData.enabledFeatures());
++        org.bukkit.craftbukkit.block.data.CraftBlockData.reloadCache(); // Paper - cache block data strings; they can be defined by datapacks so refresh it here
++        // Paper start - brigadier command API
++        io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.setValid(); // reset invalid state for event fire below
++        io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner.INSTANCE.callReloadableRegistrarEvent(io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents.COMMANDS, io.papermc.paper.command.brigadier.PaperCommands.INSTANCE, org.bukkit.plugin.Plugin.class, io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.RELOAD); // call commands event for regular plugins
++        final org.bukkit.craftbukkit.help.SimpleHelpMap helpMap = (org.bukkit.craftbukkit.help.SimpleHelpMap) this.server.getHelpMap();
++        helpMap.clear();
++        helpMap.initializeGeneralTopics();
++        helpMap.initializeCommands();
++        this.server.syncCommands(); // Refresh commands after event
++        // Paper end
++        new io.papermc.paper.event.server.ServerResourcesReloadedEvent(cause).callEvent(); // Paper - Add ServerResourcesReloadedEvent; fire after everything has been reloaded
++        this.getPlayerList().getPlayers().forEach(this.getPlayerList()::sendPlayerPermissionLevel); //Forge: Fix newly added/modified commands not being sent to the client when commands reload.
+     }
+ 
+     public static WorldDataConfiguration configurePackRepository(
 @@ -1574,8 +_,10 @@
          FeatureFlagSet forcedFeatures = initMode ? FeatureFlagSet.of() : initialDataConfig.enabledFeatures();
          FeatureFlagSet allowedFeatures = initMode ? FeatureFlags.REGISTRY.allFlags() : initialDataConfig.enabledFeatures();
@@ -1556,12 +1641,18 @@
              this.getPlayerList().broadcastAll(new ClientboundSetDefaultSpawnPositionPacket(respawnData));
              this.updateEffectiveRespawnData();
          }
-@@ -1742,7 +_,7 @@
+@@ -1741,8 +_,13 @@
+     @Override
      public abstract boolean shouldInformAdmins();
  
++    // Youer - mod compat: CraftBukkit answered this from the overworld, which does not exist yet while
++    // ServerAboutToStartEvent runs (NeoForge fires it before the levels are created), so the_bumblezone's
++    // Bumblezone#serverAboutToStart - which reads getWorldGenSettings().options() from that event - crashed with a
++    // NullPointerException on the very first level load. Fall back to the settings captured from the WorldStem in
++    // the constructor until the overworld is available; afterwards keep returning the live level's settings.
      public WorldGenSettings getWorldGenSettings() {
 -        return this.worldGenSettings;
-+        return this.overworld().getWorldGenSettings(); // CraftBukkit
++        return this.overworld() != null ? this.overworld().getWorldGenSettings() : this.worldGenSettings; // CraftBukkit
      }
  
      public RecipeManager getRecipeManager() {

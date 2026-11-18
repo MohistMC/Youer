@@ -199,7 +199,7 @@
          InetAddress localAddress = null;
          if (!this.getLocalIp().isEmpty()) {
              localAddress = InetAddress.getByName(this.getLocalIp());
-@@ -251,46 +_,77 @@
+@@ -251,46 +_,82 @@
          if (this.getPort() < 0) {
              this.setPort(properties.serverPort);
          }
@@ -271,9 +271,14 @@
              long levelNanoTime = Util.getNanos();
              this.services.nameToIdCache().resolveOfflineUsers(!this.usesAuthentication());
              LOGGER.info("Preparing level \"{}\"", this.getLevelIdName());
++            // Youer - mod compat: NeoForge's ServerAboutToStartEvent - and the SERVER config load it performs - has
++            // to happen before the levels are created. Paper loads them right here in initServer, which moved
++            // onCreateWorldSpawn ahead of that event, so mods reading their config from the spawn hook (undergarden
++            // UndergardenSpawnEvents#cancelVanillaSpawnLogic) died with "Cannot get config value before config is
++            // loaded" while the overworld was being initialised.
++            net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerAboutToStart(this);
 +            youer$loadLevel();
              this.loadLevel();
-+            net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerAboutToStart(this);
              long elapsed = Util.getNanos() - levelNanoTime;
              String time = String.format(Locale.ROOT, "%.3fs", elapsed / 1.0E9);
 -            LOGGER.info("Done ({})! For help, type \"help\"", time);

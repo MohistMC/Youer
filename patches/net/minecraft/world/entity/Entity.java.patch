@@ -343,7 +343,7 @@
      }
  
      public boolean removeTag(String tag) {
-@@ -397,20 +_,226 @@
+@@ -397,20 +_,236 @@
      }
  
      public void kill(ServerLevel level) {
@@ -402,7 +402,12 @@
 +    }
 +    // Paper end
 +    // Paper start - rewrite chunk system
-+    private final boolean isHardColliding = this.moonrise$isHardCollidingUncached();
++    // Youer - mod compat: moonrise used to resolve this from Entity's field initialisers, i.e. before any subclass
++    // constructor body or field initialiser ran. Mod entities that answer canBeCollidedWith() from state created in
++    // their own constructor (the_bumblezone RootminEntity#getRootminPose reads entityData) then crashed with a
++    // NullPointerException as soon as a structure placed one of them. Resolve the flag on first use instead.
++    private boolean isHardColliding;
++    private boolean isHardCollidingResolved;
 +    private net.minecraft.server.level.FullChunkStatus chunkStatus;
 +    private ca.spottedleaf.moonrise.patches.chunk_system.level.chunk.ChunkData chunkData;
 +    private int sectionX = Integer.MIN_VALUE;
@@ -412,6 +417,11 @@
 +
 +    @Override
 +    public final boolean moonrise$isHardColliding() {
++        if (!this.isHardCollidingResolved) {
++            this.isHardColliding = this.moonrise$isHardCollidingUncached();
++            this.isHardCollidingResolved = true;
++        }
++
 +        return this.isHardColliding;
 +    }
 +

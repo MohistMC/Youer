@@ -287,12 +287,16 @@
          return attributeModifiers.compute(attribute, baseValue, slot);
      }
  
-@@ -651,25 +_,42 @@
+@@ -651,25 +_,46 @@
          return this.isPassenger() || this.isLeashed();
      }
  
 +    // Paper start - allow changing despawnInPeaceful
-+    public final boolean shouldDespawnInPeaceful() {
++    // Youer - mod compat: evilcraft EntityNoMob (and other mod mobs) override shouldDespawnInPeaceful() to opt
++    // their entities out of the peaceful-mode despawn. Paper declared the method final, so those mod classes fail
++    // to link with IncompatibleClassChangeError while the RegisterEvent is dispatched, taking the whole registry
++    // startup down with them. Keep the Paper override hook, but leave the method overridable like vanilla's.
++    public boolean shouldDespawnInPeaceful() {
 +        return this.despawnInPeacefulOverride.toBooleanOrElse(!this.getType().isTypeAllowedInPeaceful());
 +    }
 +    // Paper end - allow changing despawnInPeaceful

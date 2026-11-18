@@ -195,3 +195,18 @@
                  category.setDetail("Item ID", Item.getId(itemStack.getItem()));
                  category.setDetail("Item data", itemStack.getDamageValue());
                  category.setDetail("Item name", () -> itemStack.getHoverName().getString());
+@@ -483,6 +_,14 @@
+         }
+ 
+         return false;
++    }
++
++    // Youer - mod compat: curios MixinInventory @Inject's the vanilla hasAnyMatching(Predicate)Z to let its
++    // slot validators veto inventory matches. The method was renamed to contains(Predicate) (see below), so
++    // the injector found no target and curios aborted server startup. Restore the vanilla name as the mixin
++    // target and keep it delegating to the same implementation.
++    public boolean hasAnyMatching(Predicate<ItemStack> predicate) {
++        return this.contains(predicate);
+     }
+ 
+     public boolean contains(Predicate<ItemStack> predicate) {

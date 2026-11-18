@@ -631,18 +631,69 @@
              }
  
              if (packet.includeData() && this.player.canUseGameMasterBlocks() && entity instanceof Avatar avatar) {
-@@ -742,22 +_,35 @@
+@@ -742,22 +_,74 @@
          }
      }
  
 -    private void tryPickItem(ItemStack itemStack) {
-+    private void tryPickItem(ItemStack itemStack, @Nullable BlockPos blockPos, @Nullable Entity entity, boolean includeData) { // Paper - Extend PlayerPickItemEvent API
-         if (itemStack.isItemEnabled(this.player.level().enabledFeatures())) {
-             Inventory inventory = this.player.getInventory();
-             int slotWithExistingItem = inventory.findSlotMatchingItem(itemStack);
+-        if (itemStack.isItemEnabled(this.player.level().enabledFeatures())) {
+-            Inventory inventory = this.player.getInventory();
+-            int slotWithExistingItem = inventory.findSlotMatchingItem(itemStack);
 -            if (slotWithExistingItem != -1) {
 -                if (Inventory.isHotbarSlot(slotWithExistingItem)) {
 -                    inventory.setSelectedSlot(slotWithExistingItem);
+-                } else {
+-                    inventory.pickSlot(slotWithExistingItem);
+-                }
+-            } else if (this.player.hasInfiniteMaterials()) {
+-                inventory.addAndPickItem(itemStack);
+-            }
+-
+-            this.send(new ClientboundSetHeldSlotPacket(inventory.getSelectedSlot()));
+-            this.player.inventoryMenu.broadcastChanges();
++    // Youer - mod compat: architectury MixinServerGamePacketListenerImpl @Shadow's the vanilla
++    // tryPickItem(ItemStack)V and invokes it from its PickItemFromEntity handler, and
++    // ae2wtlib ServerGamePacketListenerImplMixin @Inject's the very same method at the
++    // send(Packet) call (shift AFTER, capturing the matched slot local). Paper widened the method to
++    // tryPickItem(ItemStack, BlockPos, Entity, boolean) for the PlayerPickItemEvent API, which left the
++    // vanilla signature without either the shadow or the send() anchor, so both mixins aborted server
++    // startup. Keep the vanilla shaped overload as a full implementation (raising the same events Paper
++    // does, using the picking player's own block position) instead of a forwarder, because an empty
++    // forwarder carries no instruction for the injector to anchor on.
++    private void tryPickItem(final ItemStack itemStack) {
++        if (itemStack.isItemEnabled(this.player.level().enabledFeatures())) {
++            Inventory inventory = this.player.getInventory();
++            int slotWithExistingItem = inventory.findSlotMatchingItem(itemStack);
++            // Paper start - Add PlayerPickItemEvent
++            final int sourceSlot = slotWithExistingItem;
++            final int targetSlot = Inventory.isHotbarSlot(sourceSlot) ? sourceSlot : inventory.getSuitableHotbarSlot();
++            final org.bukkit.entity.Player bukkitPlayer = this.player.getBukkitEntity();
++            final io.papermc.paper.event.player.PlayerPickBlockEvent event = new io.papermc.paper.event.player.PlayerPickBlockEvent(bukkitPlayer, org.bukkit.craftbukkit.block.CraftBlock.at(this.player.level(), this.player.blockPosition()), false, targetSlot, sourceSlot);
++            if (!event.callEvent()) {
++                return;
++            }
++            slotWithExistingItem = event.getSourceSlot();
++            // Paper end - Add PlayerPickItemEvent
++            if (slotWithExistingItem != Inventory.NOT_FOUND_INDEX) {
++                if (Inventory.isHotbarSlot(slotWithExistingItem) && Inventory.isHotbarSlot(event.getTargetSlot())) { // Paper - Add PlayerPickItemEvent
++                    inventory.setSelectedSlot(event.getTargetSlot()); // Paper - Add PlayerPickItemEvent
++                } else {
++                    inventory.pickSlot(slotWithExistingItem, event.getTargetSlot()); // Paper - Add PlayerPickItemEvent
++                }
++            } else if (this.player.hasInfiniteMaterials()) {
++                inventory.addAndPickItem(itemStack, event.getTargetSlot()); // Paper - Add PlayerPickItemEvent
++            }
++
++            this.send(new ClientboundSetHeldSlotPacket(inventory.getSelectedSlot()));
++            this.player.inventoryMenu.broadcastChanges();
++            if (io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.updateEquipmentOnPlayerActions) this.player.detectEquipmentUpdates(); // Paper - Force update attributes.
++        }
++    }
++
++    private void tryPickItem(ItemStack itemStack, @Nullable BlockPos blockPos, @Nullable Entity entity, boolean includeData) { // Paper - Extend PlayerPickItemEvent API
++        if (itemStack.isItemEnabled(this.player.level().enabledFeatures())) {
++            Inventory inventory = this.player.getInventory();
++            int slotWithExistingItem = inventory.findSlotMatchingItem(itemStack);
 +            // Paper start - Add PlayerPickItemEvent
 +            final int sourceSlot = slotWithExistingItem;
 +            final int targetSlot = Inventory.isHotbarSlot(sourceSlot) ? sourceSlot : inventory.getSuitableHotbarSlot();
@@ -658,17 +709,15 @@
 +            if (slotWithExistingItem != Inventory.NOT_FOUND_INDEX) {
 +                if (Inventory.isHotbarSlot(slotWithExistingItem) && Inventory.isHotbarSlot(event.getTargetSlot())) { // Paper - Add PlayerPickItemEvent
 +                    inventory.setSelectedSlot(event.getTargetSlot()); // Paper - Add PlayerPickItemEvent
-                 } else {
--                    inventory.pickSlot(slotWithExistingItem);
++                } else {
 +                    inventory.pickSlot(slotWithExistingItem, event.getTargetSlot()); // Paper - Add PlayerPickItemEvent
-                 }
-             } else if (this.player.hasInfiniteMaterials()) {
--                inventory.addAndPickItem(itemStack);
++                }
++            } else if (this.player.hasInfiniteMaterials()) {
 +                inventory.addAndPickItem(itemStack, event.getTargetSlot()); // Paper - Add PlayerPickItemEvent
-             }
- 
-             this.send(new ClientboundSetHeldSlotPacket(inventory.getSelectedSlot()));
-             this.player.inventoryMenu.broadcastChanges();
++            }
++
++            this.send(new ClientboundSetHeldSlotPacket(inventory.getSelectedSlot()));
++            this.player.inventoryMenu.broadcastChanges();
 +            if (io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.updateEquipmentOnPlayerActions) this.player.detectEquipmentUpdates(); // Paper - Force update attributes.
          }
      }

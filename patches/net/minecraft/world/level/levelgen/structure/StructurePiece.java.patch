@@ -71,7 +71,7 @@
      protected boolean canBeReplaced(LevelReader level, int x, int y, int z, BoundingBox chunkBB) {
          return true;
      }
-@@ -416,11 +_,20 @@
+@@ -416,11 +_,33 @@
                  blockState = reorient(level, pos, Blocks.CHEST.defaultBlockState());
              }
  
@@ -81,16 +81,30 @@
 -            BlockEntity blockEntity = level.getBlockEntity(pos);
 -            if (blockEntity instanceof ChestBlockEntity) {
 -                ((ChestBlockEntity)blockEntity).setLootTable(lootTable, random.nextLong());
+-            }
 +            BlockEntity blockentity = level.getBlockEntity(pos);
 +
 +            if (blockentity instanceof ChestBlockEntity) {
 +                ((ChestBlockEntity) blockentity).setLootTable(lootTable, random.nextLong());
-             }
++            }
 +            */
 +            org.bukkit.craftbukkit.block.CraftChest chestState = (org.bukkit.craftbukkit.block.CraftChest) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(level, pos, blockState, null);
 +            chestState.setLootTable(org.bukkit.craftbukkit.CraftLootTable.minecraftToBukkit(lootTable));
 +            chestState.setSeed(random.nextLong());
-+            placeCraftBlockEntity(level, pos, chestState, 2);
++            // Youer - mod compat: the placement stays an in-method
++            // ServerLevelAccessor.setBlock(BlockPos, BlockState, int) call, as in vanilla. CraftBukkit moved it
++            // into placeCraftBlockEntity, which hides that invoke from mods that anchor this method
++            // (lithostitched StructurePieceMixin @WrapOperation on createChest could not apply and aborted
++            // server startup). TransformerLevelAccessor levels keep their own setCraftBlock path.
++            if (level instanceof org.bukkit.craftbukkit.util.TransformerLevelAccessor transformerAccess) {
++                transformerAccess.setCraftBlock(pos, chestState, 2);
++            } else {
++                level.setBlock(pos, chestState.getHandle(), 2);
++                BlockEntity blockentity = level.getBlockEntity(pos);
++                if (blockentity instanceof ChestBlockEntity) {
++                    ((ChestBlockEntity) blockentity).setLootTable(lootTable, random.nextLong());
++                }
++            }
 +            // CraftBukkit end
  
              return true;

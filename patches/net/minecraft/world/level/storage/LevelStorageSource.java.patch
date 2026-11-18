@@ -15,7 +15,7 @@
                  .mapOrElse(
                      Function.identity(),
                      error -> {
-@@ -169,18 +_,19 @@
+@@ -169,18 +_,25 @@
              WorldDimensions.Complete dimensions = worldGenSettings.dimensions().bake(datapackDimensions);
              Lifecycle lifecycle = dimensions.lifecycle().add(registryAccess.allRegistriesLifecycle());
              PrimaryLevelData worldData = PrimaryLevelData.parse(dataTag, settings, dimensions.specialWorldProperty(), lifecycle);
@@ -34,11 +34,17 @@
          CompoundTag fileContents;
          try {
 -            fileContents = NbtIo.readCompressed(dataLocation, NbtAccounter.defaultQuota());
++            // Youer start - the vanilla NbtAccounter.defaultQuota() invocation is kept on purpose:
++            // mods such as Lithostitched WrapOperation it inside readExistingSavedData, and removing
++            // the call makes their mixin fail (the whole server then aborts during startup).
++            // The accounter that is actually used stays the Paper one below.
++            NbtAccounter.defaultQuota();
++            // Youer end
 +            fileContents = NbtIo.readCompressed(dataLocation, NbtAccounter.create(NbtAccounter.DEFAULT_NBT_QUOTA * 50L)); // Paper - raise quota to account for custom data
          } catch (IOException var6) {
              return DataResult.error(var6::getMessage);
          }
-@@ -392,19 +_,34 @@
+@@ -392,19 +_,41 @@
          return this.backupDir;
      }
  
@@ -83,6 +89,13 @@
 +    public LevelStorageSource.LevelStorageAccess createAccess(String levelId, ResourceKey<LevelStem> dimensionType) throws IOException { // CraftBukkit
 +        Path levelPath = this.getLevelPath(levelId);
 +        return new LevelStorageSource.LevelStorageAccess(levelId, levelPath, dimensionType); // CraftBukkit
++    }
++
++    // Youer - mod compat: Paper keeps every dimension inside the level root (world/dimensions/<namespace>/<path>),
++    // so a dimension needs its own storage access pointed at that folder while still reporting the level id, which
++    // is what Bukkit world names ("world_nether", "world_twilightforest_twilight_forest") are derived from.
++    public LevelStorageSource.LevelStorageAccess createAccess(String levelId, Path path, ResourceKey<LevelStem> dimensionType) throws IOException {
++        return new LevelStorageSource.LevelStorageAccess(levelId, path, dimensionType);
      }
  
      public DirectoryValidator getWorldDirValidator() {
@@ -119,12 +132,17 @@
              Objects.requireNonNull(LevelStorageSource.this);
              super();
              this.resources = Maps.newHashMap();
-@@ -522,7 +_,8 @@
+@@ -522,7 +_,13 @@
          }
  
          public Path getDimensionPath(ResourceKey<Level> name) {
 -            return DimensionType.getStorageFolder(name, this.levelDirectory.path());
-+            if (this.dimensionType != null) name = net.minecraft.core.registries.Registries.levelStemToLevel(this.dimensionType);
++            // Youer - mod compat: an access opened for a single dimension already points at that dimension's own
++            // folder (world/dimensions/<namespace>/<path>), so the key must not be mapped a second time - that
++            // nested the same dimension twice. Only the shared level root maps keys to their sub folder.
++            if (this.dimensionType != null && this.dimensionType != LevelStem.OVERWORLD) {
++                return this.levelDirectory.path();
++            }
 +            return DimensionType.getStorageFolder(name, this.levelDirectory.path()); // CraftBukkit
          }
  

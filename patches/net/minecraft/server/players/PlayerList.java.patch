@@ -59,7 +59,7 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -113,24 +_,35 @@
+@@ -113,24 +_,40 @@
      private static final int SEND_PLAYER_INFO_INTERVAL = 600;
      private static final SimpleDateFormat BAN_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z", Locale.ROOT);
      private final MinecraftServer server;
@@ -70,10 +70,14 @@
      private final IpBanList ipBans;
      private final ServerOpList ops;
      private final UserWhiteList whitelist;
--    private final Map<UUID, ServerStatsCounter> stats = Maps.newHashMap();
--    private final Map<UUID, PlayerAdvancements> advancements = Maps.newHashMap();
 +    // CraftBukkit start
-+    // private final Map<UUID, ServerStatsCounter> stats = Maps.newHashMap();
++    // Youer - mod compat: ftbessentials PlayerListAccess @Accessor's the vanilla stats map (stats:Ljava/util/Map;),
++    // and other mods look the same field up reflectively. Paper moved per-player statistics onto the player
++    // (ServerPlayer#getStats) and dropped the map, which made the accessor unresolvable and aborted server
++    // startup. Keep the map declared and maintain it on login/logout so its contents stay meaningful; the
++    // statistics themselves are still owned by the player.
+     private final Map<UUID, ServerStatsCounter> stats = Maps.newHashMap();
+-    private final Map<UUID, PlayerAdvancements> advancements = Maps.newHashMap();
 +    // private final Map<UUID, PlayerAdvancements> advancements = Maps.newHashMap();
 +    // CraftBukkit end
      public final PlayerDataStorage playerIo;
@@ -144,7 +148,7 @@
                  reducedDebugInfo,
                  !immediateRespawn,
                  doLimitedCrafting,
-@@ -182,13 +_,16 @@
+@@ -182,14 +_,18 @@
                  this.server.enforceSecureProfile()
              )
          );
@@ -159,8 +163,10 @@
          );
 +        net.neoforged.neoforge.common.CommonHooks.sendRecipes(player, dataSyncEvent.getRecipeTypesToSend(), recipeManager.recipeMap());
          this.sendPlayerPermissionLevel(player);
++        this.stats.put(player.getUUID(), player.getStats()); // Youer - mod compat: keep the vanilla stats map populated for ftbessentials
          player.getStats().markAllDirty();
          player.getRecipeBook().sendInitialRecipeBook(player);
+         this.updateEntireScoreboard(level.getScoreboard(), player);
 @@ -201,24 +_,133 @@
              component = Component.translatable("multiplayer.player.joined.renamed", player.getDisplayName(), oldName);
          }
@@ -465,7 +471,7 @@
 -            this.stats.remove(uuid);
 -            this.advancements.remove(uuid);
 +            // CraftBukkit start
-+            // this.stats.remove(uuid);
++            this.stats.remove(uuid); // Youer - mod compat: keep the vanilla stats map in sync for ftbessentials
 +            // this.advancements.remove(uuid);
 +            // CraftBukkit end
              this.server.notificationManager().playerLeft(player);

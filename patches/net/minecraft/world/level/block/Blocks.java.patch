@@ -9,7 +9,7 @@
      );
      public static final Block DETECTOR_RAIL = register(
          "detector_rail", DetectorRailBlock::new, BlockBehaviour.Properties.of().noCollision().strength(0.7F).sound(SoundType.METAL)
-@@ -7219,11 +_,24 @@
+@@ -7219,11 +_,30 @@
      }
  
      static {
@@ -32,7 +32,13 @@
              }
          }
 +        // Make sure this stays as a method reference, else the synthetic lambda method makes this blow up
-+        statesToInit.parallelStream().forEach(BlockBehaviour.BlockStateBase::initCache);
++        // Youer - mod compat: Paper ran this on parallelStream(). With mods loaded, any hook that runs during
++        // initCache and touches the Blocks class deadlocks: the thread executing this static initializer holds
++        // the Blocks class-init monitor while waiting for the forked tasks, and a worker that needs to
++        // initialize Blocks parks on that same monitor forever. Reproduced with camol ->
++        // CamoHelper.getClientCamoBlockState from BlockState.getCollisionShape. This is only a boot-time
++        // optimization, so keep it sequential instead.
++        statesToInit.stream().forEach(BlockBehaviour.BlockStateBase::initCache);
 +        // Paper end - Perf: Optimize block state cache initialization
      }
  }

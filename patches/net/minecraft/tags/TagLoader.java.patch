@@ -38,7 +38,7 @@
          final Map<Identifier, List<T>> newTags = new HashMap<>();
          TagEntry.Lookup<T> lookup = new TagEntry.Lookup<T>() {
              {
-@@ -111,43 +_,70 @@
+@@ -111,43 +_,84 @@
                      missing -> LOGGER.error(
                          "Couldn't load tag {} as it is missing following references: {}",
                          id,
@@ -107,12 +107,30 @@
      }
  
 -    private static <T> Optional<Registry.PendingTags<T>> loadPendingTags(ResourceManager manager, Registry<T> registry) {
-+    private static <T> Optional<Registry.PendingTags<T>> loadPendingTags(final ResourceManager manager, final Registry<T> registry, final io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause cause) { // Paper - add registrar event cause
-         ResourceKey<? extends Registry<T>> key = registry.key();
-         TagLoader<Holder<T>> loader = new TagLoader<>(
-             (TagLoader.ElementLookup<Holder<T>>)TagLoader.ElementLookup.fromFrozenRegistry(registry), Registries.tagsDirPath(key)
-         );
+-        ResourceKey<? extends Registry<T>> key = registry.key();
+-        TagLoader<Holder<T>> loader = new TagLoader<>(
+-            (TagLoader.ElementLookup<Holder<T>>)TagLoader.ElementLookup.fromFrozenRegistry(registry), Registries.tagsDirPath(key)
+-        );
 -        TagLoader.LoadResult<T> tags = new TagLoader.LoadResult<>(key, wrapTags(registry.key(), loader.build(loader.load(manager))));
++    // Youer - mod compat: kubegroovy TagLoaderMixin @Inject's the vanilla loadPendingTags(ResourceManager, Registry)
++    // method, anchored on the TagLoader.load(ResourceManager) call (shift BEFORE), to route tag loading through
++    // its script registry. Paper added the registrar event cause parameter, so the vanilla signature disappeared
++    // and the injector found no target. Keep the vanilla shaped overload here with the same body (the anchor
++    // invoke must stay in this method); the vanilla path was always the initial load, hence INITIAL.
++    private static <T> Optional<Registry.PendingTags<T>> loadPendingTags(final ResourceManager manager, final Registry<T> registry) {
++        ResourceKey<? extends Registry<T>> key = registry.key();
++        TagLoader<Holder<T>> loader = new TagLoader<>(
++            (TagLoader.ElementLookup<Holder<T>>)TagLoader.ElementLookup.fromFrozenRegistry(registry), Registries.tagsDirPath(key)
++        );
++        TagLoader.LoadResult<T> tags = new TagLoader.LoadResult<>(key, wrapTags(registry.key(), loader.build(loader.load(manager), io.papermc.paper.tag.PaperTagListenerManager.INSTANCE.createEventConfig(registry, io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.INITIAL))));
++        return tags.tags().isEmpty() ? Optional.empty() : Optional.of(registry.prepareTagReload(tags));
++    }
++
++    private static <T> Optional<Registry.PendingTags<T>> loadPendingTags(final ResourceManager manager, final Registry<T> registry, final io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause cause) { // Paper - add registrar event cause
++        ResourceKey<? extends Registry<T>> key = registry.key();
++        TagLoader<Holder<T>> loader = new TagLoader<>(
++            (TagLoader.ElementLookup<Holder<T>>)TagLoader.ElementLookup.fromFrozenRegistry(registry), Registries.tagsDirPath(key)
++        );
 +        TagLoader.LoadResult<T> tags = new TagLoader.LoadResult<>(key, wrapTags(registry.key(), loader.build(loader.load(manager), io.papermc.paper.tag.PaperTagListenerManager.INSTANCE.createEventConfig(registry, cause)))); // Paper - add registrar event cause
          return tags.tags().isEmpty() ? Optional.empty() : Optional.of(registry.prepareTagReload(tags));
      }

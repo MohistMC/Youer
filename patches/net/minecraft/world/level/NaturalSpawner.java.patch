@@ -202,20 +202,23 @@
          }
      }
  
-@@ -147,14 +_,29 @@
-         ServerLevel level,
-         ChunkAccess chunk,
-         BlockPos start,
+@@ -142,19 +_,65 @@
+         spawnCategoryForPosition(mobCategory, level, level.getChunk(start), start, (type, chunk, pos) -> true, (mob, chunk) -> {});
+     }
+ 
+-    public static void spawnCategoryForPosition(
+-        MobCategory mobCategory,
+-        ServerLevel level,
+-        ChunkAccess chunk,
+-        BlockPos start,
 -        NaturalSpawner.SpawnPredicate extraTest,
 -        NaturalSpawner.AfterSpawnCallback spawnCallback
--    ) {
-+        SpawnPredicate extraTest,
-+        AfterSpawnCallback spawnCallback
-+    ) {
-+        // Paper start - Optional per player mob spawns
-+        spawnCategoryForPosition(mobCategory, level, chunk, start, extraTest, spawnCallback, Integer.MAX_VALUE, null);
-+    }
-+
++    // Paper start - Optional per player mob spawns
++    // Youer - mod compat: artifacts NaturalSpawnerMixin @Inject's the vanilla six parameter
++    // spawnCategoryForPosition at Mob#finalizeSpawn, an anchor that only exists in the real implementation below.
++    // Paper added maxSpawns/trackEntity to that implementation for optional per player mob spawns, so the vanilla
++    // shaped method has to stay the one carrying the body and the two extras travel through these fields for the
++    // duration of the call.
 +    public static void spawnCategoryForPosition(
 +        MobCategory mobCategory,
 +        ServerLevel level,
@@ -226,7 +229,44 @@
 +        int maxSpawns,
 +        @Nullable Consumer<Entity> trackEntity
 +    ) {
-+        // Paper end - Optional per player mob spawns
++        Integer previousMaxSpawns = CURRENT_MAX_SPAWNS.get();
++        Consumer<Entity> previousTrackEntity = CURRENT_TRACK_ENTITY.get();
++        CURRENT_MAX_SPAWNS.set(maxSpawns);
++        CURRENT_TRACK_ENTITY.set(trackEntity);
++        try {
++            spawnCategoryForPosition(mobCategory, level, chunk, start, extraTest, spawnCallback);
++        } finally {
++            if (previousMaxSpawns == null) {
++                CURRENT_MAX_SPAWNS.remove();
++            } else {
++                CURRENT_MAX_SPAWNS.set(previousMaxSpawns);
++            }
++
++            if (previousTrackEntity == null) {
++                CURRENT_TRACK_ENTITY.remove();
++            } else {
++                CURRENT_TRACK_ENTITY.set(previousTrackEntity);
++            }
++        }
++    }
++    // Paper end - Optional per player mob spawns
++
++    private static final ThreadLocal<Integer> CURRENT_MAX_SPAWNS = new ThreadLocal<>();
++    private static final ThreadLocal<Consumer<Entity>> CURRENT_TRACK_ENTITY = new ThreadLocal<>();
++
++    private static int currentMaxSpawns() {
++        Integer maxSpawns = CURRENT_MAX_SPAWNS.get();
++        return maxSpawns == null ? Integer.MAX_VALUE : maxSpawns;
++    }
++
++    public static void spawnCategoryForPosition(
++        MobCategory mobCategory,
++        ServerLevel level,
++        ChunkAccess chunk,
++        BlockPos start,
++        SpawnPredicate extraTest,
++        AfterSpawnCallback spawnCallback
+     ) {
          StructureManager structureManager = level.structureManager();
          ChunkGenerator generator = level.getChunkSource().getGenerator();
          int yStart = start.getY();
@@ -266,7 +306,7 @@
                                  && extraTest.test(currentSpawnData.type(), pos, chunk)) {
                                  Mob mob = getMobForSpawn(level, currentSpawnData.type());
                                  if (mob == null) {
-@@ -201,11 +_,21 @@
+@@ -201,11 +_,22 @@
                                      groupData = mob.finalizeSpawn(
                                          level, level.getCurrentDifficultyAt(mob.blockPosition()), EntitySpawnReason.NATURAL, groupData
                                      );
@@ -283,13 +323,14 @@
 +                                        groupSize++;
 +                                        spawnCallback.run(mob, chunk);
 +                                        // Paper start - Optional per player mob spawns
++                                        Consumer<Entity> trackEntity = CURRENT_TRACK_ENTITY.get();
 +                                        if (trackEntity != null) {
 +                                            trackEntity.accept(mob);
 +                                        }
 +                                        // Paper end - Optional per player mob spawns
 +                                    }
 +                                    // CraftBukkit end
-+                                    if (clusterSize >= maxSpawns || clusterSize >= EventHooks.getMaxSpawnClusterSize(mob)) { // Paper - Optional per player mob spawns
++                                    if (clusterSize >= currentMaxSpawns() || clusterSize >= EventHooks.getMaxSpawnClusterSize(mob)) { // Paper - Optional per player mob spawns
                                          return;
                                      }
  
