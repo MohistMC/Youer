@@ -64,7 +64,18 @@
      }
  
      @CheckReturnValue
-@@ -133,6 +_,14 @@
+@@ -129,10 +_,24 @@
+         } else if (!this.shouldRunAllTasks() && !this.shouldRun(task)) {
+             return false;
+         } else {
+-            this.doRunTask(this.pendingRunnables.remove());
++            // Youer - mod compat: tasks may be drained re-entrantly (executeAllRecentInternalTasks) while a task
++            // is running, so peek()+remove() could throw NoSuchElementException and crash the server tick loop.
++            R taken = this.pendingRunnables.poll();
++            if (taken == null) {
++                return false;
++            }
++            this.doRunTask(taken);
              return true;
          }
      }

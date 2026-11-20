@@ -873,6 +873,28 @@
          }
  
          LOGGER.info("Saving worlds");
+@@ -668,15 +_,12 @@
+             }
+         }
+ 
+-        while (this.levels.values().stream().anyMatch(l -> l.getChunkSource().chunkMap.hasWork())) {
+-            this.nextTickTimeNanos = Util.getNanos() + TimeUtil.NANOSECONDS_PER_MILLISECOND;
+-
+-            for (ServerLevel levelx : this.getAllLevels()) {
+-                levelx.getChunkSource().deactivateTicketsOnClosing();
+-                levelx.getChunkSource().tick(() -> true, false);
+-            }
+-
+-            this.waitUntilNextTick();
++        // Youer - mod compat: do not spin on ChunkMap#hasWork() during shutdown.
++        // With the Moonrise chunk system hasWork() can stay true forever (pending unloads never drain
++        // while the main thread is parked in tick()), which made "stop" hang until the watchdog killed us.
++        // Paper does the same thing: it disables this loop and lets the chunk system save the loaded chunks.
++        for (ServerLevel levelx : this.getAllLevels()) {
++            levelx.getChunkSource().deactivateTicketsOnClosing();
+         }
+ 
+         this.saveAllChunks(false, true, false);
 @@ -684,6 +_,7 @@
          for (ServerLevel levelx : this.getAllLevels()) {
              if (levelx != null) {
