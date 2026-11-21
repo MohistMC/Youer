@@ -34,15 +34,22 @@
      public static final String COMMAND_PREFIX = "/";
      private static final ThreadLocal<@Nullable ExecutionContext<CommandSourceStack>> CURRENT_EXECUTION_CONTEXT = new ThreadLocal<>();
      private static final Logger LOGGER = LogUtils.getLogger();
-@@ -181,6 +_,7 @@
+@@ -181,13 +_,27 @@
  
          @Override
          public boolean isRestricted(CommandNode<CommandSourceStack> node) {
 +            if (node.getRequirement() instanceof RestrictedMarker) return true; // Paper - restricted api
              Predicate<CommandSourceStack> requirement = node.getRequirement();
-             return !requirement.test(this.noPermissionSource);
+-            return !requirement.test(this.noPermissionSource);
++            // Youer - 模组 requirement 常直接调 getServer()，而编译上下文没有 server。失败按受限处理，别把命令暴露给无权限客户端
++            try {
++                return !requirement.test(this.noPermissionSource);
++            } catch (RuntimeException e) {
++                LOGGER.debug("Requirement test failed for {}, treating as restricted", node.getUsageText(), e);
++                return true;
++            }
          }
-@@ -188,6 +_,13 @@
+     };
      private final CommandDispatcher<CommandSourceStack> dispatcher = new CommandDispatcher<>();
  
      public Commands(Commands.CommandSelection commandSelection, CommandBuildContext context) {

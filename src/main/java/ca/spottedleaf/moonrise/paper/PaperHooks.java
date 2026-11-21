@@ -92,12 +92,12 @@ public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHo
 
     @Override
     public void onChunkWatch(final ServerLevel world, final LevelChunk chunk, final ServerPlayer player) {
-
+        net.neoforged.neoforge.event.EventHooks.fireChunkWatch(player, chunk, world);
     }
 
     @Override
     public void onChunkUnWatch(final ServerLevel world, final ChunkPos chunk, final ServerPlayer player) {
-
+        net.neoforged.neoforge.event.EventHooks.fireChunkUnWatch(player, chunk, world);
     }
 
     @Override

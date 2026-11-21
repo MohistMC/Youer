@@ -420,6 +420,8 @@ public final class CraftServer implements Server {
             this.getLogger().info("Console input is disabled due to --noconsole command argument");
         }
 
+        com.mohistmc.youer.neoforge.NeoForgeInjectBukkit.init(); // Youer - inject modded Bukkit enums before config/spawn-limit load
+
         this.configuration = YamlConfiguration.loadConfiguration(this.getConfigFile());
         this.configuration.options().copyDefaults(true);
         YamlConfiguration configurationDefaults = YamlConfiguration.loadConfiguration(new InputStreamReader(this.getClass().getClassLoader().getResourceAsStream("configurations/bukkit.yml"), StandardCharsets.UTF_8));

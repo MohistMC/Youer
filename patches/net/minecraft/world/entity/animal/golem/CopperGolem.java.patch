@@ -1,11 +1,10 @@
 --- a/net/minecraft/world/entity/animal/golem/CopperGolem.java
 +++ b/net/minecraft/world/entity/animal/golem/CopperGolem.java
-@@ -53,11 +_,14 @@
+@@ -53,11 +_,13 @@
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.Vec3;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
-+import org.bukkit.event.entity.EntityDamageEvent;
 +import org.bukkit.event.entity.EntityRemoveEvent;
  import org.jspecify.annotations.Nullable;
  
@@ -117,21 +116,3 @@
  
      @Override
      public boolean readyForShearing() {
-@@ -441,9 +_,15 @@
-     }
- 
-     @Override
--    protected void actuallyHurt(ServerLevel level, DamageSource source, float dmg) {
--        super.actuallyHurt(level, source, dmg);
-+    // CraftBukkit start - void -> boolean
-+    public boolean actuallyHurt(ServerLevel level, DamageSource source, float dmg, EntityDamageEvent event) {
-+        boolean damageResult = super.actuallyHurt(level, source, dmg, event);
-+        if (!damageResult) {
-+            return false;
-+        }
-+        // CraftBukkit end
-         this.setState(CopperGolemState.IDLE);
-+        return true; // CraftBukkit
-     }
- 
-     @Override

@@ -1851,7 +1851,16 @@
      }
  
      public boolean isPvpAllowed() {
-@@ -1906,16 +_,57 @@
+@@ -1881,7 +_,7 @@
+         }
+ 
+         public void onTrackingStart(Entity entity) {
+-            ServerLevel.this.getChunkSource().addEntity(entity);
++            // ServerLevel.this.getChunkSource().addEntity(entity); // Paper - moved down below valid=true
+             if (entity instanceof ServerPlayer player) {
+                 ServerLevel.this.players.add(player);
+                 if (player.isReceivingWaypoints()) {
+@@ -1906,16 +_,59 @@
                  ServerLevel.this.navigatingMobs.add(mob);
              }
  
@@ -1864,7 +1873,9 @@
              }
  
              entity.updateDynamicGameEventListener(DynamicGameEventListener::add);
++            entity.inWorld = true; // CraftBukkit
 +            entity.valid = true; // CraftBukkit
++            ServerLevel.this.getChunkSource().addEntity(entity); // Paper - moved down below valid=true
 +            // Paper start - Entity origin API
 +            if (entity.origin == null) {
 +                entity.origin = entity.position();

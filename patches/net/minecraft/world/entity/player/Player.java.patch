@@ -292,25 +292,26 @@
      }
  
      @Override
-@@ -740,17 +_,33 @@
-     }
- 
+@@ -742,25 +_,42 @@
      @Override
--    protected void actuallyHurt(ServerLevel level, DamageSource source, float dmg) {
-+    protected boolean actuallyHurt(ServerLevel level, DamageSource source, float dmg, EntityDamageEvent event) { // void -> boolean
+     protected void actuallyHurt(ServerLevel level, DamageSource source, float dmg) {
          if (!this.isInvulnerableTo(level, source)) {
 -            dmg = this.getDamageAfterArmorAbsorb(source, dmg);
 -            dmg = this.getDamageAfterMagicAbsorb(source, dmg);
 -            float var8 = Math.max(dmg - this.getAbsorptionAmount(), 0.0F);
 -            this.setAbsorptionAmount(this.getAbsorptionAmount() - (dmg - var8));
 -            float absorbedDamage = dmg - var8;
-+            // Neo (ImplNote): Keep this in-sync with the equivalent patches in LivingEntity#actuallyHurt.
-+            // Neo: Primary damage pipeline hooks. Compute the armor and enchantment reductions against the "original" damage, and then fire LivingDamageEvent.Pre
-+            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ARMOR, this.damageContainers.peek().getNewDamage() - this.getDamageAfterArmorAbsorb(source, this.damageContainers.peek().getNewDamage()));
+-            if (absorbedDamage > 0.0F && absorbedDamage < 3.4028235E37F) {
+-                this.awardStat(Stats.DAMAGE_ABSORBED, Math.round(absorbedDamage * 10.0F));
++            // Youer start - align with LivingEntity.actuallyHurt: apply ARMOR/MAGIC modifiers and clamp negative damage
++            float armorAbsorb = this.getDamageAfterArmorAbsorb(source, this.damageContainers.peek().getNewDamage());
++            armorAbsorb = this.applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.ARMOR, armorAbsorb);
++            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ARMOR, this.damageContainers.peek().getNewDamage() - armorAbsorb);
 +            this.getDamageAfterMagicAbsorb(source, this.damageContainers.peek().getNewDamage());
-+
-+            // LivingDamageEvent.Pre is then able to mutate the container to change the reductions and change the "real" damage that will be inflicted.
-+            float damage = net.neoforged.neoforge.common.CommonHooks.onLivingDamagePre(this, this.damageContainers.peek());
++            this.damageContainers.peek().setNewDamage(this.applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.MAGIC, this.damageContainers.peek().getNewDamage()));
++            float damage = Math.max(net.neoforged.neoforge.common.CommonHooks.onLivingDamagePre(this, this.damageContainers.peek()), 0.0F);
++            this.damageContainers.peek().setNewDamage(damage);
++            // Youer end
 +            // Throw an exception if someone kills the entity during Pre. Vanilla is going to kill any entity which isDeadOrDying() when it bubbles back up to hurtServer, so it dying early is invalid.
 +            com.google.common.base.Preconditions.checkArgument(!this.dead, "It is invalid to have killed an entity during LivingDamageEvent.Pre. Use LivingIncomingDamageEvent or LivingDamageEvent.Post instead.");
 +
@@ -318,31 +319,34 @@
 +            this.damageContainers.peek().captureInflictedDamage();
 +
 +            // Next we attribute damage to absorption hearts. We record the amount blocked by absorption in the container for later calculations.
-+            // Mods reduction functions may adjust the split of damage between absorption and health, so we need to first apply the reductions and then compute the amounts that go to each pool.
 +            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ABSORPTION, Math.min(this.getAbsorptionAmount(), damage));
 +            float absorbed = Math.min(damage, this.damageContainers.peek().getReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ABSORPTION));
 +            this.setAbsorptionAmount(Math.max(0, this.getAbsorptionAmount() - absorbed));
-+            float var8 = this.damageContainers.peek().getNewDamage();
-+            float absorbedDamage = absorbed;
-             if (absorbedDamage > 0.0F && absorbedDamage < 3.4028235E37F) {
-                 this.awardStat(Stats.DAMAGE_ABSORBED, Math.round(absorbedDamage * 10.0F));
++            dmg = this.damageContainers.peek().getNewDamage();
++            if (absorbed > 0.0F && absorbed < 3.4028235E37F) {
++                this.awardStat(Stats.DAMAGE_ABSORBED, Math.round(absorbed * 10.0F));
              }
  
-+            // Last thing here, inflict damage to the entity's health, based on how much damage is remaining after absorption has been processes.
-             if (var8 != 0.0F) {
+-            if (var8 != 0.0F) {
++            // Last thing here, inflict damage to the entity's health, based on how much damage is remaining after absorption has been processed.
++            if (dmg != 0.0F) {
                  this.causeFoodExhaustion(source.getFoodExhaustion());
-                 this.getCombatTracker().recordDamage(source, var8);
-@@ -761,7 +_,10 @@
+-                this.getCombatTracker().recordDamage(source, var8);
+-                this.setHealth(this.getHealth() - var8);
+-                if (var8 < 3.4028235E37F) {
+-                    this.awardStat(Stats.DAMAGE_TAKEN, Math.round(var8 * 10.0F));
++                this.getCombatTracker().recordDamage(source, dmg);
++                this.setHealth(this.getHealth() - dmg);
++                if (dmg < 3.4028235E37F) {
++                    this.awardStat(Stats.DAMAGE_TAKEN, Math.round(dmg * 10.0F));
+                 }
  
                  this.gameEvent(GameEvent.ENTITY_DAMAGE);
              }
-+            return true; // Youer TODO
 +            // Neo: Now we go back to hurtServer, where we'll update various metadata fields, process the side effects of damage (i.e. killing the entity), and firing LivingDamageEvent.Post
          }
-+        return false; // CraftBukkit
      }
  
-     public boolean isTextFilteringEnabled() {
 @@ -816,6 +_,8 @@
  
              return InteractionResult.PASS;
@@ -843,12 +847,18 @@
      }
  
      public Optional<WardenSpawnTracker> getWardenSpawnTracker() {
-@@ -1654,7 +_,11 @@
+@@ -1654,7 +_,17 @@
  
      @Override
      public Component getDisplayName() {
 -        MutableComponent result = PlayerTeam.formatNameForTeam(this.getTeam(), this.getName());
-+        if (this.displayname == null) this.displayname = net.neoforged.neoforge.event.EventHooks.getPlayerDisplayName(this, this.getName());
++        if (this.displayname == null) {
++            synchronized (this) {
++                if (this.displayname == null) {
++                    this.displayname = net.neoforged.neoforge.event.EventHooks.getPlayerDisplayName(this, this.getName());
++                }
++            }
++        }
 +        MutableComponent result = Component.literal("");
 +        result = prefixes.stream().reduce(result, MutableComponent::append);
 +        result = result.append(PlayerTeam.formatNameForTeam(this.getTeam(), this.displayname));

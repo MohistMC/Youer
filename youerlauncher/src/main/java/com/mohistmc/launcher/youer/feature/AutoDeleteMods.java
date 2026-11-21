@@ -30,7 +30,8 @@ public class AutoDeleteMods {
         put("com.biel.mod.mixin.VelocityMixin", DeletionReason.DUPLICATE_FEATURE);
         put("optifine.Differ", DeletionReason.CLIENT_ONLY);
         put("de.keksuccino.drippyloadingscreen.DrippyLoadingScreenNeoForge", DeletionReason.CLIENT_ONLY);
-        //put("org.embeddedt.modernfix.ModernFix", DeletionReason.DUPLICATE_FEATURE);
+        put("malte0811.ferritecore.ModMainForge", DeletionReason.DUPLICATE_FEATURE);
+        put("org.embeddedt.modernfix.ModernFix", DeletionReason.DUPLICATE_FEATURE);
         //put("ca.spottedleaf.moonrise.neoforge.MoonriseNeoForge", DeletionReason.DUPLICATE_FEATURE);
         //put("me.steinborn.krypton.mod.server.KryptonServerInitializer", DeletionReason.DUPLICATE_FEATURE);
         //put("me.steinborn.krypton.mod.KryptonBootstrap", DeletionReason.DUPLICATE_FEATURE);

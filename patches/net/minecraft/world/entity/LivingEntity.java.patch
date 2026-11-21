@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/LivingEntity.java
 +++ b/net/minecraft/world/entity/LivingEntity.java
+@@ -5,6 +_,7 @@
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.Lists;
+ import com.google.common.collect.Maps;
++import com.mohistmc.youer.neoforge.BukkitDamageHooks;
+ import com.mojang.datafixers.util.Pair;
+ import com.mojang.logging.LogUtils;
+ import it.unimi.dsi.fastutil.doubles.DoubleDoubleImmutablePair;
 @@ -12,9 +_,11 @@
  import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
  import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
@@ -77,7 +85,7 @@
      private final AttributeMap attributes;
      public CombatTracker combatTracker = new CombatTracker(this);
      public final Map<Holder<MobEffect>, MobEffectInstance> activeEffects = Maps.newHashMap();
-@@ -264,14 +_,39 @@
+@@ -264,14 +_,40 @@
      private final EnumMap<EquipmentSlot, Reference2ObjectMap<Enchantment, Set<EnchantmentLocationBasedEffect>>> activeLocationDependentEnchantments = new EnumMap<>(
          EquipmentSlot.class
      );
@@ -103,6 +111,7 @@
 +    public boolean bukkitPickUpLoot;
 +    public int invulnerableDuration = 20;
 +    public net.kyori.adventure.util.TriState frictionState = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Friction API
++    public EntityDamageEvent bukkitEntityDamageEvent; // Youer - reconciled Bukkit damage event, seeded from the Neo container
 +
 +    @Override
 +    public float getBukkitYaw() {
@@ -684,7 +693,7 @@
          this.entityData.set(DATA_HEALTH_ID, Mth.clamp(health, 0.0F, this.getMaxHealth()));
      }
  
-@@ -1151,16 +_,25 @@
+@@ -1151,29 +_,53 @@
      public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
          if (this.isInvulnerableTo(level, source)) {
              return false;
@@ -710,23 +719,35 @@
              if (damage < 0.0F) {
                  damage = 0.0F;
              }
-@@ -1178,23 +_,44 @@
-                 damage *= 0.75F;
+ 
++            // Youer start - fire the Bukkit event early, seeded from the mod-adjusted container damage, then write the result back
++            bukkitEntityDamageEvent = BukkitDamageHooks.handleEntityDamage(this, source, damage);
++            if (bukkitEntityDamageEvent == null || bukkitEntityDamageEvent.isCancelled()) {
++                this.damageContainers.pop();
++                return false;
++            }
++            this.damageContainers.peek().setNewDamage((float) bukkitEntityDamageEvent.getDamage());
++            damage = (float) bukkitEntityDamageEvent.getDamage();
++            if (source.getEntity() instanceof Player player) {
++                player.resetAttackStrengthTicker();
++            }
++            // Youer end
++
+             ItemStack itemInUse = this.getUseItem();
+             float damageBlocked = this.applyItemBlocking(level, source, damage);
+             damage -= damageBlocked;
+             boolean blocked = damageBlocked > 0.0F;
+             if (source.is(DamageTypeTags.IS_FREEZING) && this.is(EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES)) {
++                damage = applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.FREEZING, damage);
+                 damage *= 5.0F;
              }
  
-+            // CraftBukkit start
-+            EntityDamageEvent event = handleEntityDamage(source, damage);
-+            damage = 0;
-+            damage += (float) event.getDamage(EntityDamageEvent.DamageModifier.BASE);
-+            damage += (float) event.getDamage(EntityDamageEvent.DamageModifier.FREEZING);
-+            damage += (float) event.getDamage(EntityDamageEvent.DamageModifier.HARD_HAT);
-+
-+            float f2 = (float) -event.getDamage(EntityDamageEvent.DamageModifier.BLOCKING);
-+
-+            damage -= f2;
-+            boolean flag = f2 > 0.0F;
-+            // CraftBukkit end
-+
+             if (source.is(DamageTypeTags.DAMAGES_HELMET) && !this.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {
++                damage = applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.HARD_HAT, damage);
+                 this.hurtHelmet(source, damage);
+                 damage *= 0.75F;
+             }
+@@ -1181,20 +_,28 @@
              if (Float.isNaN(damage) || Float.isInfinite(damage)) {
                  damage = Float.MAX_VALUE;
              }
@@ -740,21 +761,20 @@
                      return false;
                  }
  
--                this.actuallyHurt(level, source, damage - this.lastHurt);
--                this.lastHurt = damage;
 +                // If we are going to do damage despite invulnerability (due to the damage being higher than prior), we need to setup the container differently.
 +                this.damageContainers.peek().setPostAttackInvulnerabilityTicks(this.invulnerableTime);
 +                this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.INVULNERABILITY, this.lastHurt);
-+                this.actuallyHurt(level, source, damage - this.lastHurt, event);
+                 this.actuallyHurt(level, source, damage - this.lastHurt);
+-                this.lastHurt = damage;
 +                // Since we're in the "damage while invuln is active" block, we need to make sure we don't reduce the lastHurt amount.
 +                this.lastHurt = java.lang.Math.max(this.lastHurt, damage);
 +                this.invulnerableTime = this.damageContainers.peek().getPostAttackInvulnerabilityTicks();
                  tookFullDamage = false;
              } else {
-+                this.actuallyHurt(level, source, damage, event);
-                 this.lastHurt = damage;
+-                this.lastHurt = damage;
 -                this.invulnerableTime = 20;
--                this.actuallyHurt(level, source, damage);
+                 this.actuallyHurt(level, source, damage);
++                this.lastHurt = damage;
 +                this.invulnerableTime = this.damageContainers.peek().getPostAttackInvulnerabilityTicks();
                  this.hurtDuration = 10;
                  this.hurtTime = this.hurtDuration;
@@ -790,7 +810,7 @@
                  }
              } else if (tookFullDamage) {
                  this.playHurtSound(source);
-@@ -1267,11 +_,21 @@
+@@ -1267,6 +_,10 @@
                  CriteriaTriggers.PLAYER_HURT_ENTITY.trigger(sourcePlayer, this, source, damage, damage, blocked);
              }
  
@@ -801,18 +821,73 @@
              return success;
          }
      }
- 
+@@ -1274,13 +_,73 @@
      public float applyItemBlocking(ServerLevel level, DamageSource source, float damage) {
-+        // CraftBukkit start
-+        return calculateItemBlocking(source, damage);
-+    }
-+
-+    private float calculateItemBlocking(DamageSource source, float damage) {
-+        // CraftBukkit end
          if (damage <= 0.0F) {
              return 0.0F;
++        }
++
++        ItemStack blockingWith = this.getItemBlockingWith();
++        if (blockingWith == null) {
++            return 0.0F;
++        }
++
++        BlocksAttacks blocksAttacks = blockingWith.get(DataComponents.BLOCKS_ATTACKS);
++        if (blocksAttacks == null) {
++            return 0.0F;
++        }
++
++        if (source.getDirectEntity() instanceof AbstractArrow abstractArrow && abstractArrow.getPierceLevel() > 0) {
++            return 0.0F;
++        }
++
++        Vec3 sourcePosition = source.getSourcePosition();
++        double angle;
++        if (sourcePosition != null) {
++            Vec3 viewVector = this.calculateViewVector(0.0F, this.getYHeadRot());
++            Vec3 vectorTo = sourcePosition.subtract(this.position());
++            vectorTo = new Vec3(vectorTo.x, 0.0, vectorTo.z).normalize();
++            angle = Math.acos(vectorTo.dot(viewVector));
++        } else {
++            angle = (float) Math.PI;
++        }
++
++        float damageBlocked = blocksAttacks.resolveBlockedDamage(source, damage, angle);
++        var damageContainer = this.damageContainers.empty() ? new net.neoforged.neoforge.common.damagesource.DamageContainer(source, damage) : this.damageContainers.peek();
++        var ev = net.neoforged.neoforge.common.CommonHooks.onDamageBlock(this, damageContainer, damageBlocked, !blocksAttacks.bypassedBy().map(t -> t.contains(source.typeHolder())).orElse(false));
++        // Youer start - reconcile the Bukkit BLOCKING modifier with the Neo shield event; field is null outside hurtServer (e.g. goat ram)
++        if (bukkitEntityDamageEvent != null) {
++            float bukkit = -(float) bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.BLOCKING);
++            if (ev.getBlockedDamage() == ev.getOriginalBlockedDamage()) {
++                if (bukkit > 0.0F) {
++                    ev.setBlocked(true);
++                    ev.setBlockedDamage(bukkit);
++                } else {
++                    ev.setBlocked(false);
++                }
++            }
++        }
++        // Youer end
++        if (!ev.getBlocked()) {
++            return 0.0F;
++        }
++
++        damageBlocked = ev.getBlockedDamage();
++        damageContainer.setBlockedDamage(ev);
++        blocksAttacks.hurtBlockingItem(this.level(), blockingWith, this, this.getUsedItemHand(), damageBlocked, ev.shieldDamage());
++        if (damageBlocked > 0.0F && !source.is(DamageTypeTags.IS_PROJECTILE) && source.getDirectEntity() instanceof LivingEntity livingEntity) {
++            this.blockUsingItem(level, livingEntity);
++        }
++
++        return damageBlocked;
++    }
++
++    public float calculateItemBlocking(DamageSource source, float damage) {
++        if (damage <= 0.0F) {
++            return 0.0F;
          } else {
-@@ -1280,7 +_,7 @@
+             ItemStack blockingWith = this.getItemBlockingWith();
+             if (blockingWith == null) {
                  return 0.0F;
              } else {
                  BlocksAttacks blocksAttacks = blockingWith.get(DataComponents.BLOCKS_ATTACKS);
@@ -821,54 +896,25 @@
                      if (source.getDirectEntity() instanceof AbstractArrow abstractArrow && abstractArrow.getPierceLevel() > 0) {
                          return 0.0F;
                      } else {
-@@ -1296,17 +_,42 @@
+@@ -1295,18 +_,12 @@
+                             angle = (float) Math.PI;
                          }
  
-                         float damageBlocked = blocksAttacks.resolveBlockedDamage(source, damage, angle);
+-                        float damageBlocked = blocksAttacks.resolveBlockedDamage(source, damage, angle);
 -                        blocksAttacks.hurtBlockingItem(this.level(), blockingWith, this, this.getUsedItemHand(), damageBlocked);
 -                        if (damageBlocked > 0.0F && !source.is(DamageTypeTags.IS_PROJECTILE) && source.getDirectEntity() instanceof LivingEntity livingEntity) {
 -                            this.blockUsingItem(level, livingEntity);
 -                        }
- 
-+                        // CraftBukkit start
-                         return damageBlocked;
+-
+-                        return damageBlocked;
++                        return blocksAttacks.resolveBlockedDamage(source, damage, angle);
                      }
 -                } else {
 -                    return 0.0F;
--                }
--            }
-+                }
-+            }
+                 }
+             }
 +
 +            return 0.0F;
-+        }
-+    }
-+
-+    private float actuallyDoItemBlocking(ServerLevel level, DamageSource source, float damageBlocked) {
-+        {
-+            ItemStack blockingWith = this.getItemBlockingWith();
-+
-+            if (blockingWith != null) {
-+                BlocksAttacks blocksAttacks = blockingWith.get(DataComponents.BLOCKS_ATTACKS);
-+
-+                if (blocksAttacks != null && !blocksAttacks.bypassedBy().map(t -> t.contains(source.typeHolder())).orElse(false)) {
-+                    // CraftBukkit end
-+                    var damageContainer = this.damageContainers.empty() ? new net.neoforged.neoforge.common.damagesource.DamageContainer(source, damage) : this.damageContainers.peek();
-+                    var ev = net.neoforged.neoforge.common.CommonHooks.onDamageBlock(this, damageContainer, damageBlocked, !blocksAttacks.bypassedBy().map(t -> t.contains(source.typeHolder())).orElse(false));
-+                    if (!ev.getBlocked()) return 0.0F;
-+
-+                    damageBlocked = ev.getBlockedDamage();
-+                    damageContainer.setBlockedDamage(ev);
-+                    blocksAttacks.hurtBlockingItem(this.level(), blockingWith, this, this.getUsedItemHand(), damageBlocked, ev.shieldDamage());
-+                    if (damageBlocked > 0.0F && !source.is(DamageTypeTags.IS_PROJECTILE) && source.getDirectEntity() instanceof LivingEntity livingEntity) {
-+                        this.blockUsingItem(level, livingEntity);
-+                    }
-+
-+                    return damageBlocked;
-+                }
-+            }
-+
-+            return 0.0F; // CraftBukkit
          }
      }
  
@@ -1227,191 +1273,135 @@
              for (EquipmentSlot slot : slots) {
                  ItemStack itemStack = this.getItemBySlot(slot);
                  Equippable equippable = itemStack.get(DataComponents.EQUIPPABLE);
-@@ -1844,7 +_,7 @@
- 
-     protected float getDamageAfterArmorAbsorb(DamageSource damageSource, float damage) {
-         if (!damageSource.is(DamageTypeTags.BYPASSES_ARMOR)) {
--            this.hurtArmor(damageSource, damage);
-+            // this.hurtArmor(damagesource, f); // CraftBukkit - actuallyHurt(DamageSource, float, EntityDamageEvent) for handle damage
-             damage = CombatRules.getDamageAfterAbsorb(
-                 this, damage, damageSource, this.getArmorValue(), (float)this.getAttributeValue(Attributes.ARMOR_TOUGHNESS)
-             );
-@@ -1857,7 +_,8 @@
-         if (damageSource.is(DamageTypeTags.BYPASSES_EFFECTS)) {
-             return damage;
-         } else {
--            if (this.hasEffect(MobEffects.RESISTANCE) && !damageSource.is(DamageTypeTags.BYPASSES_RESISTANCE)) {
-+            // CraftBukkit - Moved to handleEntityDamage(DamageSource, float)
-+            if (false && this.hasEffect(MobEffects.RESISTANCE) && !damageSource.is(DamageTypeTags.BYPASSES_RESISTANCE)) {
-                 int absorbValue = (this.getEffect(MobEffects.RESISTANCE).getAmplifier() + 1) * 5;
-                 int absorb = 25 - absorbValue;
-                 float v = damage * absorb;
-@@ -1865,6 +_,7 @@
-                 damage = Math.max(v / 25.0F, 0.0F);
-                 float damageResisted = oldDamage - damage;
-                 if (damageResisted > 0.0F && damageResisted < 3.4028235E37F) {
-+                    this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.MOB_EFFECTS, damageResisted);
-                     if (this instanceof ServerPlayer) {
-                         ((ServerPlayer)this).awardStat(Stats.DAMAGE_RESISTED, Math.round(damageResisted * 10.0F));
-                     } else if (damageSource.getEntity() instanceof ServerPlayer) {
-@@ -1887,6 +_,7 @@
- 
-                 if (enchantmentArmor > 0.0F) {
-                     damage = CombatRules.getDamageAfterMagicAbsorb(damage, enchantmentArmor);
-+                    this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ENCHANTMENTS,this.damageContainers.peek().getNewDamage() - damage);
-                 }
- 
-                 return damage;
-@@ -1894,24 +_,208 @@
+@@ -1842,9 +_,11 @@
          }
      }
  
--    protected void actuallyHurt(ServerLevel level, DamageSource source, float dmg) {
-+    // CraftBukkit start
-+    private org.bukkit.event.entity.EntityDamageEvent handleEntityDamage(final DamageSource damagesource, float f) {
-+        float originalDamage = f;
+-    protected float getDamageAfterArmorAbsorb(DamageSource damageSource, float damage) {
++    public AtomicBoolean calDamageEvent = new AtomicBoolean(false); // Youer - suppress armor durability during the Bukkit event's armor lambda
 +
-+        com.google.common.base.Function<Double, Double> freezing = new com.google.common.base.Function<Double, Double>() {
-+            @Override
-+            public Double apply(Double f) {
-+                if (damagesource.is(DamageTypeTags.IS_FREEZING) && LivingEntity.this.is(EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES)) {
-+                    return -(f - (f * 5.0F));
-+                }
-+                return -0.0;
++    public float getDamageAfterArmorAbsorb(DamageSource damageSource, float damage) {
+         if (!damageSource.is(DamageTypeTags.BYPASSES_ARMOR)) {
+-            this.hurtArmor(damageSource, damage);
++            if (!calDamageEvent.getAndSet(false)) this.hurtArmor(damageSource, damage);
+             damage = CombatRules.getDamageAfterAbsorb(
+                 this, damage, damageSource, this.getArmorValue(), (float)this.getAttributeValue(Attributes.ARMOR_TOUGHNESS)
+             );
+@@ -1853,64 +_,99 @@
+         return damage;
+     }
+ 
+-    protected float getDamageAfterMagicAbsorb(DamageSource damageSource, float damage) {
++    // Youer - honor the plugin modifier only while the pipeline still matches vanilla; otherwise keep the mod's actual delta.
++    protected float applyBukkitDamageModifier(EntityDamageEvent.DamageModifier modifier, float currentDamage) {
++        if (bukkitEntityDamageEvent != null && bukkitEntityDamageEvent.isApplicable(modifier)) {
++            double baseDamage = bukkitEntityDamageEvent.getDamage();
++            if (bukkitEntityDamageEvent.isStillOriginal(modifier, baseDamage, currentDamage)) {
++                return (float) (baseDamage + bukkitEntityDamageEvent.getDamage(modifier));
++            } else {
++                return (float) (baseDamage + (currentDamage - baseDamage));
 +            }
-+        };
-+        float freezingModifier = freezing.apply((double) f).floatValue();
-+        f += freezingModifier;
-+
-+        com.google.common.base.Function<Double, Double> hardHat = new com.google.common.base.Function<Double, Double>() {
-+            @Override
-+            public Double apply(Double f) {
-+                if (damagesource.is(DamageTypeTags.DAMAGES_HELMET) && !LivingEntity.this.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {
-+                    return -(f - (f * 0.75F));
-+                }
-+                return -0.0;
-+            }
-+        };
-+        float hardHatModifier = hardHat.apply((double) f).floatValue();
-+        f += hardHatModifier;
-+
-+        com.google.common.base.Function<Double, Double> blocking = new com.google.common.base.Function<Double, Double>() {
-+            @Override
-+            public Double apply(Double f) {
-+                return -((double) LivingEntity.this.calculateItemBlocking(damagesource, f.floatValue()));
-+            }
-+        };
-+        float blockingModifier = blocking.apply((double) f).floatValue();
-+        f += blockingModifier;
-+
-+        com.google.common.base.Function<Double, Double> armor = new com.google.common.base.Function<Double, Double>() {
-+            @Override
-+            public Double apply(Double f) {
-+                return -(f - LivingEntity.this.getDamageAfterArmorAbsorb(damagesource, f.floatValue()));
-+            }
-+        };
-+        float armorModifier = armor.apply((double) f).floatValue();
-+        f += armorModifier;
-+
-+        com.google.common.base.Function<Double, Double> resistance = new com.google.common.base.Function<Double, Double>() {
-+            @Override
-+            public Double apply(Double f) {
-+                if (!damagesource.is(DamageTypeTags.BYPASSES_EFFECTS) && LivingEntity.this.hasEffect(MobEffects.RESISTANCE) && !damagesource.is(DamageTypeTags.BYPASSES_RESISTANCE)) {
-+                    int i = (LivingEntity.this.getEffect(MobEffects.RESISTANCE).getAmplifier() + 1) * 5;
-+                    int j = 25 - i;
-+                    float f1 = f.floatValue() * (float) j;
-+
-+                    return -(f - Math.max(f1 / 25.0F, 0.0F));
-+                }
-+                return -0.0;
-+            }
-+        };
-+        float resistanceModifier = resistance.apply((double) f).floatValue();
-+        f += resistanceModifier;
-+
-+        com.google.common.base.Function<Double, Double> magic = new com.google.common.base.Function<Double, Double>() {
-+            @Override
-+            public Double apply(Double f) {
-+                return -(f - LivingEntity.this.getDamageAfterMagicAbsorb(damagesource, f.floatValue()));
-+            }
-+        };
-+        float magicModifier = magic.apply((double) f).floatValue();
-+        f += magicModifier;
-+
-+        com.google.common.base.Function<Double, Double> absorption = new com.google.common.base.Function<Double, Double>() {
-+            @Override
-+            public Double apply(Double f) {
-+                return -(Math.max(f - Math.max(f - LivingEntity.this.getAbsorptionAmount(), 0.0F), 0.0F));
-+            }
-+        };
-+        float absorptionModifier = absorption.apply((double) f).floatValue();
-+
-+        return CraftEventFactory.handleLivingEntityDamageEvent(this, damagesource, originalDamage, freezingModifier, hardHatModifier, blockingModifier, armorModifier, resistanceModifier, magicModifier, absorptionModifier, freezing, hardHat, blocking, armor, resistance, magic, absorption);
++        }
++        return currentDamage;
 +    }
-+    // CraftBukkit end
 +
-+    protected boolean actuallyHurt(ServerLevel level, DamageSource source, float dmg, final EntityDamageEvent event) { // void -> boolean, add final
++    public float getDamageAfterMagicAbsorb(DamageSource damageSource, float damage) {
+         if (damageSource.is(DamageTypeTags.BYPASSES_EFFECTS)) {
+             return damage;
++        }
++
++        if (this.hasEffect(MobEffects.RESISTANCE) && !damageSource.is(DamageTypeTags.BYPASSES_RESISTANCE)) {
++            int absorbValue = (this.getEffect(MobEffects.RESISTANCE).getAmplifier() + 1) * 5;
++            int absorb = 25 - absorbValue;
++            float v = damage * absorb;
++            float oldDamage = damage;
++            damage = Math.max(v / 25.0F, 0.0F);
++            damage = applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.RESISTANCE, damage);
++            float damageResisted = oldDamage - damage;
++            if (damageResisted > 0.0F && damageResisted < 3.4028235E37F) {
++                this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.MOB_EFFECTS, damageResisted);
++                if (this instanceof ServerPlayer serverPlayer) {
++                    serverPlayer.awardStat(Stats.DAMAGE_RESISTED, Math.round(damageResisted * 10.0F));
++                } else if (damageSource.getEntity() instanceof ServerPlayer) {
++                    ((ServerPlayer)damageSource.getEntity()).awardStat(Stats.DAMAGE_DEALT_RESISTED, Math.round(damageResisted * 10.0F));
++                }
++            }
++        }
++
++        if (damage <= 0.0F) {
++            return 0.0F;
++        }
++
++        if (damageSource.is(DamageTypeTags.BYPASSES_ENCHANTMENTS)) {
++            return damage;
++        }
++
++        float enchantmentArmor;
++        if (this.level() instanceof ServerLevel serverLevel) {
++            enchantmentArmor = EnchantmentHelper.getDamageProtection(serverLevel, this, damageSource);
+         } else {
+-            if (this.hasEffect(MobEffects.RESISTANCE) && !damageSource.is(DamageTypeTags.BYPASSES_RESISTANCE)) {
+-                int absorbValue = (this.getEffect(MobEffects.RESISTANCE).getAmplifier() + 1) * 5;
+-                int absorb = 25 - absorbValue;
+-                float v = damage * absorb;
+-                float oldDamage = damage;
+-                damage = Math.max(v / 25.0F, 0.0F);
+-                float damageResisted = oldDamage - damage;
+-                if (damageResisted > 0.0F && damageResisted < 3.4028235E37F) {
+-                    if (this instanceof ServerPlayer) {
+-                        ((ServerPlayer)this).awardStat(Stats.DAMAGE_RESISTED, Math.round(damageResisted * 10.0F));
+-                    } else if (damageSource.getEntity() instanceof ServerPlayer) {
+-                        ((ServerPlayer)damageSource.getEntity()).awardStat(Stats.DAMAGE_DEALT_RESISTED, Math.round(damageResisted * 10.0F));
+-                    }
+-                }
+-            }
+-
+-            if (damage <= 0.0F) {
+-                return 0.0F;
+-            } else if (damageSource.is(DamageTypeTags.BYPASSES_ENCHANTMENTS)) {
+-                return damage;
+-            } else {
+-                float enchantmentArmor;
+-                if (this.level() instanceof ServerLevel serverLevel) {
+-                    enchantmentArmor = EnchantmentHelper.getDamageProtection(serverLevel, this, damageSource);
+-                } else {
+-                    enchantmentArmor = 0.0F;
+-                }
+-
+-                if (enchantmentArmor > 0.0F) {
+-                    damage = CombatRules.getDamageAfterMagicAbsorb(damage, enchantmentArmor);
+-                }
+-
+-                return damage;
+-            }
+-        }
++            enchantmentArmor = 0.0F;
++        }
++
++        if (enchantmentArmor > 0.0F) {
++            damage = CombatRules.getDamageAfterMagicAbsorb(damage, enchantmentArmor);
++            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ENCHANTMENTS,this.damageContainers.peek().getNewDamage() - damage);
++        }
++
++        return damage;
+     }
+ 
+     protected void actuallyHurt(ServerLevel level, DamageSource source, float dmg) {
          if (!this.isInvulnerableTo(level, source)) {
 -            dmg = this.getDamageAfterArmorAbsorb(source, dmg);
 -            dmg = this.getDamageAfterMagicAbsorb(source, dmg);
 -            float var10 = Math.max(dmg - this.getAbsorptionAmount(), 0.0F);
 -            this.setAbsorptionAmount(this.getAbsorptionAmount() - (dmg - var10));
 -            float absorbedDamage = dmg - var10;
-+            // CraftBukkit start
-+            if (event.isCancelled()) {
-+                return false;
-+            }
-+
-+            if (source.getEntity() instanceof Player playerAttacker) {
-+                playerAttacker.resetAttackStrengthTicker(); // Moved from Player in order to make the cooldown reset get called after the damage event is fired
-+            }
-+
-+            // Resistance
-+            if (event.getDamage(org.bukkit.event.entity.EntityDamageEvent.DamageModifier.RESISTANCE) < 0) {
-+                float f3 = (float) -event.getDamage(org.bukkit.event.entity.EntityDamageEvent.DamageModifier.RESISTANCE);
-+                if (f3 > 0.0F && f3 < 3.4028235E37F) {
-+                    if (this instanceof ServerPlayer serverPlayer) {
-+                        serverPlayer.awardStat(Stats.DAMAGE_RESISTED, Math.round(f3 * 10.0F));
-+                    } else if (source.getEntity() instanceof ServerPlayer serverPlayerAttacker) {
-+                        serverPlayerAttacker.awardStat(Stats.DAMAGE_DEALT_RESISTED, Math.round(f3 * 10.0F));
-+                    }
-+                }
-+            }
-+
-+            // Apply damage to helmet
-+            if (source.is(DamageTypeTags.DAMAGES_HELMET) && !this.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {
-+                this.hurtHelmet(source, dmg);
-+            }
-+
-+            // Apply damage to armor
-+            if (!source.is(DamageTypeTags.BYPASSES_ARMOR)) {
-+                float armorDamage = (float) (event.getDamage() + event.getDamage(org.bukkit.event.entity.EntityDamageEvent.DamageModifier.BLOCKING) + event.getDamage(org.bukkit.event.entity.EntityDamageEvent.DamageModifier.HARD_HAT));
-+                this.hurtArmor(source, armorDamage);
-+            }
-+
-+            // Apply blocking code
-+            if (event.getDamage(org.bukkit.event.entity.EntityDamageEvent.DamageModifier.BLOCKING) < 0) {
-+                actuallyDoItemBlocking(level, source, (float) -event.getDamage(org.bukkit.event.entity.EntityDamageEvent.DamageModifier.BLOCKING));
-+            }
-+
-+            boolean human = this instanceof Player;
-+            float originalDamage = (float) event.getDamage();
-+            float absorptionModifier = (float) -event.getDamage(org.bukkit.event.entity.EntityDamageEvent.DamageModifier.ABSORPTION);
-+            this.setAbsorptionAmount(Math.max(this.getAbsorptionAmount() - absorptionModifier, 0.0F));
-+            float f2 = absorptionModifier;
-+
-+            if (f2 > 0.0F && f2 < 3.4028235E37F && this instanceof Player player) {
-+                player.awardStat(Stats.DAMAGE_ABSORBED, Math.round(f2 * 10.0F));
-+            }
-+            // CraftBukkit end
-+
-+            // Neo (ImplNote): Keep this in-sync with the equivalent patches in Player#actuallyHurt.
-+            // Neo: Primary damage pipeline hooks. Compute the armor and enchantment reductions against the "original" damage, and then fire LivingDamageEvent.Pre
-+            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ARMOR, this.damageContainers.peek().getNewDamage() - this.getDamageAfterArmorAbsorb(source, this.damageContainers.peek().getNewDamage()));
++            // Youer start - apply ARMOR/MAGIC modifiers and clamp negative damage (a plugin/mod negative value would otherwise refund absorption and heal)
++            float armorAbsorb = this.getDamageAfterArmorAbsorb(source, this.damageContainers.peek().getNewDamage());
++            armorAbsorb = applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.ARMOR, armorAbsorb);
++            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ARMOR, this.damageContainers.peek().getNewDamage() - armorAbsorb);
 +            this.getDamageAfterMagicAbsorb(source, this.damageContainers.peek().getNewDamage());
-+
-+            // LivingDamageEvent.Pre is then able to mutate the container to change the reductions and change the "real" damage that will be inflicted.
-+            float damage = net.neoforged.neoforge.common.CommonHooks.onLivingDamagePre(this, this.damageContainers.peek());
++            this.damageContainers.peek().setNewDamage(applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.MAGIC, this.damageContainers.peek().getNewDamage()));
++            float damage = Math.max(net.neoforged.neoforge.common.CommonHooks.onLivingDamagePre(this, this.damageContainers.peek()), 0.0F);
++            this.damageContainers.peek().setNewDamage(damage);
++            // Youer end
 +            // Throw an exception if someone kills the entity during Pre. Vanilla is going to kill any entity which isDeadOrDying() when it bubbles back up to hurtServer, so it dying early is invalid.
 +            com.google.common.base.Preconditions.checkArgument(!this.dead, "It is invalid to have killed an entity during LivingDamageEvent.Pre. Use LivingIncomingDamageEvent or LivingDamageEvent.Post instead.");
 +
@@ -1423,62 +1413,25 @@
 +            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ABSORPTION, Math.min(this.getAbsorptionAmount(), damage));
 +            float absorbedDamage = Math.min(damage, this.damageContainers.peek().getReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ABSORPTION));
 +            this.setAbsorptionAmount(Math.max(0, this.getAbsorptionAmount() - absorbedDamage));
-+            float var10 = this.damageContainers.peek().getNewDamage();
++            dmg = this.damageContainers.peek().getNewDamage();
              if (absorbedDamage > 0.0F && absorbedDamage < 3.4028235E37F && source.getEntity() instanceof ServerPlayer serverPlayer) {
                  serverPlayer.awardStat(Stats.DAMAGE_DEALT_ABSORBED, Math.round(absorbedDamage * 10.0F));
              }
  
 -            if (var10 != 0.0F) {
-+            // CraftBukkit start
-+            if (var10 > 0 || !human) {
-+                if (human) {
-+                    // PAIL: Be sure to drag all this code from the Player subclass each update.
-+                    ((Player) this).causeFoodExhaustion(source.getFoodExhaustion(), org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.DAMAGED); // CraftBukkit - EntityExhaustionEvent
-+                    if (var10 < 3.4028235E37F) {
-+                        ((Player) this).awardStat(Stats.DAMAGE_TAKEN, Math.round(var10 * 10.0F));
-+                    }
-+                }
-+                // CraftBukkit end
-                 this.getCombatTracker().recordDamage(source, var10);
-                 this.setHealth(this.getHealth() - var10);
+-                this.getCombatTracker().recordDamage(source, var10);
+-                this.setHealth(this.getHealth() - var10);
 -                this.setAbsorptionAmount(this.getAbsorptionAmount() - var10);
-+                // CraftBukkit start
-+                if (!human) {
-+                    this.setAbsorptionAmount(this.getAbsorptionAmount() - var10); // Why is this here? - absorption is already handled
-+                }
-+                // CraftBukkit end
++            // Last thing here, inflict damage to the entity's health, based on how much damage is remaining after absorption has been processed.
++            if (dmg != 0.0F) {
++                this.getCombatTracker().recordDamage(source, dmg);
++                this.setHealth(this.getHealth() - dmg);
                  this.gameEvent(GameEvent.ENTITY_DAMAGE);
-+
-+                // CraftBukkit start
-+                return true;
-+            } else {
-+                // Duplicate triggers if blocking
-+                if (event.getDamage(org.bukkit.event.entity.EntityDamageEvent.DamageModifier.BLOCKING) < 0) {
-+                    if (this instanceof ServerPlayer serverPlayer) {
-+                        CriteriaTriggers.ENTITY_HURT_PLAYER.trigger(serverPlayer, source, var10, originalDamage, true);
-+                        f2 = (float) -event.getDamage(org.bukkit.event.entity.EntityDamageEvent.DamageModifier.BLOCKING);
-+                        if (f2 > 0.0F && f2 < 3.4028235E37F) {
-+                            serverPlayer.awardStat(Stats.DAMAGE_BLOCKED_BY_SHIELD, Math.round(originalDamage * 10.0F));
-+                        }
-+                    }
-+
-+                    if (source.getEntity() instanceof ServerPlayer serverPlayerAttacker) {
-+                        CriteriaTriggers.PLAYER_HURT_ENTITY.trigger(serverPlayerAttacker, this, source, var10, originalDamage, true);
-+                    }
-+
-+                    return true;
-+                } else {
-+                    return originalDamage > 0;
-+                }
-+                // CraftBukkit end
              }
-+
 +            // Neo: Now we go back to hurtServer, where we'll update various metadata fields, process the side effects of damage (i.e. killing the entity), and firing LivingDamageEvent.Post
          }
-+        return false; // CraftBukkit
      }
  
-     public CombatTracker getCombatTracker() {
 @@ -1939,8 +_,18 @@
      }
  

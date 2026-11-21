@@ -5,6 +5,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.mohistmc.youer.neoforge.EntityClassLookup;
 import com.mojang.logging.LogUtils;
 import io.papermc.paper.datacomponent.DataComponentType;
 import io.papermc.paper.entity.LookAnchor;
@@ -34,6 +35,7 @@ import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
+import net.minecraft.world.entity.projectile.hurtingprojectile.Fireball;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.level.storage.ValueInput;
@@ -134,13 +136,18 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         CraftEntityTypes.EntityTypeData<?, T> entityTypeData = CraftEntityTypes.getEntityTypeData(CraftEntityType.minecraftToBukkit(entity.getType()));
 
         if (entityTypeData != null) {
-            return (CraftEntity) entityTypeData.convertFunction().apply(server, entity);
+            try {
+                return (CraftEntity) entityTypeData.convertFunction().apply(server, entity);
+            } catch (ClassCastException e) {
+                if (entity instanceof Fireball && entity.getType() == net.minecraft.world.entity.EntityType.SMALL_FIREBALL) {
+                    return new CraftFireball(server, (Fireball) entity);
+                }
+            }
         }
 
-        // Youer - mod compat: entity types registered by mods have no Bukkit EntityType constant and therefore no
-        // CraftEntityTypes data either. Wrap them in a generic CraftEntity instead of aborting the server with an
-        // AssertionError while a structure or a mod spawns one of them.
-        return new CraftModdedEntity(server, entity);
+        // Youer - mod compat: 模组实体类型没有 Bukkit EntityType 常量，按父类链找最近的包装器，
+        // 这样模组生物仍是 LivingEntity/Mob，CreatureSpawnEvent 等事件的强转不会崩
+        return EntityClassLookup.getEntity(server, entity);
     }
 
     public Entity getHandle() {

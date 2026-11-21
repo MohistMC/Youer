@@ -6,7 +6,7 @@ import org.bukkit.entity.SpawnCategory;
 public class CraftSpawnCategory {
 
     public static boolean isValidForLimits(SpawnCategory spawnCategory) {
-        return spawnCategory != null && spawnCategory != SpawnCategory.MISC;
+        return spawnCategory != null && spawnCategory.ordinal() < SpawnCategory.MISC.ordinal(); // mod categories are injected after MISC
     }
 
     public static String getConfigNameSpawnLimit(SpawnCategory spawnCategory) {
@@ -53,7 +53,7 @@ public class CraftSpawnCategory {
             case WATER_AMBIENT -> SpawnCategory.WATER_AMBIENT;
             case UNDERGROUND_WATER_CREATURE -> SpawnCategory.WATER_UNDERGROUND_CREATURE;
             case MISC -> SpawnCategory.MISC;
-            default -> throw new UnsupportedOperationException("Unknown EnumCreatureType " + enumCreatureType + " for SpawnCategory");
+            default -> SpawnCategory.valueOf(enumCreatureType.name()); // injected by NeoForgeInjectBukkit.loadSpawnCategory
         };
     }
 

@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
+import net.minecraft.util.Mth;
 import org.bukkit.Material;
 import org.bukkit.WorldBorder;
 import org.bukkit.damage.DamageSource;
@@ -124,6 +125,12 @@ public class EntityDamageEvent extends EntityEvent implements Cancellable {
     public boolean isApplicable(@NotNull DamageModifier type) throws IllegalArgumentException {
         Preconditions.checkArgument(type != null, "Cannot have null DamageModifier");
         return this.modifiers.containsKey(type);
+    }
+
+    // Youer - true if the pipeline's current reduction still matches the vanilla modifier prediction from BASE;
+    // when a mod hook already changed the value, the caller keeps the actual delta instead of the stale plugin modifier.
+    public boolean isStillOriginal(EntityDamageEvent.DamageModifier modifier, double last, double current) {
+        return Math.abs((current - last) - modifierFunctions.get(modifier).apply(last)) < Mth.EPSILON;
     }
 
     /**
