@@ -26,10 +26,16 @@ public class BlockMultiPlaceEvent extends BlockPlaceEvent {
 
 
     public BlockMultiPlaceEvent(@NotNull List<BlockState> states, @NotNull Block clicked, @NotNull ItemStack itemInHand, @NotNull Player thePlayer, boolean canBuild, @NotNull org.bukkit.inventory.EquipmentSlot hand) {
-        super(states.get(0).getBlock(), states.get(0), clicked, itemInHand, thePlayer, canBuild, hand);
-        this.states = ImmutableList.copyOf(states);
+        this(states.get(0).getBlock(), states, clicked, itemInHand, thePlayer, canBuild, hand);
         // Paper end
     }
+
+    // Youer start - the placed block and the blocks it replaced are different states
+    public BlockMultiPlaceEvent(@NotNull Block placedBlock, @NotNull List<BlockState> states, @NotNull Block clicked, @NotNull ItemStack itemInHand, @NotNull Player thePlayer, boolean canBuild, @NotNull org.bukkit.inventory.EquipmentSlot hand) {
+        super(placedBlock, states.get(0), clicked, itemInHand, thePlayer, canBuild, hand);
+        this.states = ImmutableList.copyOf(states);
+    }
+    // Youer end
 
     /**
      * Gets a list of blockstates for all blocks which were replaced by the

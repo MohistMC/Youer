@@ -135,8 +135,12 @@ public class BlockEventDispatcher {
             if (direction != null) {
                 InteractionHand hand = event.getPlaceEventHand();
                 List<org.bukkit.block.BlockState> placedBlocks = new ArrayList<>(event.getReplacedBlockSnapshots().size());
+                List<org.bukkit.block.BlockState> replacedStates = new ArrayList<>(event.getReplacedBlockSnapshots().size());
                 for (BlockSnapshot snapshot : event.getReplacedBlockSnapshots()) {
+                    // the placed block is read from the live position, a bed-like block keeps its state in a block entity there,
+                    // the replaced one is built from the state recorded in the snapshot and must not touch the live block entity
                     placedBlocks.add(MohistBlockSnapshot.fromBlockSnapshot(snapshot, true).getState());
+                    replacedStates.add(CraftBlockStates.getBlockState(serverLevel.getWorld(), snapshot.getPos(), snapshot.getState(), null));
                 }
                 CraftBlock againstBlock = CraftBlock.at(event.getLevel(), event.getPos().relative(direction.getOpposite()));
                 org.bukkit.inventory.ItemStack bukkitStack;
@@ -156,7 +160,7 @@ public class BlockEventDispatcher {
                         break;
                     }
                 }
-                BlockPlaceEvent placeEvent = new BlockMultiPlaceEvent(placedBlocks, againstBlock, bukkitStack, player, canBuild, equipmentSlot);
+                BlockPlaceEvent placeEvent = new BlockMultiPlaceEvent(placedBlocks.get(0).getBlock(), replacedStates, againstBlock, bukkitStack, player, canBuild, equipmentSlot);
                 // Paper end
                 Bukkit.getPluginManager().callEvent(placeEvent);
                 if (event.isCanceled()) {
