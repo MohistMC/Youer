@@ -56,6 +56,20 @@ public interface CraftRecipe extends Recipe {
             return RecipeChoice.empty(); // Paper - null breaks API contracts
         }
 
+        // Youer - mod items map to Material.AIR in Bukkit, which RecipeChoice rejects
+        List<net.minecraft.world.item.ItemStack> valid = new ArrayList<>(items.length);
+        for (net.minecraft.world.item.ItemStack item : items) {
+            if (item.isEmpty()) continue;
+            org.bukkit.Material material = CraftItemType.minecraftToBukkit(item.getItem());
+            if (material != null && !material.isAir() && material.isItem()) {
+                valid.add(item);
+            }
+        }
+        if (valid.isEmpty()) {
+            return RecipeChoice.empty();
+        }
+        items = valid.toArray(new net.minecraft.world.item.ItemStack[0]);
+
         if (list.exact) {
             List<org.bukkit.inventory.ItemStack> choices = new ArrayList<>(items.length);
             for (net.minecraft.world.item.ItemStack i : items) {
