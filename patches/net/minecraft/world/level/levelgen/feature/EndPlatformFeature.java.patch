@@ -1,11 +1,10 @@
 --- a/net/minecraft/world/level/levelgen/feature/EndPlatformFeature.java
 +++ b/net/minecraft/world/level/levelgen/feature/EndPlatformFeature.java
-@@ -1,11 +_,17 @@
+@@ -1,11 +_,16 @@
  package net.minecraft.world.level.levelgen.feature;
  
  import com.mojang.serialization.Codec;
 +import java.util.List;
-+import java.util.concurrent.atomic.AtomicReference;
  import net.minecraft.core.BlockPos;
 +import net.minecraft.world.entity.Entity;
  import net.minecraft.world.level.ServerLevelAccessor;
@@ -18,19 +17,25 @@
  
  public class EndPlatformFeature extends Feature<NoneFeatureConfiguration> {
      public EndPlatformFeature(Codec<NoneFeatureConfiguration> p_352966_) {
-@@ -18,7 +_,11 @@
+@@ -18,7 +_,17 @@
          return true;
      }
  
-+    private static final AtomicReference<Entity> createEndPlatform$entity = new AtomicReference<>();
++    // CraftBukkit start - the entity that triggered the platform, kept per thread so the worldgen thread never fires the event
++    private static final ThreadLocal<Entity> createEndPlatform$entity = new ThreadLocal<>();
++    // CraftBukkit end
 +
      public static void createEndPlatform(ServerLevelAccessor p_352905_, BlockPos p_352961_, boolean p_352931_) {
++        // CraftBukkit start - take the entity that triggered the platform, so a nested worldgen call on this thread never fires the event
++        Entity entity = createEndPlatform$entity.get();
++        createEndPlatform$entity.remove();
++        // CraftBukkit end
 +        BlockStateListPopulator blockList = new BlockStateListPopulator(p_352905_);
 +        // CraftBukkit end
          BlockPos.MutableBlockPos blockpos$mutableblockpos = p_352961_.mutable();
  
          for (int i = -2; i <= 2; i++) {
-@@ -26,15 +_,40 @@
+@@ -26,15 +_,45 @@
                  for (int k = -1; k < 3; k++) {
                      BlockPos blockpos = blockpos$mutableblockpos.set(p_352961_).move(j, k, i);
                      Block block = k == -1 ? Blocks.OBSIDIAN : Blocks.AIR;
@@ -51,9 +56,10 @@
          }
 +
 +        // CraftBukkit start
-+        if (createEndPlatform$entity.get() != null) {
++        // The event may only be fired on the primary thread; end island world generation runs on worker threads
++        if (entity != null && p_352905_.getLevel().getCraftServer().isPrimaryThread()) {
 +            org.bukkit.World bworld = p_352905_.getLevel().getWorld();
-+            PortalCreateEvent portalEvent = new PortalCreateEvent((List<BlockState>) (List) blockList.getList(), bworld, createEndPlatform$entity.getAndSet(null).getBukkitEntity(), org.bukkit.event.world.PortalCreateEvent.CreateReason.END_PLATFORM);
++            PortalCreateEvent portalEvent = new PortalCreateEvent((List<BlockState>) (List) blockList.getList(), bworld, entity.getBukkitEntity(), org.bukkit.event.world.PortalCreateEvent.CreateReason.END_PLATFORM);
 +
 +            p_352905_.getLevel().getCraftServer().getPluginManager().callEvent(portalEvent);
 +            if (portalEvent.isCancelled()) {
@@ -71,6 +77,10 @@
 +
 +    public static void createEndPlatform(ServerLevelAccessor p_352905_, BlockPos p_352961_, boolean p_352931_, net.minecraft.world.entity.Entity entity) {
 +        createEndPlatform$entity.set(entity);
-+        createEndPlatform(p_352905_, p_352961_, p_352931_);
++        try {
++            createEndPlatform(p_352905_, p_352961_, p_352931_);
++        } finally {
++            createEndPlatform$entity.remove();
++        }
      }
  }

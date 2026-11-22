@@ -1,7 +1,6 @@
 package com.mohistmc.youer.eventhandler.dispatcher;
 
 import com.google.common.collect.Lists;
-import com.mohistmc.youer.bukkit.block.MohistBlockSnapshot;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.core.BlockPos;
@@ -99,7 +98,7 @@ public class BlockEventDispatcher {
             Direction direction = event.getPlaceEventDirection();
             if (direction != null) {
                 InteractionHand hand = event.getPlaceEventHand();
-                CraftBlock placedBlock = MohistBlockSnapshot.fromBlockSnapshot(event.getBlockSnapshot(), true);
+                CraftBlock placedBlock = CraftBlock.at(event.getLevel(), event.getPos());
                 CraftBlock againstBlock = CraftBlock.at(event.getLevel(), event.getPos().relative(direction.getOpposite()));
                 org.bukkit.inventory.ItemStack bukkitStack;
                 org.bukkit.inventory.EquipmentSlot bukkitHand;
@@ -139,7 +138,7 @@ public class BlockEventDispatcher {
                 for (BlockSnapshot snapshot : event.getReplacedBlockSnapshots()) {
                     // the placed block is read from the live position, a bed-like block keeps its state in a block entity there,
                     // the replaced one is built from the state recorded in the snapshot and must not touch the live block entity
-                    placedBlocks.add(MohistBlockSnapshot.fromBlockSnapshot(snapshot, true).getState());
+                    placedBlocks.add(CraftBlock.at(serverLevel, snapshot.getPos()).getState());
                     replacedStates.add(CraftBlockStates.getBlockState(serverLevel.getWorld(), snapshot.getPos(), snapshot.getState(), null));
                 }
                 CraftBlock againstBlock = CraftBlock.at(event.getLevel(), event.getPos().relative(direction.getOpposite()));
