@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/component/ItemContainerContents.java
 +++ b/net/minecraft/world/item/component/ItemContainerContents.java
-@@ -146,6 +_,35 @@
+@@ -146,11 +_,41 @@
          return this.hashCode;
      }
  
@@ -34,5 +34,12 @@
 +    }
 +
      static record Slot(int index, ItemStack item) {
++        // drop invalid items (e.g. removed mod ids) instead of failing the whole container
          public static final Codec<ItemContainerContents.Slot> CODEC = RecordCodecBuilder.create(
              p_331695_ -> p_331695_.group(
+                         Codec.intRange(0, 255).fieldOf("slot").forGetter(ItemContainerContents.Slot::index),
+-                        ItemStack.CODEC.fieldOf("item").forGetter(ItemContainerContents.Slot::item)
++                        ItemStack.CODEC.fieldOf("item").orElse(e -> e, ItemStack.EMPTY).forGetter(ItemContainerContents.Slot::item)
+                     )
+                     .apply(p_331695_, ItemContainerContents.Slot::new)
+         );
