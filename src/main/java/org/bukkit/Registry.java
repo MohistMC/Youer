@@ -4,10 +4,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -561,10 +563,17 @@ public interface Registry<T extends Keyed> extends Iterable<T> {
 
         private ImmutableMap<NamespacedKey, T> buildMap(@NotNull Class<T> type, @NotNull Predicate<T> predicate) {
             ImmutableMap.Builder<NamespacedKey, T> builder = ImmutableMap.builder();
+            Set<NamespacedKey> seen = new HashSet<>();
 
             for (T entry : type.getEnumConstants()) {
                 if (predicate.test(entry)) {
-                    builder.put(entry.getKey(), entry);
+                    NamespacedKey key = entry.getKey();
+                    // modded blocks and their items share one key, dropping the whole registry
+                    // would hide every modded material from plugins
+                    if (!seen.add(key)) {
+                        continue;
+                    }
+                    builder.put(key, entry);
                 }
             }
 

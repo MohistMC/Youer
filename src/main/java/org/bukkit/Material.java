@@ -5655,6 +5655,27 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
     }
 
     // create every missing constant in one enum grow instead of one array copy per material
+    public static void addMaterials(List<String> materialNames, List<List<Object>> args, List<ResourceLocation> locations) {
+        // modded materials must sit before the legacy block so every non-legacy index stays
+        // below a table sized from the non-legacy view
+        List<Material> added = EnumBatcher.addAll(Material.class, materialNames,
+                List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), args, LEGACY_AIR.ordinal());
+        if (added == null) {
+            return;
+        }
+        for (int i = 0; i < added.size(); i++) {
+            Material material = added.get(i);
+            BY_NAME.put(materialNames.get(i), material);
+            // the constructor keys new constants as minecraft:<lowercased name>, which makes plugins
+            // treat modded materials as vanilla; the real registry key has to be written here
+            ResourceLocation location = locations.get(i);
+            if (location != null) {
+                material.key = CraftNamespacedKey.fromMinecraft(location);
+                BY_KEY.put(location.toString(), material);
+            }
+        }
+    }
+
     public static void addMaterials(List<String> materialNames, List<List<Object>> args) {
         List<Material> added = EnumBatcher.addAll(Material.class, materialNames,
                 List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), args);
@@ -5670,7 +5691,7 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
         // reuse an existing entry instead of registering a duplicate enum constant
         Material material = BY_NAME.get(materialName);
         if (material == null) {
-            material = EnumBatcher.add(Material.class, materialName, List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, stack, isBlock, isItem));
+            material = EnumBatcher.addAt(Material.class, materialName, List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, stack, isBlock, isItem), LEGACY_AIR.ordinal());
             if (material == null) return null;
         }
         if (isBlock) {

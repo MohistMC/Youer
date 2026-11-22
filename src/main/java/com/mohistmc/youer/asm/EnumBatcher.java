@@ -53,6 +53,15 @@ public final class EnumBatcher {
      * @return the created constants, or null when the batch could not be applied (caller should fall back)
      */
     public static <T> List<T> addAll(Class<T> clazz, List<String> names, List<Class<?>> paramTypes, List<List<Object>> args) {
+        return addAll(clazz, names, paramTypes, args, -1);
+    }
+
+    /**
+     * @param insertAt index the new constants are placed at; -1 appends. Constants after the
+     *                 insertion point get their {@link Enum#ordinal()} shifted so it still
+     *                 matches the array index, which plugins index tables by.
+     */
+    public static <T> List<T> addAll(Class<T> clazz, List<String> names, List<Class<?>> paramTypes, List<List<Object>> args, int insertAt) {
         if (names.isEmpty()) {
             return List.of();
         }
@@ -65,8 +74,9 @@ public final class EnumBatcher {
             Object base = Unsafe.staticFieldBase(values);
             long offset = Unsafe.staticFieldOffset(values);
             Object[] old = (Object[]) Unsafe.getObject(base, offset);
+            int at = insertAt < 0 ? old.length : Math.max(0, Math.min(insertAt, old.length));
             Object[] grown = (Object[]) Array.newInstance(clazz, old.length + names.size());
-            System.arraycopy(old, 0, grown, 0, old.length);
+            System.arraycopy(old, 0, grown, 0, at);
 
             MethodHandle ctor = constructor(clazz, paramTypes);
             List<T> added = new ArrayList<>(names.size());
@@ -74,20 +84,50 @@ public final class EnumBatcher {
             for (int i = 0; i < names.size(); i++) {
                 callArgs.clear();
                 callArgs.add(normalize(names.get(i)));
-                callArgs.add(old.length + i);
+                callArgs.add(at + i);
                 callArgs.addAll(args.get(i));
                 T instance = clazz.cast(ctor.invokeWithArguments(callArgs));
-                grown[old.length + i] = instance;
+                grown[at + i] = instance;
                 added.add(instance);
             }
+            System.arraycopy(old, at, grown, at + names.size(), old.length - at);
 
             Unsafe.putObject(base, offset, grown);
+            shiftOrdinals(old, at, names.size());
             cleanEnumCache(clazz);
             return added;
         } catch (Throwable t) {
             Implementer.LOGGER.warn("Batch enum injection failed for {}, falling back", clazz, t);
             return null;
         }
+    }
+
+    private static long enumOrdinalOffset = -2;
+
+    // the tail of the values array moved right, so the moved constants need their ordinal rewritten
+    private static void shiftOrdinals(Object[] old, int from, int shift) {
+        if (shift == 0 || from >= old.length) {
+            return;
+        }
+        if (enumOrdinalOffset == -2) {
+            try {
+                enumOrdinalOffset = Unsafe.getUnsafe().objectFieldOffset(Enum.class.getDeclaredField("ordinal"));
+            } catch (Throwable t) {
+                enumOrdinalOffset = -1;
+                Implementer.LOGGER.warn("Cannot shift enum ordinals", t);
+            }
+        }
+        if (enumOrdinalOffset < 0) {
+            return;
+        }
+        for (int i = from; i < old.length; i++) {
+            Unsafe.getUnsafe().putInt(old[i], enumOrdinalOffset, i + shift);
+        }
+    }
+
+    public static <T> T addAt(Class<T> clazz, String name, List<Class<?>> paramTypes, List<Object> args, int insertAt) {
+        List<T> added = addAll(clazz, List.of(name), paramTypes, List.of(args), insertAt);
+        return added == null ? null : added.getFirst();
     }
 
     // names are usually normalized by the caller already; skip the regex round-trip in that case

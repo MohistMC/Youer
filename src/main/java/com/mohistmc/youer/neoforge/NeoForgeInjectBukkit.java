@@ -132,6 +132,7 @@ public class NeoForgeInjectBukkit {
     private static void preCreateItemMaterials(Registry<Item> registry) {
         List<String> names = new ArrayList<>();
         List<List<Object>> args = new ArrayList<>();
+        List<ResourceLocation> locations = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         for (Item item : registry) {
             ResourceLocation resourceLocation = registry.getKey(item);
@@ -139,14 +140,15 @@ public class NeoForgeInjectBukkit {
             if (!isMod && CraftMagicNumbers.getMaterial(item) != null) {
                 continue;
             }
-            addPendingMaterial(names, args, seen, getMaterialName(resourceLocation, isMod), Item.getId(item), item.getDefaultInstance().getMaxStackSize(), false, true);
+            addPendingMaterial(names, args, locations, seen, getMaterialName(resourceLocation, isMod), Item.getId(item), item.getDefaultInstance().getMaxStackSize(), false, true, resourceLocation);
         }
-        Material.addMaterials(names, args);
+        Material.addMaterials(names, args, locations);
     }
 
     private static void preCreateBlockMaterials(Registry<Block> registry) {
         List<String> names = new ArrayList<>();
         List<List<Object>> args = new ArrayList<>();
+        List<ResourceLocation> locations = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         for (Block block : registry) {
             ResourceLocation resourceLocation = registry.getKey(block);
@@ -155,17 +157,18 @@ public class NeoForgeInjectBukkit {
                 continue;
             }
             int id = Item.getId(block.asItem());
-            addPendingMaterial(names, args, seen, getMaterialName(resourceLocation, isMod), id, Item.byId(id).getDefaultInstance().getMaxStackSize(), true, false);
+            addPendingMaterial(names, args, locations, seen, getMaterialName(resourceLocation, isMod), id, Item.byId(id).getDefaultInstance().getMaxStackSize(), true, false, resourceLocation);
         }
-        Material.addMaterials(names, args);
+        Material.addMaterials(names, args, locations);
     }
 
-    private static void addPendingMaterial(List<String> names, List<List<Object>> args, Set<String> seen, String name, int id, int stack, boolean isBlock, boolean isItem) {
+    private static void addPendingMaterial(List<String> names, List<List<Object>> args, List<ResourceLocation> locations, Set<String> seen, String name, int id, int stack, boolean isBlock, boolean isItem, ResourceLocation resourceLocation) {
         if (Material.BY_NAME.containsKey(name) || !seen.add(name)) {
             return;
         }
         names.add(name);
         args.add(List.of(id, stack, isBlock, isItem));
+        locations.add(resourceLocation);
     }
 
     public static void addEnumMaterialsInBlocks() {
@@ -456,10 +459,11 @@ public class NeoForgeInjectBukkit {
                     registry.reload();
                 }
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
+            Youer.LOGGER.error("Failed to reload bukkit registries", t);
         }
     }
-    
+
     public static void debug(String message, Object p0) {
         if (Youer.DEBUG) Youer.LOGGER.debug(message, p0);
     }
