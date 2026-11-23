@@ -26,15 +26,17 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -71,6 +73,8 @@ import java.util.zip.ZipInputStream;
 public final class ModuleConflictResolver {
 
     private static final String JARJAR_PREFIX = "META-INF/jarjar/";
+    private static final String JARJAR_METADATA = JARJAR_PREFIX + "metadata.json";
+    private static final Pattern JARJAR_PATH = Pattern.compile("\"path\"\\s*:\\s*\"([^\"]+)\"");
     private static final String LEGACY_CLASS_PATH = "legacyClassPath";
     private static final int MAX_NESTED_DEPTH = 5;
     private static final long MAX_NESTED_BYTES = 64L * 1024 * 1024;
@@ -274,18 +278,22 @@ public final class ModuleConflictResolver {
 
     private static void collectNestedModules(Path mod, List<JarModule> modules) {
         try (ZipFile zip = new ZipFile(mod.toFile())) {
-            List<ZipEntry> nested = new ArrayList<>();
-            Enumeration<? extends ZipEntry> entries = zip.entries();
-            while (entries.hasMoreElements()) {
-                ZipEntry entry = entries.nextElement();
-                if (isNestedJar(entry.getName())) {
-                    nested.add(entry);
-                }
+            ZipEntry metadata = zip.getEntry(JARJAR_METADATA);
+            if (metadata == null) {
+                return;
             }
-            for (ZipEntry entry : nested) {
-                byte[] bytes = read(zip, entry);
-                if (bytes != null) {
-                    collectNestedModules(bytes, entry.getName(), modules, 1);
+            byte[] bytes = read(zip, metadata);
+            if (bytes == null) {
+                return;
+            }
+            for (String path : declaredJars(new String(bytes, StandardCharsets.UTF_8))) {
+                ZipEntry entry = zip.getEntry(path);
+                if (entry == null) {
+                    continue;
+                }
+                byte[] jar = read(zip, entry);
+                if (jar != null) {
+                    collectNestedModules(jar, path, modules, 1);
                 }
             }
         } catch (IOException e) {
@@ -306,19 +314,43 @@ public final class ModuleConflictResolver {
         if (depth >= MAX_NESTED_DEPTH) {
             return;
         }
+        Set<String> declared = new LinkedHashSet<>();
+        Map<String, byte[]> jars = new HashMap<>();
         try (ZipInputStream nested = new ZipInputStream(new ByteArrayInputStream(jar))) {
             ZipEntry entry;
             while ((entry = nested.getNextEntry()) != null) {
-                if (isNestedJar(entry.getName())) {
+                if (JARJAR_METADATA.equals(entry.getName())) {
                     byte[] bytes = read(nested);
                     if (bytes != null) {
-                        collectNestedModules(bytes, entry.getName(), modules, depth + 1);
+                        declared.addAll(declaredJars(new String(bytes, StandardCharsets.UTF_8)));
+                    }
+                } else if (isNestedJar(entry.getName())) {
+                    byte[] bytes = read(nested);
+                    if (bytes != null) {
+                        jars.put(entry.getName(), bytes);
                     }
                 }
             }
         } catch (IOException e) {
             // an unreadable nested jar simply contributes no module
         }
+        for (Map.Entry<String, byte[]> entry : jars.entrySet()) {
+            if (declared.contains(entry.getKey())) {
+                collectNestedModules(entry.getValue(), entry.getKey(), modules, depth + 1);
+            }
+        }
+    }
+
+    private static Set<String> declaredJars(String metadata) {
+        Set<String> paths = new LinkedHashSet<>();
+        Matcher matcher = JARJAR_PATH.matcher(metadata);
+        while (matcher.find()) {
+            String path = matcher.group(1);
+            if (path.endsWith(".jar")) {
+                paths.add(path);
+            }
+        }
+        return paths;
     }
 
     private static boolean isNestedJar(String entryName) {
