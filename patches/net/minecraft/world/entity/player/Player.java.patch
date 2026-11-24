@@ -484,7 +484,7 @@
                  if (this.useItem.isEmpty()) {
                      if (interactionhand == InteractionHand.MAIN_HAND) {
                          this.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
-@@ -952,17 +_,25 @@
+@@ -952,16 +_,25 @@
      @Override
      protected void actuallyHurt(DamageSource p_36312_, float p_36313_) {
          if (!this.isInvulnerableTo(p_36312_)) {
@@ -511,11 +511,10 @@
              }
  
              if (f1 != 0.0F) {
--                this.causeFoodExhaustion(p_36312_.getFoodExhaustion());
-+                this.causeFoodExhaustion(p_36312_.getFoodExhaustion(), org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.DAMAGED); // CraftBukkit - EntityExhaustionEvent
++                this.exhaustionReason(org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.DAMAGED); // CraftBukkit - EntityExhaustionEvent // Spigot
+                 this.causeFoodExhaustion(p_36312_.getFoodExhaustion());
                  this.getCombatTracker().recordDamage(p_36312_, f1);
                  this.setHealth(this.getHealth() - f1);
-                 if (f1 < 3.4028235E37F) {
 @@ -970,7 +_,10 @@
                  }
  
@@ -758,7 +757,7 @@
                                  if (itemstack == this.getMainHandItem()) {
                                      this.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
                                  } else {
-@@ -1298,19 +_,25 @@
+@@ -1298,19 +_,26 @@
                          if (p_36347_ instanceof LivingEntity) {
                              float f8 = f6 - ((LivingEntity)p_36347_).getHealth();
                              this.awardStat(Stats.DAMAGE_DEALT, Math.round(f8 * 10.0F));
@@ -771,7 +770,8 @@
                          }
  
 -                        this.causeFoodExhaustion(0.1F);
-+                        this.causeFoodExhaustion(this.level().spigotConfig.combatExhaustion, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.ATTACK); // CraftBukkit - EntityExhaustionEvent // Spigot
++                        this.exhaustionReason(org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.ATTACK); // CraftBukkit - EntityExhaustionEvent // Spigot
++                        this.causeFoodExhaustion(this.level().spigotConfig.combatExhaustion);
                      } else {
                          this.level()
                              .playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.PLAYER_ATTACK_NODAMAGE, this.getSoundSource(), 1.0F, 1.0F);
@@ -852,15 +852,17 @@
          super.stopSleeping();
          if (this.level() instanceof ServerLevel && p_36227_) {
              ((ServerLevel)this.level()).updateSleepingPlayerList();
-@@ -1452,9 +_,9 @@
+@@ -1452,9 +_,11 @@
          super.jumpFromGround();
          this.awardStat(Stats.JUMP);
          if (this.isSprinting()) {
 -            this.causeFoodExhaustion(0.2F);
-+            this.causeFoodExhaustion(this.level().spigotConfig.jumpSprintExhaustion, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.JUMP_SPRINT); // CraftBukkit - EntityExhaustionEvent // Spigot
++            this.exhaustionReason(org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.JUMP_SPRINT); // CraftBukkit - EntityExhaustionEvent // Spigot
++            this.causeFoodExhaustion(this.level().spigotConfig.jumpSprintExhaustion);
          } else {
 -            this.causeFoodExhaustion(0.05F);
-+            this.causeFoodExhaustion(this.level().spigotConfig.jumpWalkExhaustion, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.JUMP); // CraftBukkit - EntityExhaustionEvent // Spigot
++            this.exhaustionReason(org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.JUMP); // CraftBukkit - EntityExhaustionEvent // Spigot
++            this.causeFoodExhaustion(this.level().spigotConfig.jumpWalkExhaustion);
          }
      }
  
